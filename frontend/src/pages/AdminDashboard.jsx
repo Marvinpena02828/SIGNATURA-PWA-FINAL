@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiUsers, FiFileText, FiTrendingUp, FiLogOut, FiMenu, FiX, FiTrash2, FiShieldAlert, FiLock } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiTrendingUp, FiLogOut, FiMenu, FiX, FiTrash2, FiAlertCircle, FiLock } from 'react-icons/fi';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
             { id: 'users', icon: FiUsers, label: 'Users' },
             { id: 'documents', icon: FiFileText, label: 'Documents' },
             { id: 'sharing', icon: FiFileText, label: 'Shares' },
-            { id: 'security', icon: FiShieldAlert, label: 'Security' },
+            { id: 'security', icon: FiAlertCircle, label: 'Security' },
           ].map(({ id, icon: Icon, label }) => (
             <button
               key={id}
