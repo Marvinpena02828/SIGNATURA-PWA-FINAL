@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiEye } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiEye, FiShare2, FiQrCode, FiCopy, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -14,6 +14,10 @@ export default function IssuerDashboard() {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('degree');
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [qrCode, setQrCode] = useState(null);
+  const [shareLink, setShareLink] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     if (role !== 'issuer') {
@@ -32,6 +36,7 @@ export default function IssuerDashboard() {
       }
     } catch (err) {
       console.error('Error fetching documents:', err);
+      toast.error('Failed to load documents');
     } finally {
       setLoading(false);
     }
@@ -75,12 +80,65 @@ export default function IssuerDashboard() {
     }
   };
 
+  const generateQRCode = async (doc) => {
+    try {
+      setSelectedDoc(doc);
+      const res = await fetch('/api/qrcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: doc.id,
+          documentHash: doc.document_hash,
+          issuerEmail: user?.email,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setQrCode(data.qrCode);
+        toast.success('QR Code generated!');
+      }
+    } catch (err) {
+      toast.error('Failed to generate QR code');
+    }
+  };
+
+  const generateShareLink = async (doc) => {
+    try {
+      setSelectedDoc(doc);
+      const res = await fetch('/api/sharing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: doc.id,
+          ownerId: user?.id,
+          recipientEmail: 'verifier@example.com',
+          permissions: ['view'],
+          expiresIn: 7 * 24 * 60 * 60 * 1000, // 7 days
+          requireOTP: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setShareLink(data.data.shareLink);
+        toast.success('Share link created!');
+      }
+    } catch (err) {
+      toast.error('Failed to generate share link');
+    }
+  };
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleLogout = async () => {
     try {
-      // Clear auth from store
       clearAuth();
-      
-      // Small delay to ensure state is cleared
       setTimeout(() => {
         navigate('/');
         toast.success('Logged out successfully!');
@@ -157,6 +215,10 @@ export default function IssuerDashboard() {
                 <option value="license">License</option>
                 <option value="government-id">Government ID</option>
                 <option value="school-id">School ID</option>
+                <option value="marriage-certificate">Marriage Certificate</option>
+                <option value="baptismal-certificate">Baptismal Certificate</option>
+                <option value="insurance-id">Insurance ID</option>
+                <option value="professional-certification">Professional Certification</option>
               </select>
             </div>
             <button
@@ -170,7 +232,7 @@ export default function IssuerDashboard() {
           </form>
         </div>
 
-        {/* Documents List */}
+        {/* Documents Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -204,8 +266,26 @@ export default function IssuerDashboard() {
                     <td className="px-6 py-4 text-gray-600 text-sm">
                       {new Date(doc.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">
-                      <button className="text-signatura-red hover:bg-red-50 p-2 rounded transition">
+                    <td className="px-6 py-4 flex gap-2">
+                      <button
+                        onClick={() => generateQRCode(doc)}
+                        className="text-blue-600 hover:bg-blue-50 p-2 rounded transition"
+                        title="Generate QR Code"
+                      >
+                        <FiQrCode size={18} />
+                      </button>
+                      <button
+                        onClick={() => generateShareLink(doc)}
+                        className="text-signatura-red hover:bg-red-50 p-2 rounded transition"
+                        title="Generate Share Link"
+                      >
+                        <FiShare2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => setSelectedDoc(doc)}
+                        className="text-purple-600 hover:bg-purple-50 p-2 rounded transition"
+                        title="View Details"
+                      >
                         <FiEye size={18} />
                       </button>
                     </td>
@@ -215,6 +295,52 @@ export default function IssuerDashboard() {
             </tbody>
           </table>
         </div>
+
+        {/* QR Code Modal */}
+        {qrCode && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+              <h3 className="text-lg font-bold text-signatura-dark mb-4">Document QR Code</h3>
+              <img src={qrCode} alt="QR Code" className="w-full mb-4 border border-gray-200 rounded" />
+              <p className="text-sm text-gray-600 mb-4">
+                Share this QR code for instant verification
+              </p>
+              <button
+                onClick={() => setQrCode(null)}
+                className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Share Link Modal */}
+        {shareLink && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+              <h3 className="text-lg font-bold text-signatura-dark mb-4">Share Link</h3>
+              <div className="bg-gray-50 p-4 rounded-lg mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-600 truncate flex-1">{shareLink}</p>
+                <button
+                  onClick={() => copyToClipboard(shareLink, 'share')}
+                  className="ml-2 text-signatura-red hover:text-signatura-accent"
+                >
+                  {copiedId === 'share' ? <FiCheck size={18} /> : <FiCopy size={18} />}
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Link expires in 7 days. Recipients need OTP to verify.
+              </p>
+              <button
+                onClick={() => setShareLink(null)}
+                className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
