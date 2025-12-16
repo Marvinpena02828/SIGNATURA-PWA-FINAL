@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { supabase } from '../utils/supabase';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import { FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
@@ -28,7 +27,7 @@ export default function AllLoginPages() {
       title: 'Issuer Portal',
       subtitle: 'Issue and manage credentials',
       icon: FiBriefcase,
-      color: 'blue',
+      color: 'red',
       demoEmail: 'issuer@demo.com',
       demoPass: 'Demo@1234',
     },
@@ -36,7 +35,7 @@ export default function AllLoginPages() {
       title: 'Owner Portal',
       subtitle: 'Manage your documents',
       icon: FiUser,
-      color: 'green',
+      color: 'red',
       demoEmail: 'owner@demo.com',
       demoPass: 'Demo@1234',
     },
@@ -44,7 +43,7 @@ export default function AllLoginPages() {
       title: 'Admin Portal',
       subtitle: 'System administration',
       icon: FiShield,
-      color: 'purple',
+      color: 'red',
       demoEmail: 'admin@signatura.com',
       demoPass: 'Admin@1234',
     },
@@ -52,6 +51,33 @@ export default function AllLoginPages() {
 
   const config = roleConfig[role] || roleConfig.issuer;
   const Icon = config.icon;
+
+  const getColorClasses = () => {
+    switch(config.color) {
+      case 'red':
+        return {
+          gradient: 'from-signatura-red to-signatura-accent',
+          bg: 'bg-red-100',
+          text: 'text-signatura-red',
+          button: 'bg-signatura-red hover:bg-signatura-accent',
+          buttonText: 'text-signatura-red',
+          link: 'text-signatura-red',
+          dark: 'bg-red-900',
+        };
+      default:
+        return {
+          gradient: 'from-signatura-red to-signatura-accent',
+          bg: 'bg-red-100',
+          text: 'text-signatura-red',
+          button: 'bg-signatura-red hover:bg-signatura-accent',
+          buttonText: 'text-signatura-red',
+          link: 'text-signatura-red',
+          dark: 'bg-red-900',
+        };
+    }
+  };
+
+  const colors = getColorClasses();
 
   const validateForm = () => {
     const newErrors = {};
@@ -97,50 +123,55 @@ export default function AllLoginPages() {
 
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
+        // Call your /api/auth endpoint
+        const response = await fetch('/api/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'signin',
+            email: formData.email,
+            password: formData.password,
+            role: role,
+          }),
         });
 
-        if (error) throw error;
+        const data = await response.json();
 
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (userData?.role !== role) {
-          throw new Error(`This account is not a ${role} account`);
+        if (!response.ok) {
+          throw new Error(data.error || 'Login failed');
         }
 
-        setUser(userData);
+        setUser(data.user);
         setRole(role);
 
         toast.success('Welcome back!');
         navigate(`/${role}`);
       } else {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
+        // Call signup endpoint
+        const response = await fetch('/api/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'signup',
+            email: formData.email,
+            password: formData.password,
+            role: role,
+            organizationName: formData.organizationName || null,
+            fullName: formData.fullName,
+          }),
         });
 
-        if (authError) throw authError;
+        const data = await response.json();
 
-        const { data: userData, error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: formData.email,
-            role: role,
-            organization_name: formData.organizationName || null,
-          })
-          .select()
-          .single();
+        if (!response.ok) {
+          throw new Error(data.error || 'Signup failed');
+        }
 
-        if (profileError) throw profileError;
-
-        setUser(userData);
+        setUser(data.user);
         setRole(role);
 
         toast.success('Account created! Welcome to Signatura.');
@@ -154,7 +185,7 @@ export default function AllLoginPages() {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${config.color === 'blue' ? 'from-blue-600 to-blue-800' : config.color === 'green' ? 'from-green-600 to-green-800' : 'from-purple-600 to-purple-800'} flex items-center justify-center px-4 py-12`}>
+    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center px-4 py-12`}>
       <div className="w-full max-w-md">
         <Link
           to="/"
@@ -166,8 +197,8 @@ export default function AllLoginPages() {
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
-            <div className={`inline-block ${config.color === 'blue' ? 'bg-blue-100' : config.color === 'green' ? 'bg-green-100' : 'bg-purple-100'} p-3 rounded-full mb-4`}>
-              <Icon className={`${config.color === 'blue' ? 'text-blue-600' : config.color === 'green' ? 'text-green-600' : 'text-purple-600'} text-3xl`} />
+            <div className={`inline-block ${colors.bg} p-3 rounded-full mb-4`}>
+              <Icon className={`${colors.text} text-3xl`} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{config.title}</h1>
             <p className="text-gray-600 mt-2">
@@ -276,7 +307,7 @@ export default function AllLoginPages() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full ${config.color === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : config.color === 'green' ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700'} text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed mt-6`}
+              className={`w-full ${colors.button} text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed mt-6`}
             >
               {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </button>
@@ -290,14 +321,14 @@ export default function AllLoginPages() {
                 setErrors({});
                 setFormData({ email: '', password: '', organizationName: '', fullName: '', confirmPassword: '' });
               }}
-              className={`${config.color === 'blue' ? 'text-blue-600' : config.color === 'green' ? 'text-green-600' : 'text-purple-600'} font-medium hover:underline`}
+              className={`${colors.link} font-medium hover:underline`}
             >
               {isLogin ? 'Sign Up' : 'Sign In'}
             </button>
           </p>
         </div>
 
-        <div className={`mt-8 ${config.color === 'blue' ? 'bg-blue-900' : config.color === 'green' ? 'bg-green-900' : 'bg-purple-900'} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 text-white text-sm`}>
+        <div className={`mt-8 ${colors.dark} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 text-white text-sm`}>
           <p className="font-medium mb-2">Demo Credentials:</p>
           <p>Email: {config.demoEmail}</p>
           <p>Password: {config.demoPass}</p>
