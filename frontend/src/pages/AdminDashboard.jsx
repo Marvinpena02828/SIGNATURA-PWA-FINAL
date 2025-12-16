@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiUsers, FiFileText, FiTrendingUp, FiLogOut, FiMenu, FiX, FiTrash2 } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiTrendingUp, FiLogOut, FiMenu, FiX, FiTrash2, FiShieldAlert, FiLock } from 'react-icons/fi';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -17,11 +17,15 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalDocuments: 0,
     totalRequests: 0,
-    activeVerifications: 0
+    activeVerifications: 0,
+    activeShares: 0,
+    encryptedDocuments: 0,
   });
   const [users, setUsers] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [shares, setShares] = useState([]);
+  const [securityEvents, setSecurityEvents] = useState([]);
 
   useEffect(() => {
     if (role !== 'admin') navigate('/');
@@ -33,7 +37,6 @@ export default function AdminDashboard() {
       setIsLoading(true);
 
       if (activeTab === 'statistics') {
-        // Get stats from API
         try {
           const statsRes = await fetch('/api/admin?action=stats');
           const statsData = await statsRes.json();
@@ -44,7 +47,6 @@ export default function AdminDashboard() {
           console.error('Error fetching stats:', err);
         }
 
-        // Get audit logs
         try {
           const logsRes = await fetch('/api/admin?action=audit-logs');
           const logsData = await logsRes.json();
@@ -75,6 +77,28 @@ export default function AdminDashboard() {
           }
         } catch (err) {
           console.error('Error fetching documents:', err);
+        }
+      }
+      else if (activeTab === 'sharing') {
+        try {
+          const sharesRes = await fetch('/api/sharing?admin=true');
+          const sharesData = await sharesRes.json();
+          if (sharesData.success) {
+            setShares(sharesData.data || []);
+          }
+        } catch (err) {
+          console.error('Error fetching shares:', err);
+        }
+      }
+      else if (activeTab === 'security') {
+        try {
+          const secRes = await fetch('/api/admin?action=security-events');
+          const secData = await secRes.json();
+          if (secData.success) {
+            setSecurityEvents(secData.data || []);
+          }
+        } catch (err) {
+          console.error('Error fetching security events:', err);
         }
       }
     } finally {
@@ -136,6 +160,26 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRevokeShare = async (shareId) => {
+    if (!window.confirm('Revoke this share?')) return;
+
+    try {
+      const res = await fetch('/api/sharing', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: shareId }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Share revoked');
+        setShares(shares.filter(s => s.id !== shareId));
+      }
+    } catch (error) {
+      toast.error('Error revoking share');
+    }
+  };
+
   const handleLogout = () => {
     clearAuth();
     localStorage.clear();
@@ -156,33 +200,24 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="p-4 space-y-2">
-          <button
-            onClick={() => setActiveTab('statistics')}
-            className={`w-full flex items-center space-x-3 px-4 py-2 rounded transition ${
-              activeTab === 'statistics' ? 'bg-signatura-accent' : 'hover:bg-signatura-accent hover:bg-opacity-50'
-            }`}
-          >
-            <FiTrendingUp />
-            {sidebarOpen && <span>Statistics</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`w-full flex items-center space-x-3 px-4 py-2 rounded transition ${
-              activeTab === 'users' ? 'bg-signatura-accent' : 'hover:bg-signatura-accent hover:bg-opacity-50'
-            }`}
-          >
-            <FiUsers />
-            {sidebarOpen && <span>Users</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`w-full flex items-center space-x-3 px-4 py-2 rounded transition ${
-              activeTab === 'documents' ? 'bg-signatura-accent' : 'hover:bg-signatura-accent hover:bg-opacity-50'
-            }`}
-          >
-            <FiFileText />
-            {sidebarOpen && <span>Documents</span>}
-          </button>
+          {[
+            { id: 'statistics', icon: FiTrendingUp, label: 'Statistics' },
+            { id: 'users', icon: FiUsers, label: 'Users' },
+            { id: 'documents', icon: FiFileText, label: 'Documents' },
+            { id: 'sharing', icon: FiFileText, label: 'Shares' },
+            { id: 'security', icon: FiShieldAlert, label: 'Security' },
+          ].map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`w-full flex items-center space-x-3 px-4 py-2 rounded transition ${
+                activeTab === id ? 'bg-signatura-accent' : 'hover:bg-signatura-accent hover:bg-opacity-50'
+              }`}
+            >
+              <Icon />
+              {sidebarOpen && <span>{label}</span>}
+            </button>
+          ))}
         </nav>
 
         <div className="absolute bottom-4 left-4 right-4">
@@ -210,7 +245,7 @@ export default function AdminDashboard() {
         <div className="p-8">
           {activeTab === 'statistics' && (
             <div className="space-y-8">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-lg p-6 shadow">
                   <p className="text-gray-600 text-sm">Total Users</p>
                   <p className="text-3xl font-bold text-signatura-red">{stats.totalUsers || 0}</p>
@@ -218,6 +253,17 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-lg p-6 shadow">
                   <p className="text-gray-600 text-sm">Total Documents</p>
                   <p className="text-3xl font-bold text-blue-600">{stats.totalDocuments || 0}</p>
+                </div>
+                <div className="bg-white rounded-lg p-6 shadow">
+                  <p className="text-gray-600 text-sm">Encrypted Docs</p>
+                  <p className="text-3xl font-bold text-green-600">{stats.encryptedDocuments || 0}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-6 shadow">
+                  <p className="text-gray-600 text-sm">Active Shares</p>
+                  <p className="text-3xl font-bold text-purple-600">{stats.activeShares || 0}</p>
                 </div>
                 <div className="bg-white rounded-lg p-6 shadow">
                   <p className="text-gray-600 text-sm">Verification Requests</p>
@@ -239,6 +285,7 @@ export default function AdminDashboard() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Action</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">User</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Resource</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Time</th>
                       </tr>
@@ -246,12 +293,13 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-gray-200">
                       {auditLogs.length === 0 ? (
                         <tr>
-                          <td colSpan="3" className="px-6 py-8 text-center text-gray-500">No activity yet</td>
+                          <td colSpan="4" className="px-6 py-8 text-center text-gray-500">No activity yet</td>
                         </tr>
                       ) : (
                         auditLogs.map((log) => (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-900">{log.action}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">{log.action}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{log.actor_email || 'System'}</td>
                             <td className="px-6 py-4 text-sm text-gray-600">{log.resource_type}</td>
                             <td className="px-6 py-4 text-sm text-gray-600">
                               {new Date(log.created_at).toLocaleString()}
@@ -283,6 +331,7 @@ export default function AdminDashboard() {
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Organization</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Documents</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Joined</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                       </tr>
@@ -297,6 +346,7 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">{u.organization_name || '-'}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{u.document_count || 0}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">
                             {new Date(u.created_at).toLocaleDateString()}
                           </td>
@@ -334,6 +384,7 @@ export default function AdminDashboard() {
                       <tr>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Type</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Encrypted</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Issued</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
@@ -344,6 +395,16 @@ export default function AdminDashboard() {
                         <tr key={doc.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 text-sm text-gray-900 font-medium">{doc.title}</td>
                           <td className="px-6 py-4 text-sm text-gray-600 capitalize">{doc.document_type}</td>
+                          <td className="px-6 py-4 text-sm">
+                            {doc.is_encrypted ? (
+                              <span className="flex items-center text-green-600 font-medium">
+                                <FiLock size={14} className="mr-1" />
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="text-gray-600">No</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                               doc.status === 'active' ? 'bg-green-100 text-green-800' :
@@ -366,6 +427,107 @@ export default function AdminDashboard() {
                                 <FiTrash2 />
                               </button>
                             )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'sharing' && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-signatura-dark">Document Shares ({shares.length})</h3>
+              </div>
+              {isLoading ? (
+                <div className="p-8 text-center text-gray-500">Loading...</div>
+              ) : shares.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">No shares found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Document</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Recipient</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Permissions</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">OTP Required</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Expires</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {shares.map((share) => (
+                        <tr key={share.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{share.document?.title || 'N/A'}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{share.recipient_email}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{share.permissions?.join(', ')}</td>
+                          <td className="px-6 py-4 text-sm">
+                            {share.require_otp ? (
+                              <span className="text-green-600 font-medium">✓ Yes</span>
+                            ) : (
+                              <span className="text-gray-600">No</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(share.expires_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <button
+                              onClick={() => handleRevokeShare(share.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-signatura-dark">Security Events ({securityEvents.length})</h3>
+              </div>
+              {isLoading ? (
+                <div className="p-8 text-center text-gray-500">Loading...</div>
+              ) : securityEvents.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">No security events</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Event</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">User</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Severity</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {securityEvents.map((event) => (
+                        <tr key={event.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{event.event_type}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{event.user_email}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              event.severity === 'high' ? 'bg-red-100 text-red-800' :
+                              event.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {event.severity}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(event.created_at).toLocaleString()}
                           </td>
                         </tr>
                       ))}
