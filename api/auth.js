@@ -52,7 +52,6 @@ export default async function handler(req, res) {
             id: data.user.id,
             email,
             role: role || 'user',
-            full_name: fullName || null,
             organization_name: organizationName || null,
           })
           .select()
@@ -98,7 +97,6 @@ export default async function handler(req, res) {
           id: authData.user.id,
           email,
           role: role || 'user',
-          full_name: fullName || null,
           organization_name: organizationName || null,
         })
         .select()
