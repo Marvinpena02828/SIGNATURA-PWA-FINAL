@@ -37,14 +37,35 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
-      // Get user profile
-      const { data: userData } = await supabase
+      // Get or create user profile
+      let { data: userData, error: selectError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
-      if (userData?.role !== role) {
+      // If user profile doesn't exist, create it
+      if (selectError && selectError.code === 'PGRST116') {
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email,
+            role: role || 'user',
+            full_name: fullName || null,
+            organization_name: organizationName || null,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        userData = newUser;
+      } else if (selectError) {
+        throw selectError;
+      }
+
+      // Verify role matches (if role was specified)
+      if (role && userData?.role !== role) {
         throw new Error(`This account is not a ${role} account`);
       }
 
@@ -76,7 +97,8 @@ export default async function handler(req, res) {
         .insert({
           id: authData.user.id,
           email,
-          role,
+          role: role || 'user',
+          full_name: fullName || null,
           organization_name: organizationName || null,
         })
         .select()
