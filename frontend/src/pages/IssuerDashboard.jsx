@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiEye } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -11,13 +11,31 @@ export default function IssuerDashboard() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('degree');
 
   useEffect(() => {
-    if (role !== 'issuer') navigate('/');
+    if (role !== 'issuer') {
+      navigate('/');
+      return;
+    }
+    fetchDocuments();
   }, [role, navigate]);
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch(`/api/documents?issuerId=${user?.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching documents:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateDocument = async (e) => {
     e.preventDefault();
@@ -57,9 +75,20 @@ export default function IssuerDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      // Clear auth from store
+      clearAuth();
+      
+      // Small delay to ensure state is cleared
+      setTimeout(() => {
+        navigate('/');
+        toast.success('Logged out successfully!');
+      }, 100);
+    } catch (err) {
+      console.error('Logout error:', err);
+      toast.error('Logout failed');
+    }
   };
 
   return (
@@ -111,7 +140,7 @@ export default function IssuerDashboard() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Bachelor of Science"
+                placeholder="e.g., Bachelor of Science in Computer Science"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
               />
             </div>
@@ -126,6 +155,8 @@ export default function IssuerDashboard() {
                 <option value="certificate">Certificate</option>
                 <option value="diploma">Diploma</option>
                 <option value="license">License</option>
+                <option value="government-id">Government ID</option>
+                <option value="school-id">School ID</option>
               </select>
             </div>
             <button
@@ -148,12 +179,13 @@ export default function IssuerDashboard() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {documents.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                     No documents yet. Create one to get started!
                   </td>
                 </tr>
@@ -161,7 +193,7 @@ export default function IssuerDashboard() {
                 documents.map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-signatura-dark">{doc.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{doc.document_type}</td>
+                    <td className="px-6 py-4 text-gray-600 capitalize">{doc.document_type}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         doc.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
@@ -171,6 +203,11 @@ export default function IssuerDashboard() {
                     </td>
                     <td className="px-6 py-4 text-gray-600 text-sm">
                       {new Date(doc.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button className="text-signatura-red hover:bg-red-50 p-2 rounded transition">
+                        <FiEye size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))
