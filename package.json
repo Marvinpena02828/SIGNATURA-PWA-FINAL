@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "jsonwebtoken": "^9.1.0"
+    "jsonwebtoken": "^9.0.0"
   },
   "devDependencies": {
     "vite": "^5.4.0",
