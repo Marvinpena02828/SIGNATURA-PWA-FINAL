@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiEye, FiShare2, FiQrCode, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiEye, FiShare2, FiCopy, FiCheck, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -272,7 +272,7 @@ export default function IssuerDashboard() {
                         className="text-blue-600 hover:bg-blue-50 p-2 rounded transition"
                         title="Generate QR Code"
                       >
-                        <FiQrCode size={18} />
+                        <FiDownload size={18} />
                       </button>
                       <button
                         onClick={() => generateShareLink(doc)}
