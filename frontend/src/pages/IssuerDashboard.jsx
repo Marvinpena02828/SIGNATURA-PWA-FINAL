@@ -183,11 +183,22 @@ export default function IssuerDashboard() {
     setEmailStatus('Preparing share link...');
 
     try {
-      console.log('📧 Creating share with email:', {
+      // ============================================
+      // BUILD REQUEST PAYLOAD
+      // ============================================
+      const requestPayload = {
         documentId: shareModalDoc.id,
         recipientEmail: recipientEmail,
+        permissions: permissions,
+        requireOtp: requireOtp,
+        expiryDays: Number(expiryDays),  // ← ENSURE IT'S A NUMBER
         senderEmail: user?.email,
-        expiryDays: expiryDays,
+      };
+
+      console.log('📤 Sending request to API:', {
+        url: '/api/sharing',
+        method: 'POST',
+        payload: requestPayload,
       });
 
       // ============================================
@@ -198,19 +209,17 @@ export default function IssuerDashboard() {
       const res = await fetch('/api/sharing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentId: shareModalDoc.id,
-          recipientEmail: recipientEmail,
-          permissions: permissions,
-          requireOtp: requireOtp,
-          expiryDays: expiryDays,
-          senderEmail: user?.email,
-        }),
+        body: JSON.stringify(requestPayload),
       });
+
+      console.log('📊 API Response Status:', res.status);
 
       const result = await res.json();
 
+      console.log('📋 API Response Data:', result);
+
       if (!result.success) {
+        console.error('❌ API Error:', result.error);
         throw new Error(result.error || 'Failed to create share');
       }
 
@@ -229,8 +238,8 @@ export default function IssuerDashboard() {
         setEmailStatus(`✅ Email sent to ${recipientEmail}!`);
         toast.success(`Email sent to ${recipientEmail}!`);
       } else {
-        setEmailStatus(`⚠️ Share created but email failed. Link ready.`);
-        toast.warning('Share created. Email may have failed.');
+        setEmailStatus(`⚠️ Share created. Link is ready.`);
+        toast.success('Share created. Link is ready to use.');
       }
 
       setShareData(result.data);
@@ -238,10 +247,13 @@ export default function IssuerDashboard() {
       setShareStep(3);
       setShareLoading(false);
 
-      console.log('✅ Share created:', result.data);
+      console.log('✅ Share created successfully:', result.data);
 
     } catch (error) {
       console.error('❌ Share error:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Full error object:', error);
+      
       setEmailStatus(`❌ Error: ${error.message}`);
       toast.error(error.message);
       setShareStep(1);
