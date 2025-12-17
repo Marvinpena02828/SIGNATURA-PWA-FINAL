@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiEye, FiShare2, FiCopy, FiCheck, FiDownload } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiEye, FiShare2, FiCopy, FiCheck, FiDownload, FiMail, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -18,6 +18,20 @@ export default function IssuerDashboard() {
   const [qrCode, setQrCode] = useState(null);
   const [shareLink, setShareLink] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  
+  // ============================================
+  // NEW: EMAIL SHARING STATE
+  // ============================================
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareModalDoc, setShareModalDoc] = useState(null);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [requireOtp, setRequireOtp] = useState(true);
+  const [expiryDays, setExpiryDays] = useState(7);
+  const [permissions, setPermissions] = useState(['view', 'download']);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareStep, setShareStep] = useState(1); // 1: form, 2: loading, 3: success
+  const [shareData, setShareData] = useState(null);
+  const [emailStatus, setEmailStatus] = useState('');
 
   useEffect(() => {
     if (role !== 'issuer') {
@@ -103,30 +117,113 @@ export default function IssuerDashboard() {
     }
   };
 
-  const generateShareLink = async (doc) => {
+  // ============================================
+  // NEW: OPEN SHARE MODAL WITH EMAIL
+  // ============================================
+  const openShareModal = (doc) => {
+    setShareModalDoc(doc);
+    setShowShareModal(true);
+    setShareStep(1);
+    setRecipientEmail('');
+    setRequireOtp(true);
+    setExpiryDays(7);
+    setPermissions(['view', 'download']);
+    setShareData(null);
+    setEmailStatus('');
+  };
+
+  // ============================================
+  // NEW: CREATE SHARE WITH EMAIL
+  // ============================================
+  const handleCreateShareWithEmail = async (e) => {
+    e.preventDefault();
+
+    if (!recipientEmail.trim()) {
+      toast.error('Please enter recipient email');
+      return;
+    }
+
+    if (!recipientEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      toast.error('Please enter valid email address');
+      return;
+    }
+
+    setShareLoading(true);
+    setShareStep(2);
+    setEmailStatus('Preparing share link...');
+
     try {
-      setSelectedDoc(doc);
+      console.log('📧 Creating share with email:', {
+        documentId: shareModalDoc.id,
+        recipientEmail: recipientEmail,
+        senderEmail: user?.email,
+        expiryDays: expiryDays,
+      });
+
+      // ============================================
+      // SEND TO BACKEND
+      // ============================================
+      setEmailStatus('📝 Creating share link...');
+
       const res = await fetch('/api/sharing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          documentId: doc.id,
-          ownerId: user?.id,
-          recipientEmail: 'verifier@example.com',
-          permissions: ['view'],
-          expiresIn: 7 * 24 * 60 * 60 * 1000, // 7 days
-          requireOTP: true,
+          documentId: shareModalDoc.id,
+          recipientEmail: recipientEmail,
+          permissions: permissions,
+          requireOtp: requireOtp,
+          expiryDays: expiryDays,
+          senderEmail: user?.email,
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setShareLink(data.data.shareLink);
-        toast.success('Share link created!');
+      const result = await res.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create share');
       }
-    } catch (err) {
-      toast.error('Failed to generate share link');
+
+      // ============================================
+      // EMAIL BEING SENT
+      // ============================================
+      setEmailStatus('📧 Sending email to recipient...');
+
+      // Simulate email sending
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // ============================================
+      // SUCCESS
+      // ============================================
+      if (result.data.emailSent) {
+        setEmailStatus(`✅ Email sent to ${recipientEmail}!`);
+        toast.success(`Email sent to ${recipientEmail}!`);
+      } else {
+        setEmailStatus(`⚠️ Share created but email failed. Link: ${result.data.shareLink}`);
+        toast.warning('Share created. Email may have failed.');
+      }
+
+      setShareData(result.data);
+      setShareLink(result.data.shareLink);
+      setShareStep(3);
+      setShareLoading(false);
+
+      console.log('✅ Share created:', result.data);
+
+    } catch (error) {
+      console.error('❌ Share error:', error);
+      setEmailStatus(`❌ Error: ${error.message}`);
+      toast.error(error.message);
+      setShareStep(1);
+      setShareLoading(false);
     }
+  };
+
+  // ============================================
+  // OLD: GENERATE SHARE LINK (KEPT FOR BACKWARD COMPAT)
+  // ============================================
+  const generateShareLink = async (doc) => {
+    openShareModal(doc);
   };
 
   const copyToClipboard = (text, id) => {
@@ -148,6 +245,10 @@ export default function IssuerDashboard() {
       toast.error('Logout failed');
     }
   };
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -277,9 +378,9 @@ export default function IssuerDashboard() {
                       <button
                         onClick={() => generateShareLink(doc)}
                         className="text-signatura-red hover:bg-red-50 p-2 rounded transition"
-                        title="Generate Share Link"
+                        title="Share with Email"
                       >
-                        <FiShare2 size={18} />
+                        <FiMail size={18} />
                       </button>
                       <button
                         onClick={() => setSelectedDoc(doc)}
@@ -315,29 +416,308 @@ export default function IssuerDashboard() {
           </div>
         )}
 
-        {/* Share Link Modal */}
-        {shareLink && (
+        {/* ============================================ */}
+        {/* NEW: SHARE MODAL WITH EMAIL */}
+        {/* ============================================ */}
+        {showShareModal && shareStep === 1 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full">
-              <h3 className="text-lg font-bold text-signatura-dark mb-4">Share Link</h3>
-              <div className="bg-gray-50 p-4 rounded-lg mb-4 flex items-center justify-between">
-                <p className="text-sm text-gray-600 truncate flex-1">{shareLink}</p>
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
+              <h2 className="text-2xl font-bold text-signatura-dark mb-6">
+                📤 Share Document
+              </h2>
+
+              <form onSubmit={handleCreateShareWithEmail} className="space-y-4">
+                {/* Recipient Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FiMail className="inline mr-2" />
+                    Recipient Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="john.doe@example.com"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ℹ️ They'll receive an email with the share link
+                  </p>
+                </div>
+
+                {/* Permissions */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Permissions
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes('view')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPermissions([...permissions, 'view']);
+                          } else {
+                            setPermissions(permissions.filter(p => p !== 'view'));
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      👁️ View
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes('download')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPermissions([...permissions, 'download']);
+                          } else {
+                            setPermissions(permissions.filter(p => p !== 'download'));
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      ⬇️ Download
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes('print')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPermissions([...permissions, 'print']);
+                          } else {
+                            setPermissions(permissions.filter(p => p !== 'print'));
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      🖨️ Print
+                    </label>
+                  </div>
+                </div>
+
+                {/* Require OTP */}
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={requireOtp}
+                      onChange={(e) => setRequireOtp(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      🔒 Require OTP Verification
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {requireOtp
+                      ? '✅ Recipient must verify with 6-digit code'
+                      : '⚠️ No OTP protection - anyone with link can access'}
+                  </p>
+                </div>
+
+                {/* Expiry Days */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ⏰ Expires In
+                  </label>
+                  <select
+                    value={expiryDays}
+                    onChange={(e) => setExpiryDays(Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                  >
+                    <option value={1}>1 day</option>
+                    <option value={7}>7 days</option>
+                    <option value={14}>14 days</option>
+                    <option value={30}>30 days</option>
+                  </select>
+                </div>
+
+                {/* Summary */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <strong>Summary:</strong>
+                  </p>
+                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                    <li>📄 Document: <strong>{shareModalDoc?.title}</strong></li>
+                    <li>📧 Sending to: <strong>{recipientEmail || '(Enter email)'}</strong></li>
+                    <li>🔒 OTP: <strong>{requireOtp ? 'Required' : 'Not required'}</strong></li>
+                    <li>⏰ Expires: <strong>{expiryDays} days</strong></li>
+                  </ul>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowShareModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={shareLoading}
+                    className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent disabled:opacity-50"
+                  >
+                    {shareLoading ? 'Creating...' : 'Create & Share'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Share Loading Modal */}
+        {showShareModal && shareStep === 2 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl text-center">
+              <div className="animate-spin mb-4">
+                <FiMail className="w-8 h-8 text-signatura-red mx-auto" />
+              </div>
+              <h2 className="text-xl font-bold text-signatura-dark mb-4">
+                Setting up share...
+              </h2>
+              <p className="text-gray-600 mb-4">{emailStatus}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-signatura-red h-2 rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-4">
+                This typically takes 1-2 seconds...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Share Success Modal */}
+        {showShareModal && shareStep === 3 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
+              <div className="text-center mb-6">
+                <FiCheck className="w-12 h-12 text-green-600 mx-auto mb-2" />
+                <h2 className="text-2xl font-bold text-green-600">Share Created!</h2>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {/* Recipient Info */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">
+                    📧 Recipient Email
+                  </p>
+                  <p className="text-lg font-bold text-blue-700 mt-1">
+                    {recipientEmail}
+                  </p>
+                </div>
+
+                {/* Email Status */}
+                <div className={`p-4 rounded-lg ${
+                  shareData?.emailSent
+                    ? 'bg-green-50'
+                    : 'bg-yellow-50'
+                }`}>
+                  <p className="text-sm font-medium mb-1">
+                    {shareData?.emailSent ? '✅ Email Status' : '⚠️ Email Status'}
+                  </p>
+                  <p className={`text-sm ${
+                    shareData?.emailSent
+                      ? 'text-green-700'
+                      : 'text-yellow-700'
+                  }`}>
+                    {shareData?.emailStatus}
+                  </p>
+                </div>
+
+                {/* Expiry Info */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-gray-900 mb-2">
+                    ⏰ Link Details
+                  </p>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>
+                      <strong>Expires:</strong> {expiryDays} days from now
+                    </li>
+                    <li>
+                      <strong>Expires at:</strong> {shareData && new Date(shareData.expiresAt).toLocaleDateString()}
+                    </li>
+                    <li>
+                      <strong>OTP Required:</strong> {requireOtp ? 'Yes' : 'No'}
+                    </li>
+                    <li>
+                      <strong>Permissions:</strong> {permissions.join(', ')}
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Copy Link Section */}
+                {shareLink && (
+                  <div className="border-2 border-signatura-red rounded-lg p-4">
+                    <p className="text-sm font-medium text-gray-900 mb-2">
+                      📋 Share Link
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded break-all text-xs font-mono text-gray-700">
+                      {shareLink}
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(shareLink, 'share-success')}
+                      className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-signatura-red text-white rounded hover:bg-signatura-accent transition"
+                    >
+                      {copiedId === 'share-success' ? (
+                        <>
+                          <FiCheck />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <FiCopy />
+                          Copy Link
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* What Happens Next */}
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-indigo-900 mb-2">
+                    📋 What Happens Next:
+                  </p>
+                  <ol className="text-xs text-indigo-800 space-y-1 list-decimal list-inside">
+                    <li>{shareData?.emailSent ? 'Recipient receives email' : 'Share link is ready'}</li>
+                    <li>They click the link</li>
+                    <li>They verify with OTP (if required)</li>
+                    <li>They access the document</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
                 <button
-                  onClick={() => copyToClipboard(shareLink, 'share')}
-                  className="ml-2 text-signatura-red hover:text-signatura-accent"
+                  onClick={() => {
+                    setShareStep(1);
+                    setRecipientEmail('');
+                    setShareLink(null);
+                    setShareData(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-signatura-red text-white rounded hover:bg-signatura-accent"
                 >
-                  {copiedId === 'share' ? <FiCheck size={18} /> : <FiCopy size={18} />}
+                  Share Again
+                </button>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 px-4 py-2 border border-signatura-red text-signatura-red rounded hover:bg-red-50"
+                >
+                  Done
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Link expires in 7 days. Recipients need OTP to verify.
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                ℹ️ Email will show: who shared it, what document, and when it expires.
               </p>
-              <button
-                onClick={() => setShareLink(null)}
-                className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent"
-              >
-                Close
-              </button>
             </div>
           </div>
         )}
