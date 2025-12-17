@@ -1,4 +1,4 @@
-// api/sharing.js - Document sharing with time limits and permissions (FIXED FOR SUPABASE)
+// api/sharing.js - UPDATED WITH CORRECT URL GENERATION
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -6,6 +6,30 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// ============================================
+// HELPER: Get correct base URL for share links
+// ============================================
+const getBaseUrl = () => {
+  // Priority order:
+  // 1. Explicit custom domain (recommended)
+  if (process.env.NEXT_PUBLIC_SHARE_URL) {
+    console.log('✅ Using NEXT_PUBLIC_SHARE_URL');
+    return process.env.NEXT_PUBLIC_SHARE_URL;
+  }
+  
+  // 2. Vercel auto-generated URL
+  if (process.env.VERCEL_URL) {
+    const url = process.env.VERCEL_URL;
+    const withHttps = url.startsWith('http') ? url : `https://${url}`;
+    console.log('✅ Using VERCEL_URL:', withHttps);
+    return withHttps;
+  }
+  
+  // 3. Development fallback
+  console.log('✅ Using localhost (development)');
+  return 'http://localhost:3000';
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,21 +43,24 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      // ============================================
-      // Create share link
-      // ============================================
       const {
         documentId,
-        ownerId, // May come from frontend
-        senderEmail, // NEW: Frontend sends email instead of ID
+        ownerId,
+        senderEmail,
         recipientEmail,
         permissions = ['view', 'download'],
         expiryDays = 7,
         requireOtp = false,
       } = req.body;
 
+      console.log('📧 Share request received:', { 
+        documentId, 
+        senderEmail, 
+        recipientEmail 
+      });
+
       // ============================================
-      // STEP 1: Resolve owner_id from email if needed
+      // STEP 1: RESOLVE OWNER_ID FROM EMAIL
       // ============================================
       let resolvedOwnerId = ownerId;
 
@@ -47,10 +74,10 @@ export default async function handler(req, res) {
           .single();
 
         if (userError || !userData) {
-          console.error('❌ User not found:', userError);
+          console.error('❌ User lookup failed:', userError?.message);
           return res.status(404).json({
             success: false,
-            error: 'Sender user not found',
+            error: 'Sender user not found. Please check your email.',
           });
         }
 
@@ -66,50 +93,50 @@ export default async function handler(req, res) {
       }
 
       // ============================================
-      // STEP 2: Validate document ownership
+      // STEP 2: VALIDATE DOCUMENT OWNERSHIP
       // ============================================
+      console.log('🔐 Validating document ownership...');
+      
       const { data: document, error: docError } = await supabase
         .from('documents')
-        .select('*')
+        .select('id, title, issuer_id')
         .eq('id', documentId)
         .eq('issuer_id', resolvedOwnerId)
         .single();
 
       if (docError || !document) {
-        console.error('❌ Document not found or not owned:', docError);
+        console.error('❌ Document validation failed:', docError?.message);
         return res.status(403).json({
           success: false,
           error: 'Document not found or you do not have permission to share it',
         });
       }
 
+      console.log('✅ Document validated:', document.title);
+
       // ============================================
-      // STEP 3: Generate share link
+      // STEP 3: GENERATE SHARE TOKEN AND EXPIRY
       // ============================================
       const shareToken = crypto.randomBytes(32).toString('hex');
       const expiresAtDate = new Date();
       expiresAtDate.setDate(expiresAtDate.getDate() + expiryDays);
       const expiresAt = expiresAtDate.toISOString();
 
-      console.log('📝 Creating share:', {
-        documentId,
-        ownerId: resolvedOwnerId,
-        recipientEmail,
-        expiresAt,
-        requireOtp,
-      });
+      console.log('🎟️ Generated share token:', shareToken.substring(0, 10) + '...');
 
       // ============================================
-      // STEP 4: Insert into database
+      // STEP 4: INSERT INTO DATABASE
       // ============================================
+      console.log('📝 Inserting into document_shares...');
+      
       const { data, error } = await supabase
         .from('document_shares')
         .insert({
           document_id: documentId,
-          owner_id: resolvedOwnerId, // ✅ THE KEY FIX
+          owner_id: resolvedOwnerId,
           recipient_email: recipientEmail,
           share_token: shareToken,
-          permissions,
+          permissions: permissions,
           require_otp: requireOtp,
           expires_at: expiresAt,
           created_at: new Date().toISOString(),
@@ -118,45 +145,51 @@ export default async function handler(req, res) {
         .single();
 
       if (error) {
-        console.error('❌ Database error:', error);
+        console.error('❌ Database insert failed:', error.message);
         throw error;
       }
 
+      console.log('✅ Share record created:', data.id);
+
       // ============================================
-      // STEP 5: Send email (optional)
+      // STEP 5: BUILD SHARE LINK (WITH CORRECT URL)
+      // ============================================
+      const baseUrl = getBaseUrl();
+      const shareLink = `${baseUrl}/shared/${shareToken}`;
+
+      console.log('🔗 Base URL:', baseUrl);
+      console.log('📋 Share link generated:', shareLink);
+
+      // ============================================
+      // STEP 6: SEND EMAIL (OPTIONAL)
       // ============================================
       let emailSent = false;
       let emailStatus = 'Email not configured';
 
       try {
-        emailSent = await sendShareEmail({
-          recipientEmail,
-          senderEmail: senderEmail || 'noreply@signatura.app',
-          documentTitle: document.title,
-          shareLink: `${process.env.VERCEL_URL || 'http://localhost:3000'}/shared/${shareToken}`,
-          expiresAt,
-          requireOtp,
-        });
-
-        emailStatus = emailSent 
-          ? `Email sent to ${recipientEmail}` 
-          : 'Email could not be sent';
+        emailStatus = 'Email feature coming soon';
+        console.log('📧 Email sending skipped (not configured yet)');
       } catch (emailError) {
-        console.error('⚠️ Email error (non-blocking):', emailError);
+        console.error('⚠️ Email error (non-blocking):', emailError.message);
         emailStatus = 'Share created but email failed';
-        // Don't fail - the share is still created
       }
 
       // ============================================
-      // STEP 6: Return success
+      // STEP 7: RETURN SUCCESS RESPONSE
       // ============================================
-      console.log('✅ Share created successfully');
+      console.log('✅ Success! Share created and ready to send');
 
       return res.status(201).json({
         success: true,
         data: {
-          ...data,
-          shareLink: `${process.env.VERCEL_URL || 'http://localhost:3000'}/shared/${shareToken}`,
+          id: data.id,
+          shareLink,  // ✅ CORRECT URL
+          shareToken,
+          documentId,
+          recipientEmail,
+          expiresAt: expiresAt,
+          permissions,
+          requireOtp,
           emailSent,
           emailStatus,
         },
@@ -166,7 +199,10 @@ export default async function handler(req, res) {
       const { shareToken } = req.query;
 
       if (!shareToken) {
-        return res.status(400).json({ error: 'Missing shareToken' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Missing shareToken' 
+        });
       }
 
       const { data: share, error: shareError } = await supabase
@@ -176,11 +212,17 @@ export default async function handler(req, res) {
         .single();
 
       if (shareError || !share) {
-        return res.status(404).json({ error: 'Share not found' });
+        return res.status(404).json({ 
+          success: false,
+          error: 'Share not found' 
+        });
       }
 
       if (new Date(share.expires_at) < new Date()) {
-        return res.status(403).json({ error: 'Share link expired' });
+        return res.status(403).json({ 
+          success: false,
+          error: 'Share link expired' 
+        });
       }
 
       const { data: doc } = await supabase
@@ -210,7 +252,10 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({ 
+        success: true, 
+        data 
+      });
     } 
     else if (req.method === 'DELETE') {
       const { id } = req.body;
@@ -230,50 +275,8 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('❌ Sharing API error:', error);
     return res.status(500).json({
+      success: false,
       error: error.message || 'Sharing operation failed',
     });
-  }
-}
-
-// ============================================
-// Helper: Send email via your provider
-// ============================================
-async function sendShareEmail({
-  recipientEmail,
-  senderEmail,
-  documentTitle,
-  shareLink,
-  expiresAt,
-  requireOtp,
-}) {
-  try {
-    // Example with Resend (adjust to your email provider)
-    // const { Resend } = require('resend');
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    // await resend.emails.send({
-    //   from: 'noreply@signatura.app',
-    //   to: recipientEmail,
-    //   subject: `${senderEmail} shared a document with you`,
-    //   html: `
-    //     <h2>Document Shared</h2>
-    //     <p>${senderEmail} shared <strong>${documentTitle}</strong> with you.</p>
-    //     <p><a href="${shareLink}">View Document</a></p>
-    //     <p>Expires: ${new Date(expiresAt).toLocaleDateString()}</p>
-    //   `,
-    // });
-
-    console.log('📧 Share email details:', {
-      to: recipientEmail,
-      from: senderEmail,
-      document: documentTitle,
-      requireOtp,
-      expiresAt,
-    });
-
-    return true; // Simulate success for now
-  } catch (error) {
-    console.error('Email service error:', error);
-    return false;
   }
 }
