@@ -10,6 +10,7 @@ import AllLoginPages from './pages/AllLoginPages';
 import IssuerDashboard from './pages/IssuerDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import SharedDocumentPage from './pages/SharedDocumentPage';
 
 // NotFound component
 const NotFound = () => (
@@ -118,6 +119,9 @@ function App() {
 
         {/* Login Routes - all handled by AllLoginPages */}
         <Route path="/login/:role" element={<AllLoginPages />} />
+
+        {/* Shared Document Route - PUBLIC (no authentication needed) */}
+        <Route path="/shared/:token" element={<SharedDocumentPage />} />
 
         {/* Protected Routes - Issuer */}
         <Route
