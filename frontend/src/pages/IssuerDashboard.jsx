@@ -20,7 +20,7 @@ export default function IssuerDashboard() {
   const [copiedId, setCopiedId] = useState(null);
   
   // ============================================
-  // NEW: EMAIL SHARING STATE
+  // EMAIL SHARING STATE
   // ============================================
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareModalDoc, setShareModalDoc] = useState(null);
@@ -32,6 +32,36 @@ export default function IssuerDashboard() {
   const [shareStep, setShareStep] = useState(1); // 1: form, 2: loading, 3: success
   const [shareData, setShareData] = useState(null);
   const [emailStatus, setEmailStatus] = useState('');
+
+  // ============================================
+  // UTILITY: Format expiry date properly
+  // ============================================
+  const formatExpiryDate = (dateString) => {
+    try {
+      if (!dateString) return 'N/A';
+      
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('⚠️ Invalid date received:', dateString);
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'UTC'
+      });
+    } catch (error) {
+      console.error('❌ Date formatting error:', error);
+      return 'N/A';
+    }
+  };
 
   useEffect(() => {
     if (role !== 'issuer') {
@@ -118,7 +148,7 @@ export default function IssuerDashboard() {
   };
 
   // ============================================
-  // NEW: OPEN SHARE MODAL WITH EMAIL
+  // OPEN SHARE MODAL WITH EMAIL
   // ============================================
   const openShareModal = (doc) => {
     setShareModalDoc(doc);
@@ -133,7 +163,7 @@ export default function IssuerDashboard() {
   };
 
   // ============================================
-  // NEW: CREATE SHARE WITH EMAIL
+  // CREATE SHARE WITH EMAIL (WITH FIXES)
   // ============================================
   const handleCreateShareWithEmail = async (e) => {
     e.preventDefault();
@@ -199,7 +229,7 @@ export default function IssuerDashboard() {
         setEmailStatus(`✅ Email sent to ${recipientEmail}!`);
         toast.success(`Email sent to ${recipientEmail}!`);
       } else {
-        setEmailStatus(`⚠️ Share created but email failed. Link: ${result.data.shareLink}`);
+        setEmailStatus(`⚠️ Share created but email failed. Link ready.`);
         toast.warning('Share created. Email may have failed.');
       }
 
@@ -220,7 +250,7 @@ export default function IssuerDashboard() {
   };
 
   // ============================================
-  // OLD: GENERATE SHARE LINK (KEPT FOR BACKWARD COMPAT)
+  // GENERATE SHARE LINK
   // ============================================
   const generateShareLink = async (doc) => {
     openShareModal(doc);
@@ -417,7 +447,7 @@ export default function IssuerDashboard() {
         )}
 
         {/* ============================================ */}
-        {/* NEW: SHARE MODAL WITH EMAIL */}
+        {/* SHARE MODAL WITH EMAIL - STEP 1: FORM */}
         {/* ============================================ */}
         {showShareModal && shareStep === 1 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -572,7 +602,9 @@ export default function IssuerDashboard() {
           </div>
         )}
 
-        {/* Share Loading Modal */}
+        {/* ============================================ */}
+        {/* SHARE MODAL - STEP 2: LOADING */}
+        {/* ============================================ */}
         {showShareModal && shareStep === 2 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl text-center">
@@ -593,7 +625,9 @@ export default function IssuerDashboard() {
           </div>
         )}
 
-        {/* Share Success Modal */}
+        {/* ============================================ */}
+        {/* SHARE MODAL - STEP 3: SUCCESS (WITH FIXES) */}
+        {/* ============================================ */}
         {showShareModal && shareStep === 3 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
@@ -631,7 +665,7 @@ export default function IssuerDashboard() {
                   </p>
                 </div>
 
-                {/* Expiry Info */}
+                {/* Expiry Info - WITH DATE FIX */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm font-medium text-gray-900 mb-2">
                     ⏰ Link Details
@@ -641,7 +675,7 @@ export default function IssuerDashboard() {
                       <strong>Expires:</strong> {expiryDays} days from now
                     </li>
                     <li>
-                      <strong>Expires at:</strong> {shareData && new Date(shareData.expiresAt).toLocaleDateString()}
+                      <strong>Expires at:</strong> {formatExpiryDate(shareData?.expiresAt)}
                     </li>
                     <li>
                       <strong>OTP Required:</strong> {requireOtp ? 'Yes' : 'No'}
@@ -652,23 +686,34 @@ export default function IssuerDashboard() {
                   </ul>
                 </div>
 
-                {/* Copy Link Section */}
+                {/* Copy Link Section - WITH URL DISPLAY FIX */}
                 {shareLink && (
                   <div className="border-2 border-signatura-red rounded-lg p-4">
                     <p className="text-sm font-medium text-gray-900 mb-2">
                       📋 Share Link
                     </p>
-                    <div className="bg-gray-50 p-3 rounded break-all text-xs font-mono text-gray-700">
+                    
+                    {/* Better URL display - horizontal scroll instead of wrapping */}
+                    <div className="bg-gray-50 p-3 rounded text-xs font-mono text-gray-700 
+                                    border border-gray-200 overflow-x-auto whitespace-nowrap">
                       {shareLink}
                     </div>
+                    
+                    {/* Helper text */}
+                    <p className="text-xs text-gray-500 mt-2">
+                      ℹ️ Full link shown above. Click copy to get the complete URL.
+                    </p>
+                    
+                    {/* Copy button */}
                     <button
                       onClick={() => copyToClipboard(shareLink, 'share-success')}
-                      className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-signatura-red text-white rounded hover:bg-signatura-accent transition"
+                      className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 
+                                 bg-signatura-red text-white rounded hover:bg-signatura-accent transition"
                     >
                       {copiedId === 'share-success' ? (
                         <>
                           <FiCheck />
-                          Copied!
+                          Copied to Clipboard!
                         </>
                       ) : (
                         <>
