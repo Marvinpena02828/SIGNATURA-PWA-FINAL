@@ -1,4 +1,4 @@
-// api/sharing.js - UPDATED WITH CORRECT URL GENERATION
+// api/sharing.js - Document sharing API (COMPLETE VERSION WITH ALL FIXES)
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -43,10 +43,13 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
+      // ============================================
+      // POST: Create share link
+      // ============================================
       const {
         documentId,
-        ownerId,
-        senderEmail,
+        ownerId,           // Optional: if frontend sends it
+        senderEmail,       // Frontend sends this
         recipientEmail,
         permissions = ['view', 'download'],
         expiryDays = 7,
@@ -133,7 +136,7 @@ export default async function handler(req, res) {
         .from('document_shares')
         .insert({
           document_id: documentId,
-          owner_id: resolvedOwnerId,
+          owner_id: resolvedOwnerId,        // ✅ KEY FIX: Using resolved owner_id
           recipient_email: recipientEmail,
           share_token: shareToken,
           permissions: permissions,
@@ -183,7 +186,7 @@ export default async function handler(req, res) {
         success: true,
         data: {
           id: data.id,
-          shareLink,  // ✅ CORRECT URL
+          shareLink,        // ✅ CORRECT URL
           shareToken,
           documentId,
           recipientEmail,
@@ -196,6 +199,9 @@ export default async function handler(req, res) {
       });
     } 
     else if (req.method === 'GET') {
+      // ============================================
+      // GET: Retrieve share details and verify validity
+      // ============================================
       const { shareToken } = req.query;
 
       if (!shareToken) {
@@ -218,6 +224,7 @@ export default async function handler(req, res) {
         });
       }
 
+      // Check if expired
       if (new Date(share.expires_at) < new Date()) {
         return res.status(403).json({ 
           success: false,
@@ -241,6 +248,9 @@ export default async function handler(req, res) {
       });
     } 
     else if (req.method === 'PUT') {
+      // ============================================
+      // PUT: Update share settings (revoke, update expiry, etc)
+      // ============================================
       const { id, ...updates } = req.body;
 
       const { data, error } = await supabase
@@ -258,6 +268,9 @@ export default async function handler(req, res) {
       });
     } 
     else if (req.method === 'DELETE') {
+      // ============================================
+      // DELETE: Revoke share
+      // ============================================
       const { id } = req.body;
 
       const { error } = await supabase
@@ -270,6 +283,12 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         message: 'Share deleted',
+      });
+    }
+    else {
+      return res.status(405).json({
+        success: false,
+        error: 'Method not allowed',
       });
     }
   } catch (error) {
