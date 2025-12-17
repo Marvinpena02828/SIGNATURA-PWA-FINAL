@@ -24,6 +24,8 @@ export default function OwnerDashboard() {
 
   const fetchData = async () => {
     try {
+      console.log('📊 Fetching owner data for:', user?.email);
+
       // Fetch owner's documents
       const docsRes = await fetch(`/api/documents?ownerId=${user?.id}`);
       const docsData = await docsRes.json();
@@ -34,12 +36,22 @@ export default function OwnerDashboard() {
       const reqData = await reqRes.json();
       if (reqData.success) setRequests(reqData.data || []);
 
-      // Fetch shares
-      const sharesRes = await fetch(`/api/sharing?ownerId=${user?.id}`);
+      // Fetch shares - UPDATED: Pass both ownerId AND ownerEmail
+      const sharesRes = await fetch(
+        `/api/sharing?ownerId=${user?.id}&ownerEmail=${encodeURIComponent(user?.email)}`
+      );
       const sharesData = await sharesRes.json();
-      if (sharesData.success) setShares(sharesData.data || []);
+      if (sharesData.success) {
+        console.log('📋 Shares data received:', sharesData.data);
+        console.log('  Created shares:', sharesData.data?.filter(s => s.shareType === 'created').length || 0);
+        console.log('  Received shares:', sharesData.data?.filter(s => s.shareType === 'received').length || 0);
+        setShares(sharesData.data || []);
+      } else {
+        console.error('❌ Error fetching shares:', sharesData.error);
+      }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('❌ Error fetching data:', err);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -115,6 +127,10 @@ export default function OwnerDashboard() {
     return `${hours}h remaining`;
   };
 
+  // Separate shares into created and received
+  const createdShares = shares.filter(s => s.shareType === 'created');
+  const receivedShares = shares.filter(s => s.shareType === 'received');
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -143,9 +159,9 @@ export default function OwnerDashboard() {
             <p className="text-3xl font-bold text-signatura-dark mt-2">{documents.length}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500">
-            <h3 className="text-gray-600 text-sm font-medium">Active Shares</h3>
+            <h3 className="text-gray-600 text-sm font-medium">Shared With Me</h3>
             <p className="text-3xl font-bold text-blue-600 mt-2">
-              {shares.filter(s => !isShareExpired(s.expires_at)).length}
+              {receivedShares.filter(s => !isShareExpired(s.expires_at)).length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-orange-500">
@@ -198,6 +214,83 @@ export default function OwnerDashboard() {
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
                         {new Date(doc.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* RECEIVED SHARES - Documents Shared With Me */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-signatura-dark">📥 Documents Shared With Me</h2>
+            <p className="text-sm text-gray-500">Documents shared by issuers</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Document</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">From (Issuer)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Permissions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Expires</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Security</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {receivedShares.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                      No documents shared with me yet
+                    </td>
+                  </tr>
+                ) : (
+                  receivedShares.map((share) => (
+                    <tr key={share.id} className="hover:bg-gray-50 bg-blue-50">
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {share.document?.title || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {share.issuer_organization || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {share.permissions?.join(', ') || 'view'}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {isShareExpired(share.expires_at) ? (
+                          <span className="text-red-600 font-medium">Expired</span>
+                        ) : (
+                          <span className="flex items-center text-green-600">
+                            <FiClock size={14} className="mr-1" />
+                            {getRemainingTime(share.expires_at)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {share.require_otp ? (
+                          <span className="flex items-center text-green-600 text-sm font-medium">
+                            <FiLock size={14} className="mr-1" />
+                            OTP Protected
+                          </span>
+                        ) : (
+                          <span className="text-gray-600 text-sm">No OTP</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {!isShareExpired(share.expires_at) && (
+                          <a
+                            href={`/shared/${share.share_token}`}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View →
+                          </a>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -275,10 +368,11 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Active Shares */}
+        {/* CREATED SHARES - Documents I Shared */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-signatura-dark">Document Shares</h2>
+            <h2 className="text-xl font-bold text-signatura-dark">📤 Documents I Shared</h2>
+            <p className="text-sm text-gray-500">Shares created by me (if I'm also an issuer)</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -293,14 +387,14 @@ export default function OwnerDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {shares.length === 0 ? (
+                {createdShares.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                      No active shares
+                      No documents shared by me yet
                     </td>
                   </tr>
                 ) : (
-                  shares.map((share) => (
+                  createdShares.map((share) => (
                     <tr key={share.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-gray-900">{share.document?.title || 'N/A'}</td>
                       <td className="px-6 py-4 text-gray-600 text-sm">{share.recipient_email}</td>
