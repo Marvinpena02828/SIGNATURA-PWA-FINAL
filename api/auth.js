@@ -1,4 +1,5 @@
 // api/auth.js - Authentication endpoints
+
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 
@@ -37,34 +38,14 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
-      // Get or create user profile
-      let { data: userData, error: selectError } = await supabase
+      // Get user profile
+      const { data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
-      // If user profile doesn't exist, create it
-      if (selectError && selectError.code === 'PGRST116') {
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email,
-            role: role || 'user',
-            organization_name: organizationName || null,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        userData = newUser;
-      } else if (selectError) {
-        throw selectError;
-      }
-
-      // Verify role matches (if role was specified)
-      if (role && userData?.role !== role) {
+      if (userData?.role !== role) {
         throw new Error(`This account is not a ${role} account`);
       }
 
@@ -96,7 +77,7 @@ export default async function handler(req, res) {
         .insert({
           id: authData.user.id,
           email,
-          role: role || 'user',
+          role,
           organization_name: organizationName || null,
         })
         .select()
