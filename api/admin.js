@@ -1,5 +1,4 @@
-// api/admin.js - Admin endpoints
-
+// api/admin.js - Admin operations
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -7,15 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-function corsHeaders(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-}
-
 export default async function handler(req, res) {
-  corsHeaders(req, res);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -23,75 +17,74 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { action, role } = req.body;
-
-    // Check if admin
-    if (role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     if (req.method === 'GET') {
-      // Get dashboard stats
-      const { data: usersCount } = await supabase
-        .from('users')
-        .select('id', { count: 'exact', head: true });
+      const { action } = req.query;
 
-      const { data: documentsCount } = await supabase
-        .from('documents')
-        .select('id', { count: 'exact', head: true });
-
-      const { data: verificationCount } = await supabase
-        .from('verification_requests')
-        .select('id', { count: 'exact', head: true });
-
-      return res.status(200).json({
-        success: true,
-        stats: {
-          totalUsers: usersCount?.length || 0,
-          totalDocuments: documentsCount?.length || 0,
-          pendingVerifications: verificationCount?.length || 0,
-        },
-      });
-    } else if (req.method === 'POST') {
-      if (action === 'revoke-document') {
-        const { documentId, reason } = req.body;
-
-        const { error } = await supabase
-          .from('documents')
-          .update({ status: 'revoked' })
-          .eq('id', documentId);
-
-        if (error) throw error;
-
-        // Log revocation
-        await supabase.from('revocations').insert({
-          document_id: documentId,
-          revoked_by_id: req.body.adminId,
-          reason,
-        });
+      if (action === 'stats') {
+        const [usersRes, docsRes, reqRes, verRes, sharesRes, encRes] = await Promise.all([
+          supabase.from('users').select('id', { count: 'exact', head: true }),
+          supabase.from('documents').select('id', { count: 'exact', head: true }),
+          supabase.from('verification_requests').select('id', { count: 'exact', head: true }),
+          supabase.from('verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('document_shares').select('id', { count: 'exact', head: true }),
+          supabase.from('documents').select('id', { count: 'exact', head: true }).eq('is_encrypted', true),
+        ]);
 
         return res.status(200).json({
           success: true,
-          message: 'Document revoked',
+          data: {
+            totalUsers: usersRes.count || 0,
+            totalDocuments: docsRes.count || 0,
+            totalRequests: reqRes.count || 0,
+            activeVerifications: verRes.count || 0,
+            activeShares: sharesRes.count || 0,
+            encryptedDocuments: encRes.count || 0,
+          },
         });
-      } else if (action === 'get-audit-logs') {
+      } 
+      else if (action === 'audit-logs') {
         const { data, error } = await supabase
           .from('audit_logs')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(100);
+          .limit(20);
 
         if (error) throw error;
-        return res.status(200).json({ success: true, data });
-      } else {
-        return res.status(400).json({ error: 'Invalid action' });
+        return res.status(200).json({ success: true, data: data || [] });
       }
-    } else {
-      return res.status(405).json({ error: 'Method not allowed' });
+      else if (action === 'security-events') {
+        // Placeholder for security events - implement based on your needs
+        return res.status(200).json({ success: true, data: [] });
+      }
+    } 
+    else if (req.method === 'POST') {
+      const { action, userId } = req.body;
+
+      if (action === 'delete-user') {
+        // Delete user's documents first
+        await supabase.from('documents').delete().eq('issuer_id', userId);
+
+        // Delete user
+        const { error } = await supabase.from('users').delete().eq('id', userId);
+
+        if (error) throw error;
+
+        // Log action
+        await supabase.from('audit_logs').insert({
+          actor_id: userId,
+          action: 'user_deleted',
+          resource_type: 'user',
+          resource_id: userId,
+        });
+
+        return res.status(200).json({ success: true, message: 'User deleted' });
+      }
     }
+
+    return res.status(400).json({ error: 'Invalid action' });
   } catch (error) {
-    return res.status(400).json({
-      success: false,
+    console.error('Admin API error:', error);
+    return res.status(500).json({
       error: error.message || 'Operation failed',
     });
   }
