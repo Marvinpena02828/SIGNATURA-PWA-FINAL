@@ -15,6 +15,7 @@ export default function OwnerDashboard() {
   const [requests, setRequests] = useState([]);
   const [shares, setShares] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // New states for requesting documents
   const [issuers, setIssuers] = useState([]);
@@ -31,46 +32,89 @@ export default function OwnerDashboard() {
   const [itemsPerPage] = useState(5);
 
   useEffect(() => {
-    if (role !== 'owner') navigate('/');
-    else fetchData();
-  }, [role, navigate]);
+    if (role !== 'owner') {
+      navigate('/');
+      return;
+    }
+    fetchData();
+  }, [role, navigate, user?.id]); // Add user?.id as dependency
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      setError(null);
       console.log('📊 Fetching owner data for:', user?.email);
+      console.log('👤 User object:', user);
+      console.log('🆔 User ID:', user?.id);
 
-      // Fetch owner's documents
-      const docsRes = await fetch(`/api/documents?ownerId=${user?.id}`);
-      const docsData = await docsRes.json();
-      if (docsData.success) setDocuments(docsData.data || []);
+      // CRITICAL: Check if user ID exists before making API calls
+      if (!user || !user.id) {
+        console.warn('⚠️ User ID not available yet, waiting...');
+        setLoading(false);
+        return; // Don't proceed if no user ID
+      }
+
+      // Fetch owner's documents (only if user.id is valid)
+      try {
+        const docsRes = await fetch(`/api/documents?ownerId=${user.id}`);
+        const docsData = await docsRes.json();
+        if (docsData.success) setDocuments(docsData.data || []);
+      } catch (err) {
+        console.error('⚠️ Error fetching documents:', err);
+      }
 
       // Fetch verification requests
-      const reqRes = await fetch(`/api/verification-requests?ownerId=${user?.id}`);
-      const reqData = await reqRes.json();
-      if (reqData.success) setRequests(reqData.data || []);
+      try {
+        const reqRes = await fetch(`/api/verification-requests?ownerId=${user.id}`);
+        const reqData = await reqRes.json();
+        if (reqData.success) setRequests(reqData.data || []);
+      } catch (err) {
+        console.error('⚠️ Error fetching requests:', err);
+      }
 
       // Fetch shares
-      const sharesRes = await fetch(
-        `/api/sharing?ownerId=${user?.id}&ownerEmail=${encodeURIComponent(user?.email)}`
-      );
-      const sharesData = await sharesRes.json();
-      if (sharesData.success) {
-        console.log('📋 Shares data received:', sharesData.data);
-        setShares(sharesData.data || []);
-      } else {
-        console.error('❌ Error fetching shares:', sharesData.error);
+      try {
+        const sharesRes = await fetch(
+          `/api/sharing?ownerId=${user.id}&ownerEmail=${encodeURIComponent(user.email || '')}`
+        );
+        const sharesData = await sharesRes.json();
+        if (sharesData.success) {
+          console.log('📋 Shares data received:', sharesData.data);
+          setShares(sharesData.data || []);
+        }
+      } catch (err) {
+        console.error('⚠️ Error fetching shares:', err);
       }
 
       // Fetch all issuers
-      const issuersRes = await fetch('/api/issuers');
-      const issuersData = await issuersRes.json();
-      if (issuersData.success) {
-        setIssuers(issuersData.data || []);
+      try {
+        console.log('📍 Fetching /api/issuers...');
+        const issuersRes = await fetch('/api/issuers');
+        
+        if (!issuersRes.ok) {
+          console.error(`❌ Issuers endpoint returned ${issuersRes.status}`);
+          setIssuers([]);
+          return;
+        }
+
+        const issuersData = await issuersRes.json();
+        console.log('✅ Issuers data:', issuersData);
+        
+        if (issuersData.success) {
+          setIssuers(issuersData.data || []);
+        } else {
+          console.warn('⚠️ Issuers endpoint error:', issuersData.error);
+          setIssuers([]);
+        }
+      } catch (issuerError) {
+        console.error('❌ Error fetching issuers:', issuerError);
+        setIssuers([]);
       }
 
     } catch (err) {
-      console.error('❌ Error fetching data:', err);
-      toast.error('Failed to load data');
+      console.error('❌ Error in fetchData:', err);
+      setError(err.message || 'Failed to load data');
+      toast.error(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -84,6 +128,7 @@ export default function OwnerDashboard() {
 
     try {
       const res = await fetch(`/api/documents?issuerId=${issuer.id}`);
+      if (!res.ok) throw new Error('Failed to load documents');
       const data = await res.json();
       if (data.success) {
         setIssuerDocuments(data.data || []);
@@ -112,6 +157,11 @@ export default function OwnerDashboard() {
       return;
     }
 
+    if (!selectedIssuer || !user?.id) {
+      toast.error('Missing required information');
+      return;
+    }
+
     setLoadingRequest(true);
 
     try {
@@ -119,8 +169,8 @@ export default function OwnerDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ownerId: user?.id,
-          ownerEmail: user?.email,
+          ownerId: user.id,
+          ownerEmail: user.email,
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
           documentIds: selectedDocuments,
@@ -137,16 +187,19 @@ export default function OwnerDashboard() {
         setSelectedDocuments([]);
         setRequestMessage('');
         setIssuerDocuments([]);
+        
         // Refresh requests
-        const reqRes = await fetch(`/api/document-requests?ownerId=${user?.id}`);
-        const reqData = await reqRes.json();
-        if (reqData.success) setRequests(reqData.data || []);
+        const reqRes = await fetch(`/api/document-requests?ownerId=${user.id}`);
+        if (reqRes.ok) {
+          const reqData = await reqRes.json();
+          if (reqData.success) setRequests(reqData.data || []);
+        }
       } else {
-        toast.error(data.error || 'Failed to send request');
+        throw new Error(data.error || 'Failed to send request');
       }
     } catch (err) {
       console.error('Error submitting request:', err);
-      toast.error('Error: ' + err.message);
+      toast.error(err.message || 'Error submitting request');
     } finally {
       setLoadingRequest(false);
     }
@@ -234,6 +287,17 @@ export default function OwnerDashboard() {
   // Get pending requests count
   const pendingRequestsCount = requests.filter(r => r.status === 'pending').length;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-signatura-red"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -253,6 +317,13 @@ export default function OwnerDashboard() {
         </div>
       </header>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
@@ -270,7 +341,7 @@ export default function OwnerDashboard() {
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-purple-500">
             <h3 className="text-gray-600 text-sm font-medium">Outgoing Requests</h3>
             <p className="text-3xl font-bold text-purple-600 mt-2">
-              {requests.filter(r => r.status === 'pending').length}
+              {pendingRequestsCount}
             </p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-green-500">
@@ -354,51 +425,42 @@ export default function OwnerDashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Organization</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Contact</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Available Documents</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {issuers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
                       No issuers available yet
                     </td>
                   </tr>
                 ) : (
-                  issuers.map((issuer) => {
-                    const issuerDocs = documents.filter(d => d.issuer_id === issuer.id);
-                    return (
-                      <tr key={issuer.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-signatura-dark">{issuer.organization_name}</td>
-                        <td className="px-6 py-4 text-gray-600 text-sm capitalize">{issuer.organization_type || 'N/A'}</td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">{issuer.email}</td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">
-                          <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
-                            {issuerDocs.length} documents
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => {
-                              handleSelectIssuer(issuer);
-                              setShowIssuerModal(true);
-                            }}
-                            className="text-signatura-red hover:bg-red-50 px-3 py-1 rounded transition font-medium text-sm"
-                          >
-                            Request →
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  issuers.map((issuer) => (
+                    <tr key={issuer.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-signatura-dark">{issuer.organization_name}</td>
+                      <td className="px-6 py-4 text-gray-600 text-sm capitalize">{issuer.organization_type || 'N/A'}</td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">{issuer.email}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => {
+                            handleSelectIssuer(issuer);
+                            setShowIssuerModal(true);
+                          }}
+                          className="text-signatura-red hover:bg-red-50 px-3 py-1 rounded transition font-medium text-sm"
+                        >
+                          Request →
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* RECEIVED SHARES - Documents Shared With Me */}
+        {/* RECEIVED SHARES */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-signatura-dark">📥 Documents Shared With Me</h2>
@@ -409,18 +471,15 @@ export default function OwnerDashboard() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Document</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">From (Issuer)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Permissions</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Expires</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Security</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">From</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {receivedShares.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                      No documents shared with me yet
+                    <td colSpan="3" className="px-6 py-8 text-center text-gray-500">
+                      No documents shared with you yet
                     </td>
                   </tr>
                 ) : (
@@ -432,9 +491,6 @@ export default function OwnerDashboard() {
                       <td className="px-6 py-4 text-gray-600 text-sm">
                         {share.issuer_organization || 'Unknown'}
                       </td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {share.permissions?.join(', ') || 'view'}
-                      </td>
                       <td className="px-6 py-4 text-sm">
                         {isShareExpired(share.expires_at) ? (
                           <span className="text-red-600 font-medium">Expired</span>
@@ -445,28 +501,6 @@ export default function OwnerDashboard() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        {share.require_otp ? (
-                          <span className="flex items-center text-green-600 text-sm font-medium">
-                            <FiLock size={14} className="mr-1" />
-                            OTP Protected
-                          </span>
-                        ) : (
-                          <span className="text-gray-600 text-sm">No OTP</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {!isShareExpired(share.expires_at) && (
-                          <a
-                            href={`/shared/${share.share_token}`}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View →
-                          </a>
-                        )}
-                      </td>
                     </tr>
                   ))
                 )}
@@ -475,8 +509,8 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Verification Requests - INCOMING (FROM ISSUERS) */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+        {/* MY OUTGOING REQUESTS */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-signatura-dark">📤 My Outgoing Document Requests</h2>
             <p className="text-sm text-gray-500">Requests I sent to issuers</p>
@@ -486,26 +520,21 @@ export default function OwnerDashboard() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issuer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Documents Requested</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Message</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested On</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      No document requests yet
+                    <td colSpan="3" className="px-6 py-8 text-center text-gray-500">
+                      No requests sent yet
                     </td>
                   </tr>
                 ) : (
                   requests.map((req) => (
                     <tr key={req.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{req.issuer_organization}</td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {req.documents?.length || 0} document(s)
-                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{req.issuer_organization || 'Unknown'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
@@ -514,9 +543,6 @@ export default function OwnerDashboard() {
                         }`}>
                           {req.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 text-sm max-w-xs truncate">
-                        {req.message || '—'}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
                         {new Date(req.created_at).toLocaleDateString()}
@@ -568,22 +594,19 @@ export default function OwnerDashboard() {
                         <p className="text-gray-500">No issuers found</p>
                       </div>
                     ) : (
-                      filteredIssuers.map((issuer) => {
-                        const docCount = documents.filter(d => d.issuer_id === issuer.id).length;
-                        return (
-                          <button
-                            key={issuer.id}
-                            onClick={() => handleSelectIssuer(issuer)}
-                            className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-signatura-red transition"
-                          >
-                            <p className="font-medium text-gray-900">{issuer.organization_name}</p>
-                            <p className="text-sm text-gray-600">{issuer.email}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Type: {issuer.organization_type}
-                            </p>
-                          </button>
-                        );
-                      })
+                      filteredIssuers.map((issuer) => (
+                        <button
+                          key={issuer.id}
+                          onClick={() => handleSelectIssuer(issuer)}
+                          className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-signatura-red transition"
+                        >
+                          <p className="font-medium text-gray-900">{issuer.organization_name}</p>
+                          <p className="text-sm text-gray-600">{issuer.email}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Type: {issuer.organization_type}
+                          </p>
+                        </button>
+                      ))
                     )}
                   </div>
                 </>
