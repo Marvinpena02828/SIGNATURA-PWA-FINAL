@@ -40,7 +40,6 @@ export default function OwnerDashboard() {
       setLoading(true);
       setError(null);
       console.log('📊 Fetching owner data for:', user?.email);
-      console.log('👤 User ID:', user?.id);
 
       // CRITICAL: Check if user ID exists before making API calls
       if (!user || !user.id) {
@@ -51,43 +50,70 @@ export default function OwnerDashboard() {
 
       // Fetch owner's documents
       try {
+        console.log('📄 Fetching documents...');
         const docsRes = await fetch(`/api/documents?ownerId=${user.id}`);
-        const docsData = await docsRes.json();
-        if (docsData.success) setDocuments(docsData.data || []);
+        console.log('📄 Documents response status:', docsRes.status);
+        
+        if (docsRes.ok) {
+          const docsData = await docsRes.json();
+          console.log('✅ Documents data:', docsData);
+          if (docsData.success) setDocuments(docsData.data || []);
+        } else {
+          console.error('⚠️ Documents fetch returned:', docsRes.status);
+        }
       } catch (err) {
         console.error('⚠️ Error fetching documents:', err);
       }
 
       // Fetch verification requests
       try {
+        console.log('🔍 Fetching verification requests...');
         const reqRes = await fetch(`/api/verification-requests?ownerId=${user.id}`);
-        const reqData = await reqRes.json();
-        if (reqData.success) setRequests(reqData.data || []);
+        console.log('🔍 Requests response status:', reqRes.status);
+        
+        if (reqRes.ok) {
+          const reqData = await reqRes.json();
+          console.log('✅ Requests data:', reqData);
+          if (reqData.success) setRequests(reqData.data || []);
+        } else {
+          console.error('⚠️ Requests fetch returned:', reqRes.status);
+        }
       } catch (err) {
-        console.error('⚠️ Error fetching verification requests:', err);
+        console.error('⚠️ Error fetching requests:', err);
       }
 
       // Fetch shares
       try {
+        console.log('📋 Fetching shares...');
         const sharesRes = await fetch(
           `/api/sharing?ownerId=${user.id}&ownerEmail=${encodeURIComponent(user.email || '')}`
         );
-        const sharesData = await sharesRes.json();
-        if (sharesData.success) {
-          console.log('📋 Shares data received:', sharesData.data);
-          setShares(sharesData.data || []);
+        console.log('📋 Shares response status:', sharesRes.status);
+        
+        if (sharesRes.ok) {
+          const sharesData = await sharesRes.json();
+          console.log('✅ Shares data:', sharesData);
+          if (sharesData.success) {
+            setShares(sharesData.data || []);
+          }
+        } else {
+          console.error('⚠️ Shares fetch returned:', sharesRes.status);
         }
       } catch (err) {
         console.error('⚠️ Error fetching shares:', err);
       }
 
-      // Fetch all issuers - NOW CONSOLIDATED INTO /api/documents
+      // Fetch all issuers
       try {
-        console.log('📍 Fetching issuers from /api/documents?role=issuer...');
+        console.log('🏢 Fetching issuers from /api/documents?role=issuer...');
         const issuersRes = await fetch('/api/documents?role=issuer');
+        console.log('🏢 Issuers response status:', issuersRes.status);
         
         if (!issuersRes.ok) {
           console.error(`❌ Issuers endpoint returned ${issuersRes.status}`);
+          // Try to get error details
+          const errorText = await issuersRes.text();
+          console.error('Error response:', errorText);
           setIssuers([]);
         } else {
           const issuersData = await issuersRes.json();
@@ -123,14 +149,18 @@ export default function OwnerDashboard() {
     try {
       console.log('📄 Fetching documents for issuer:', issuer.id);
       const res = await fetch(`/api/documents?issuerId=${issuer.id}`);
-      if (!res.ok) throw new Error('Failed to load documents');
+      console.log('📄 Issuer documents response status:', res.status);
+      
+      if (!res.ok) throw new Error(`Failed to load documents: ${res.status}`);
+      
       const data = await res.json();
+      console.log('✅ Issuer documents loaded:', data);
+      
       if (data.success) {
-        console.log('✅ Issuer documents loaded:', data.data?.length);
         setIssuerDocuments(data.data || []);
       }
     } catch (err) {
-      console.error('Error fetching issuer documents:', err);
+      console.error('❌ Error fetching issuer documents:', err);
       toast.error('Failed to load issuer documents');
     }
   };
@@ -144,7 +174,7 @@ export default function OwnerDashboard() {
     );
   };
 
-  // Submit document request - CONSOLIDATED ENDPOINT
+  // Submit document request
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
 
@@ -162,12 +192,11 @@ export default function OwnerDashboard() {
 
     try {
       console.log('📤 Creating document request...');
-      // NOW SENDS TO CONSOLIDATED /api/documents ENDPOINT
       const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          endpoint: 'document-requests', // Tell the consolidated endpoint what to do
+          endpoint: 'document-requests',
           ownerId: user.id,
           ownerEmail: user.email,
           issuerId: selectedIssuer.id,
@@ -177,7 +206,9 @@ export default function OwnerDashboard() {
         }),
       });
 
+      console.log('📤 Request response status:', res.status);
       const data = await res.json();
+      console.log('📤 Request response data:', data);
 
       if (data.success) {
         toast.success('Request sent to issuer!');
@@ -187,17 +218,25 @@ export default function OwnerDashboard() {
         setRequestMessage('');
         setIssuerDocuments([]);
         
-        // Refresh requests - ALSO CONSOLIDATED
-        const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
-        if (reqRes.ok) {
-          const reqData = await reqRes.json();
-          if (reqData.success) setRequests(reqData.data || []);
+        // Refresh requests
+        try {
+          console.log('🔄 Refreshing requests...');
+          const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
+          console.log('🔄 Refresh response status:', reqRes.status);
+          
+          if (reqRes.ok) {
+            const reqData = await reqRes.json();
+            console.log('🔄 Refreshed requests:', reqData);
+            if (reqData.success) setRequests(reqData.data || []);
+          }
+        } catch (refreshErr) {
+          console.error('⚠️ Error refreshing requests:', refreshErr);
         }
       } else {
         throw new Error(data.error || 'Failed to send request');
       }
     } catch (err) {
-      console.error('Error submitting request:', err);
+      console.error('❌ Error submitting request:', err);
       toast.error(err.message || 'Error submitting request');
     } finally {
       setLoadingRequest(false);
