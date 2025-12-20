@@ -18,25 +18,51 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Route to correct handler based on URL path
-    const url = req.url.split('?')[0]; // Remove query string
+    // Determine which handler to call based on query parameters or method
+    const { role, endpoint, ownerId, issuerId, ownerEmail } = req.query;
 
-    if (url === '/api/documents' || url === '/api/documents/') {
-      if (req.method === 'GET') return handleGetDocuments(req, res);
-      if (req.method === 'POST') return handleCreateDocument(req, res);
+    console.log('📨 API Request:', { method: req.method, endpoint, role, ownerId, issuerId });
+
+    // DOCUMENTS OPERATIONS
+    if (req.method === 'GET' && !role && !endpoint) {
+      // GET /api/documents?ownerId=xxx or ?issuerId=xxx
+      return handleGetDocuments(req, res);
     }
 
-    if (url === '/api/issuers' || url === '/api/issuers/') {
-      if (req.method === 'GET') return handleGetIssuers(req, res);
+    if (req.method === 'POST' && !endpoint) {
+      // POST /api/documents - Create document
+      return handleCreateDocument(req, res);
     }
 
-    if (url === '/api/document-requests' || url === '/api/document-requests/') {
-      if (req.method === 'GET') return handleGetDocumentRequests(req, res);
-      if (req.method === 'POST') return handleCreateDocumentRequest(req, res);
-      if (req.method === 'PUT') return handleUpdateDocumentRequest(req, res);
-      if (req.method === 'DELETE') return handleDeleteDocumentRequest(req, res);
+    // ISSUERS OPERATIONS
+    if (req.method === 'GET' && role === 'issuer') {
+      // GET /api/documents?role=issuer
+      return handleGetIssuers(req, res);
     }
 
+    // DOCUMENT REQUESTS OPERATIONS
+    if (req.method === 'GET' && endpoint === 'document-requests') {
+      // GET /api/documents?endpoint=document-requests&ownerId=xxx
+      return handleGetDocumentRequests(req, res);
+    }
+
+    if (req.method === 'POST' && req.body?.endpoint === 'document-requests') {
+      // POST /api/documents with endpoint: 'document-requests'
+      return handleCreateDocumentRequest(req, res);
+    }
+
+    if (req.method === 'PUT' && endpoint === 'document-requests') {
+      // PUT /api/documents?endpoint=document-requests
+      return handleUpdateDocumentRequest(req, res);
+    }
+
+    if (req.method === 'DELETE' && endpoint === 'document-requests') {
+      // DELETE /api/documents?endpoint=document-requests
+      return handleDeleteDocumentRequest(req, res);
+    }
+
+    // If no route matched
+    console.error('❌ No matching route for:', { method: req.method, endpoint, role });
     return res.status(404).json({
       success: false,
       error: 'Endpoint not found',
@@ -126,7 +152,7 @@ async function handleCreateDocument(req, res) {
 
 async function handleGetIssuers(req, res) {
   try {
-    console.log('📥 GET /api/issuers');
+    console.log('📥 GET /api/documents?role=issuer');
 
     const { data: issuers, error } = await supabase
       .from('users')
@@ -143,7 +169,7 @@ async function handleGetIssuers(req, res) {
       data: issuers || [],
     });
   } catch (error) {
-    console.error('❌ Error in GET /api/issuers:', error);
+    console.error('❌ Error in GET /api/documents?role=issuer:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -158,7 +184,7 @@ async function handleGetIssuers(req, res) {
 async function handleGetDocumentRequests(req, res) {
   try {
     const { ownerId, issuerId } = req.query;
-    console.log('📥 GET /api/document-requests', { ownerId, issuerId });
+    console.log('📥 GET /api/documents?endpoint=document-requests', { ownerId, issuerId });
 
     if (!ownerId && !issuerId) {
       return res.status(400).json({
@@ -191,7 +217,7 @@ async function handleGetDocumentRequests(req, res) {
       data: requests || [],
     });
   } catch (error) {
-    console.error('❌ Error in GET /api/document-requests:', error);
+    console.error('❌ Error in GET /api/documents?endpoint=document-requests:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -211,7 +237,7 @@ async function handleCreateDocumentRequest(req, res) {
       message,
     } = req.body;
 
-    console.log('📤 POST /api/document-requests', {
+    console.log('📤 POST /api/documents (endpoint: document-requests)', {
       ownerId,
       issuerId,
       documentCount: documentIds?.length,
@@ -319,7 +345,7 @@ async function handleCreateDocumentRequest(req, res) {
       },
     });
   } catch (error) {
-    console.error('❌ Error in POST /api/document-requests:', error);
+    console.error('❌ Error in POST /api/documents (endpoint: document-requests):', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to create request',
@@ -331,7 +357,7 @@ async function handleUpdateDocumentRequest(req, res) {
   try {
     const { id, status, issuerMessage } = req.body;
 
-    console.log('📝 PUT /api/document-requests', { id, status });
+    console.log('📝 PUT /api/documents?endpoint=document-requests', { id, status });
 
     if (!id || !status) {
       return res.status(400).json({
@@ -389,7 +415,7 @@ async function handleUpdateDocumentRequest(req, res) {
       data: updated,
     });
   } catch (error) {
-    console.error('❌ Error in PUT /api/document-requests:', error);
+    console.error('❌ Error in PUT /api/documents?endpoint=document-requests:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update request',
@@ -401,7 +427,7 @@ async function handleDeleteDocumentRequest(req, res) {
   try {
     const { id } = req.body;
 
-    console.log('🗑️ DELETE /api/document-requests', { id });
+    console.log('🗑️ DELETE /api/documents?endpoint=document-requests', { id });
 
     if (!id) {
       return res.status(400).json({
@@ -427,7 +453,7 @@ async function handleDeleteDocumentRequest(req, res) {
       message: 'Request deleted successfully',
     });
   } catch (error) {
-    console.error('❌ Error in DELETE /api/document-requests:', error);
+    console.error('❌ Error in DELETE /api/documents?endpoint=document-requests:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to delete request',
