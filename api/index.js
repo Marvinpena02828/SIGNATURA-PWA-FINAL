@@ -1,26 +1,11 @@
-// ============================================
-// COMPLETE api/index.js - ROUTER VERSION
-// ============================================
-// This is the COMPLETE file you can copy-paste
-// Version: Using router.get(), router.post(), etc.
-
 const express = require('express');
 const router = express.Router();
 const db = require('../models');
-const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const { DataTypes } = require('sequelize');
 
 // ============================================
-// YOUR EXISTING ENDPOINTS - KEEP THESE AS-IS
-// ============================================
-
-// Example: Add all your existing endpoints here
-// (authentication, documents, sharing, verification, etc.)
-// Keep everything that's already working
-
-// ============================================
-// NEW: MODEL DEFINITIONS
+// MODELS
 // ============================================
 
 const DocumentRequest = db.sequelize.define('DocumentRequest', {
@@ -81,7 +66,6 @@ const DocumentRequestItem = db.sequelize.define('DocumentRequestItem', {
   updatedAt: false,
 });
 
-// Setup associations
 DocumentRequest.hasMany(DocumentRequestItem, {
   as: 'items',
   foreignKey: 'document_request_id',
@@ -97,23 +81,24 @@ DocumentRequestItem.belongsTo(db.Document, {
 });
 
 // ============================================
-// NEW: DOCUMENT REQUEST ENDPOINTS
+// TEST ENDPOINT
 // ============================================
 
-// 1. GET /api/issuers
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'API is working!' });
+});
+
+// ============================================
+// GET /issuers
+// ============================================
+
 router.get('/issuers', async (req, res) => {
   try {
     console.log('📥 GET /api/issuers');
 
     const issuers = await db.User.findAll({
       where: { role: 'issuer' },
-      attributes: [
-        'id',
-        'email',
-        'organization_name',
-        'organization_type',
-        'created_at'
-      ],
+      attributes: ['id', 'email', 'organization_name', 'organization_type', 'created_at'],
       raw: true,
     });
 
@@ -132,51 +117,33 @@ router.get('/issuers', async (req, res) => {
   }
 });
 
-// 2. POST /api/document-requests
+// ============================================
+// POST /document-requests
+// ============================================
+
 router.post('/document-requests', async (req, res) => {
   try {
-    const {
-      ownerId,
-      ownerEmail,
-      issuerId,
-      issuerEmail,
-      documentIds,
-      message,
-    } = req.body;
+    const { ownerId, ownerEmail, issuerId, issuerEmail, documentIds, message } = req.body;
 
-    console.log('📤 POST /api/document-requests', {
-      ownerId,
-      issuerId,
-      documentCount: documentIds?.length,
-    });
+    console.log('📤 POST /api/document-requests', { ownerId, issuerId, documentCount: documentIds?.length });
 
-    // Validation
     if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: ownerId, issuerId, documentIds',
+        error: 'Missing required fields',
       });
     }
 
-    // Verify issuer exists
     const issuer = await db.User.findByPk(issuerId);
-    if (!issuer) {
+    if (!issuer || issuer.role !== 'issuer') {
       return res.status(404).json({
         success: false,
-        error: 'Issuer not found',
+        error: 'Issuer not found or invalid',
       });
     }
 
-    if (issuer.role !== 'issuer') {
-      return res.status(400).json({
-        success: false,
-        error: 'User is not an issuer',
-      });
-    }
-
-    // Create the request record
     const requestId = uuidv4();
-    
+
     const documentRequest = await DocumentRequest.create({
       id: requestId,
       owner_id: ownerId,
@@ -188,7 +155,6 @@ router.post('/document-requests', async (req, res) => {
       message: message || null,
     });
 
-    // Create document request items
     const items = documentIds.map(docId => ({
       id: uuidv4(),
       document_request_id: requestId,
@@ -197,18 +163,14 @@ router.post('/document-requests', async (req, res) => {
 
     await DocumentRequestItem.bulkCreate(items);
 
-    console.log(`✅ Created request ${requestId} with ${documentIds.length} documents`);
+    console.log(`✅ Created request ${requestId}`);
 
     res.status(201).json({
       success: true,
       data: {
         id: requestId,
-        owner_id: ownerId,
-        issuer_id: issuerId,
         status: 'pending',
-        message: message || null,
         document_count: documentIds.length,
-        created_at: documentRequest.created_at,
       },
     });
   } catch (error) {
@@ -220,7 +182,10 @@ router.post('/document-requests', async (req, res) => {
   }
 });
 
-// 3. GET /api/document-requests
+// ============================================
+// GET /document-requests
+// ============================================
+
 router.get('/document-requests', async (req, res) => {
   try {
     const { ownerId, issuerId } = req.query;
@@ -230,16 +195,13 @@ router.get('/document-requests', async (req, res) => {
     if (!ownerId && !issuerId) {
       return res.status(400).json({
         success: false,
-        error: 'Must provide ownerId or issuerId query parameter',
+        error: 'Must provide ownerId or issuerId',
       });
     }
 
     const where = {};
-    if (ownerId) {
-      where.owner_id = ownerId;
-    } else if (issuerId) {
-      where.issuer_id = issuerId;
-    }
+    if (ownerId) where.owner_id = ownerId;
+    if (issuerId) where.issuer_id = issuerId;
 
     const requests = await DocumentRequest.findAll({
       where,
@@ -247,39 +209,15 @@ router.get('/document-requests', async (req, res) => {
         {
           model: DocumentRequestItem,
           as: 'items',
-          attributes: ['id'],
-          include: [
-            {
-              model: db.Document,
-              attributes: ['id', 'title', 'document_type'],
-            },
-          ],
+          include: [{ model: db.Document, attributes: ['id', 'title'] }],
         },
       ],
       order: [['created_at', 'DESC']],
     });
 
-    const transformedRequests = requests.map(req => ({
-      id: req.id,
-      owner_id: req.owner_id,
-      ownerEmail: req.owner_email,
-      owner_name: req.owner_name,
-      issuer_id: req.issuer_id,
-      issuerEmail: req.issuer_email,
-      issuer_organization: req.issuer_organization,
-      status: req.status,
-      message: req.message,
-      issuer_message: req.issuer_message,
-      documents: (req.items || []).map(item => item.Document),
-      created_at: req.created_at,
-      updated_at: req.updated_at,
-    }));
-
-    console.log(`✅ Found ${transformedRequests.length} requests`);
-
     res.json({
       success: true,
-      data: transformedRequests,
+      data: requests,
     });
   } catch (error) {
     console.error('❌ Error in GET /api/document-requests:', error);
@@ -290,24 +228,18 @@ router.get('/document-requests', async (req, res) => {
   }
 });
 
-// 4. PUT /api/document-requests
+// ============================================
+// PUT /document-requests
+// ============================================
+
 router.put('/document-requests', async (req, res) => {
   try {
     const { id, status, message } = req.body;
 
-    console.log('🔄 PUT /api/document-requests', { id, status });
-
     if (!id || !status) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: id, status',
-      });
-    }
-
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid status. Must be "approved" or "rejected"',
+        error: 'Missing id or status',
       });
     }
 
@@ -315,65 +247,21 @@ router.put('/document-requests', async (req, res) => {
     if (!documentRequest) {
       return res.status(404).json({
         success: false,
-        error: 'Document request not found',
+        error: 'Request not found',
       });
     }
 
     await documentRequest.update({
       status,
       issuer_message: message || null,
-      updated_at: new Date(),
     });
-
-    console.log(`✅ Updated request ${id} to ${status}`);
 
     res.json({
       success: true,
-      data: {
-        id: documentRequest.id,
-        status: documentRequest.status,
-        issuer_message: documentRequest.issuer_message,
-        updated_at: documentRequest.updated_at,
-      },
+      data: documentRequest,
     });
   } catch (error) {
     console.error('❌ Error in PUT /api/document-requests:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-// 5. DELETE /api/document-requests/:id (optional)
-router.delete('/document-requests/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    console.log('🗑️ DELETE /api/document-requests', { id });
-
-    const documentRequest = await DocumentRequest.findByPk(id);
-    if (!documentRequest) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document request not found',
-      });
-    }
-
-    await DocumentRequestItem.destroy({
-      where: { document_request_id: id },
-    });
-
-    await documentRequest.destroy();
-
-    console.log(`✅ Deleted request ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Request deleted',
-    });
-  } catch (error) {
-    console.error('❌ Error in DELETE /api/document-requests:', error);
     res.status(500).json({
       success: false,
       error: error.message,
