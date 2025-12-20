@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiEye, FiShare2, FiCopy, FiCheck, FiDownload, FiMail, FiAlertCircle } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiEye, FiShare2, FiCopy, FiCheck, FiDownload, FiMail, FiAlertCircle, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -11,6 +11,7 @@ export default function IssuerDashboard() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   const [documents, setDocuments] = useState([]);
+  const [documentRequests, setDocumentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('degree');
@@ -19,9 +20,7 @@ export default function IssuerDashboard() {
   const [shareLink, setShareLink] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   
-  // ============================================
-  // EMAIL SHARING STATE
-  // ============================================
+  // Share modal states
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareModalDoc, setShareModalDoc] = useState(null);
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -29,58 +28,44 @@ export default function IssuerDashboard() {
   const [expiryDays, setExpiryDays] = useState(7);
   const [permissions, setPermissions] = useState(['view', 'download']);
   const [shareLoading, setShareLoading] = useState(false);
-  const [shareStep, setShareStep] = useState(1); // 1: form, 2: loading, 3: success
+  const [shareStep, setShareStep] = useState(1);
   const [shareData, setShareData] = useState(null);
   const [emailStatus, setEmailStatus] = useState('');
 
-  // ============================================
-  // UTILITY: Format expiry date properly
-  // ============================================
-  const formatExpiryDate = (dateString) => {
-    try {
-      if (!dateString) return 'N/A';
-      
-      const date = new Date(dateString);
-      
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.error('⚠️ Invalid date received:', dateString);
-        return 'Invalid Date';
-      }
-      
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'UTC'
-      });
-    } catch (error) {
-      console.error('❌ Date formatting error:', error);
-      return 'N/A';
-    }
-  };
+  // Document request modal states
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestAction, setRequestAction] = useState(null); // 'approve' or 'reject'
+  const [actionMessage, setActionMessage] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (role !== 'issuer') {
       navigate('/');
       return;
     }
-    fetchDocuments();
+    fetchData();
   }, [role, navigate]);
 
-  const fetchDocuments = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch(`/api/documents?issuerId=${user?.id}`);
-      const data = await res.json();
-      if (data.success) {
-        setDocuments(data.data || []);
+      // Fetch issuer's documents
+      const docsRes = await fetch(`/api/documents?issuerId=${user?.id}`);
+      const docsData = await docsRes.json();
+      if (docsData.success) {
+        setDocuments(docsData.data || []);
+      }
+
+      // Fetch incoming document requests
+      const reqRes = await fetch(`/api/document-requests?issuerId=${user?.id}`);
+      const reqData = await reqRes.json();
+      if (reqData.success) {
+        console.log('📥 Incoming document requests:', reqData.data);
+        setDocumentRequests(reqData.data || []);
       }
     } catch (err) {
-      console.error('Error fetching documents:', err);
-      toast.error('Failed to load documents');
+      console.error('Error fetching data:', err);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -147,9 +132,6 @@ export default function IssuerDashboard() {
     }
   };
 
-  // ============================================
-  // OPEN SHARE MODAL WITH EMAIL
-  // ============================================
   const openShareModal = (doc) => {
     setShareModalDoc(doc);
     setShowShareModal(true);
@@ -162,9 +144,6 @@ export default function IssuerDashboard() {
     setEmailStatus('');
   };
 
-  // ============================================
-  // CREATE SHARE WITH EMAIL (WITH FIXES)
-  // ============================================
   const handleCreateShareWithEmail = async (e) => {
     e.preventDefault();
 
@@ -183,27 +162,15 @@ export default function IssuerDashboard() {
     setEmailStatus('Preparing share link...');
 
     try {
-      // ============================================
-      // BUILD REQUEST PAYLOAD
-      // ============================================
       const requestPayload = {
         documentId: shareModalDoc.id,
         recipientEmail: recipientEmail,
         permissions: permissions,
         requireOtp: requireOtp,
-        expiryDays: Number(expiryDays),  // ← ENSURE IT'S A NUMBER
+        expiryDays: Number(expiryDays),
         senderEmail: user?.email,
       };
 
-      console.log('📤 Sending request to API:', {
-        url: '/api/sharing',
-        method: 'POST',
-        payload: requestPayload,
-      });
-
-      // ============================================
-      // SEND TO BACKEND
-      // ============================================
       setEmailStatus('📝 Creating share link...');
 
       const res = await fetch('/api/sharing', {
@@ -212,28 +179,15 @@ export default function IssuerDashboard() {
         body: JSON.stringify(requestPayload),
       });
 
-      console.log('📊 API Response Status:', res.status);
-
       const result = await res.json();
 
-      console.log('📋 API Response Data:', result);
-
       if (!result.success) {
-        console.error('❌ API Error:', result.error);
         throw new Error(result.error || 'Failed to create share');
       }
 
-      // ============================================
-      // EMAIL BEING SENT
-      // ============================================
       setEmailStatus('📧 Sending email to recipient...');
-
-      // Simulate email sending
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // ============================================
-      // SUCCESS
-      // ============================================
       if (result.data.emailSent) {
         setEmailStatus(`✅ Email sent to ${recipientEmail}!`);
         toast.success(`Email sent to ${recipientEmail}!`);
@@ -247,13 +201,8 @@ export default function IssuerDashboard() {
       setShareStep(3);
       setShareLoading(false);
 
-      console.log('✅ Share created successfully:', result.data);
-
     } catch (error) {
       console.error('❌ Share error:', error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Full error object:', error);
-      
       setEmailStatus(`❌ Error: ${error.message}`);
       toast.error(error.message);
       setShareStep(1);
@@ -261,11 +210,56 @@ export default function IssuerDashboard() {
     }
   };
 
-  // ============================================
-  // GENERATE SHARE LINK
-  // ============================================
   const generateShareLink = async (doc) => {
     openShareModal(doc);
+  };
+
+  // Handle incoming document request action
+  const handleRequestAction = async () => {
+    if (!selectedRequest || !requestAction) {
+      toast.error('Please select an action');
+      return;
+    }
+
+    setActionLoading(true);
+
+    try {
+      const res = await fetch('/api/document-requests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedRequest.id,
+          status: requestAction,
+          message: actionMessage,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`Request ${requestAction}!`);
+        
+        // Update the request in the list
+        setDocumentRequests(documentRequests.map(r =>
+          r.id === selectedRequest.id
+            ? { ...r, status: requestAction, issuer_message: actionMessage }
+            : r
+        ));
+
+        // Close modal
+        setShowRequestModal(false);
+        setSelectedRequest(null);
+        setRequestAction(null);
+        setActionMessage('');
+      } else {
+        toast.error(data.error || 'Failed to update request');
+      }
+    } catch (err) {
+      console.error('Error updating request:', err);
+      toast.error('Error: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const copyToClipboard = (text, id) => {
@@ -288,9 +282,10 @@ export default function IssuerDashboard() {
     }
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
+  // Get statistics
+  const pendingRequests = documentRequests.filter(r => r.status === 'pending').length;
+  const approvedRequests = documentRequests.filter(r => r.status === 'approved').length;
+  const rejectedRequests = documentRequests.filter(r => r.status === 'rejected').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -314,7 +309,7 @@ export default function IssuerDashboard() {
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-6 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-signatura-red">
             <h3 className="text-gray-600 text-sm font-medium">Total Documents</h3>
             <p className="text-3xl font-bold text-signatura-dark mt-2">{documents.length}</p>
@@ -324,6 +319,18 @@ export default function IssuerDashboard() {
             <p className="text-3xl font-bold text-green-600 mt-2">
               {documents.filter((d) => d.status === 'active').length}
             </p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-yellow-500">
+            <h3 className="text-gray-600 text-sm font-medium">Pending Requests</h3>
+            <p className="text-3xl font-bold text-yellow-600 mt-2">{pendingRequests}</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500">
+            <h3 className="text-gray-600 text-sm font-medium">Approved Requests</h3>
+            <p className="text-3xl font-bold text-blue-600 mt-2">{approvedRequests}</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-red-500">
+            <h3 className="text-gray-600 text-sm font-medium">Rejected Requests</h3>
+            <p className="text-3xl font-bold text-red-600 mt-2">{rejectedRequests}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-gray-400">
             <h3 className="text-gray-600 text-sm font-medium">Organization</h3>
@@ -375,8 +382,94 @@ export default function IssuerDashboard() {
           </form>
         </div>
 
-        {/* Documents Table */}
+        {/* INCOMING DOCUMENT REQUESTS */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-signatura-dark">📥 Document Requests from Owners</h2>
+            <p className="text-sm text-gray-500">Owners requesting documents from you</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Owner Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Owner Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Documents Requested</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested On</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {documentRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                      No document requests yet
+                    </td>
+                  </tr>
+                ) : (
+                  documentRequests.map((req) => (
+                    <tr key={req.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-signatura-dark">
+                        {req.owner_name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">{req.owner_email}</td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        <div className="space-y-1">
+                          {req.documents?.map((doc, idx) => (
+                            <div key={idx} className="text-xs bg-blue-50 px-2 py-1 rounded w-fit">
+                              {doc.title}
+                            </div>
+                          )) || <span>—</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center w-fit ${
+                          req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          req.status === 'approved' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {req.status === 'pending' && <FiAlertCircle className="mr-1" size={14} />}
+                          {req.status === 'approved' && <FiCheckCircle className="mr-1" size={14} />}
+                          {req.status === 'rejected' && <FiXCircle className="mr-1" size={14} />}
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        {req.status === 'pending' ? (
+                          <button
+                            onClick={() => {
+                              setSelectedRequest(req);
+                              setShowRequestModal(true);
+                              setRequestAction(null);
+                              setActionMessage('');
+                            }}
+                            className="text-signatura-red hover:bg-red-50 px-3 py-1 rounded transition font-medium text-sm"
+                          >
+                            Respond →
+                          </button>
+                        ) : (
+                          <span className="text-gray-500 text-sm">
+                            {req.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* My Documents Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-signatura-dark">My Documents</h2>
+          </div>
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -458,9 +551,7 @@ export default function IssuerDashboard() {
           </div>
         )}
 
-        {/* ============================================ */}
-        {/* SHARE MODAL WITH EMAIL - STEP 1: FORM */}
-        {/* ============================================ */}
+        {/* SHARE MODAL - STEP 1: FORM */}
         {showShareModal && shareStep === 1 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
@@ -469,7 +560,6 @@ export default function IssuerDashboard() {
               </h2>
 
               <form onSubmit={handleCreateShareWithEmail} className="space-y-4">
-                {/* Recipient Email */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <FiMail className="inline mr-2" />
@@ -483,12 +573,8 @@ export default function IssuerDashboard() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    ℹ️ They'll receive an email with the share link
-                  </p>
                 </div>
 
-                {/* Permissions */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Permissions
@@ -524,25 +610,9 @@ export default function IssuerDashboard() {
                       />
                       ⬇️ Download
                     </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={permissions.includes('print')}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setPermissions([...permissions, 'print']);
-                          } else {
-                            setPermissions(permissions.filter(p => p !== 'print'));
-                          }
-                        }}
-                        className="mr-2"
-                      />
-                      🖨️ Print
-                    </label>
                   </div>
                 </div>
 
-                {/* Require OTP */}
                 <div>
                   <label className="flex items-center">
                     <input
@@ -555,14 +625,8 @@ export default function IssuerDashboard() {
                       🔒 Require OTP Verification
                     </span>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {requireOtp
-                      ? '✅ Recipient must verify with 6-digit code'
-                      : '⚠️ No OTP protection - anyone with link can access'}
-                  </p>
                 </div>
 
-                {/* Expiry Days */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     ⏰ Expires In
@@ -579,20 +643,6 @@ export default function IssuerDashboard() {
                   </select>
                 </div>
 
-                {/* Summary */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    <strong>Summary:</strong>
-                  </p>
-                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                    <li>📄 Document: <strong>{shareModalDoc?.title}</strong></li>
-                    <li>📧 Sending to: <strong>{recipientEmail || '(Enter email)'}</strong></li>
-                    <li>🔒 OTP: <strong>{requireOtp ? 'Required' : 'Not required'}</strong></li>
-                    <li>⏰ Expires: <strong>{expiryDays} days</strong></li>
-                  </ul>
-                </div>
-
-                {/* Buttons */}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -614,9 +664,7 @@ export default function IssuerDashboard() {
           </div>
         )}
 
-        {/* ============================================ */}
         {/* SHARE MODAL - STEP 2: LOADING */}
-        {/* ============================================ */}
         {showShareModal && shareStep === 2 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl text-center">
@@ -630,16 +678,11 @@ export default function IssuerDashboard() {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-signatura-red h-2 rounded-full animate-pulse"></div>
               </div>
-              <p className="text-xs text-gray-500 mt-4">
-                This typically takes 1-2 seconds...
-              </p>
             </div>
           </div>
         )}
 
-        {/* ============================================ */}
-        {/* SHARE MODAL - STEP 3: SUCCESS (WITH FIXES) */}
-        {/* ============================================ */}
+        {/* SHARE MODAL - STEP 3: SUCCESS */}
         {showShareModal && shareStep === 3 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
@@ -649,7 +692,6 @@ export default function IssuerDashboard() {
               </div>
 
               <div className="space-y-4 mb-6">
-                {/* Recipient Info */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-sm font-medium text-blue-900">
                     📧 Recipient Email
@@ -659,64 +701,15 @@ export default function IssuerDashboard() {
                   </p>
                 </div>
 
-                {/* Email Status */}
-                <div className={`p-4 rounded-lg ${
-                  shareData?.emailSent
-                    ? 'bg-green-50'
-                    : 'bg-yellow-50'
-                }`}>
-                  <p className="text-sm font-medium mb-1">
-                    {shareData?.emailSent ? '✅ Email Status' : '⚠️ Email Status'}
-                  </p>
-                  <p className={`text-sm ${
-                    shareData?.emailSent
-                      ? 'text-green-700'
-                      : 'text-yellow-700'
-                  }`}>
-                    {shareData?.emailStatus}
-                  </p>
-                </div>
-
-                {/* Expiry Info - WITH DATE FIX */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-gray-900 mb-2">
-                    ⏰ Link Details
-                  </p>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    <li>
-                      <strong>Expires:</strong> {expiryDays} days from now
-                    </li>
-                    <li>
-                      <strong>Expires at:</strong> {formatExpiryDate(shareData?.expiresAt)}
-                    </li>
-                    <li>
-                      <strong>OTP Required:</strong> {requireOtp ? 'Yes' : 'No'}
-                    </li>
-                    <li>
-                      <strong>Permissions:</strong> {permissions.join(', ')}
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Copy Link Section - WITH URL DISPLAY FIX */}
                 {shareLink && (
                   <div className="border-2 border-signatura-red rounded-lg p-4">
                     <p className="text-sm font-medium text-gray-900 mb-2">
                       📋 Share Link
                     </p>
-                    
-                    {/* Better URL display - horizontal scroll instead of wrapping */}
                     <div className="bg-gray-50 p-3 rounded text-xs font-mono text-gray-700 
                                     border border-gray-200 overflow-x-auto whitespace-nowrap">
                       {shareLink}
                     </div>
-                    
-                    {/* Helper text */}
-                    <p className="text-xs text-gray-500 mt-2">
-                      ℹ️ Full link shown above. Click copy to get the complete URL.
-                    </p>
-                    
-                    {/* Copy button */}
                     <button
                       onClick={() => copyToClipboard(shareLink, 'share-success')}
                       className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 
@@ -725,7 +718,7 @@ export default function IssuerDashboard() {
                       {copiedId === 'share-success' ? (
                         <>
                           <FiCheck />
-                          Copied to Clipboard!
+                          Copied!
                         </>
                       ) : (
                         <>
@@ -736,22 +729,8 @@ export default function IssuerDashboard() {
                     </button>
                   </div>
                 )}
-
-                {/* What Happens Next */}
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-indigo-900 mb-2">
-                    📋 What Happens Next:
-                  </p>
-                  <ol className="text-xs text-indigo-800 space-y-1 list-decimal list-inside">
-                    <li>{shareData?.emailSent ? 'Recipient receives email' : 'Share link is ready'}</li>
-                    <li>They click the link</li>
-                    <li>They verify with OTP (if required)</li>
-                    <li>They access the document</li>
-                  </ol>
-                </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-2">
                 <button
                   onClick={() => {
@@ -771,10 +750,116 @@ export default function IssuerDashboard() {
                   Done
                 </button>
               </div>
+            </div>
+          </div>
+        )}
 
-              <p className="text-xs text-gray-500 text-center mt-4">
-                ℹ️ Email will show: who shared it, what document, and when it expires.
-              </p>
+        {/* DOCUMENT REQUEST RESPONSE MODAL */}
+        {showRequestModal && selectedRequest && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
+              <h2 className="text-2xl font-bold text-signatura-dark mb-4">
+                Respond to Request
+              </h2>
+
+              <div className="space-y-4 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700">Owner</p>
+                  <p className="text-lg font-bold text-gray-900">{selectedRequest.owner_email}</p>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900 mb-2">Requested Documents:</p>
+                  <div className="space-y-1">
+                    {selectedRequest.documents?.map((doc, idx) => (
+                      <p key={idx} className="text-sm text-blue-800">• {doc.title}</p>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedRequest.message && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-yellow-900 mb-1">Their Message:</p>
+                    <p className="text-sm text-yellow-800">{selectedRequest.message}</p>
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleRequestAction();
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Response
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={requestAction === 'approved'}
+                        onChange={() => setRequestAction('approved')}
+                        className="mr-2"
+                      />
+                      <span className="text-sm font-medium text-green-700">
+                        ✓ Approve Request
+                      </span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={requestAction === 'rejected'}
+                        onChange={() => setRequestAction('rejected')}
+                        className="mr-2"
+                      />
+                      <span className="text-sm font-medium text-red-700">
+                        ✗ Reject Request
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message (Optional)
+                  </label>
+                  <textarea
+                    value={actionMessage}
+                    onChange={(e) => setActionMessage(e.target.value)}
+                    placeholder="e.g., Documents will be sent within 3 business days..."
+                    rows="3"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRequestModal(false);
+                      setSelectedRequest(null);
+                      setRequestAction(null);
+                      setActionMessage('');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!requestAction || actionLoading}
+                    className={`flex-1 px-4 py-2 text-white rounded-lg transition disabled:opacity-50 ${
+                      requestAction === 'approved'
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : requestAction === 'rejected'
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-gray-400'
+                    }`}
+                  >
+                    {actionLoading ? 'Sending...' : 'Send Response'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
