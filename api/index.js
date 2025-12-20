@@ -1,16 +1,107 @@
 // ============================================
-// ADD THESE ENDPOINTS TO YOUR api/index.js
+// COMPLETE api/index.js - ROUTER VERSION
 // ============================================
-// Just copy this entire section and paste it at the end of your api/index.js file
-// BEFORE the final export or module.exports
+// This is the COMPLETE file you can copy-paste
+// Version: Using router.get(), router.post(), etc.
+
+const express = require('express');
+const router = express.Router();
+const db = require('../models');
+const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
+const { DataTypes } = require('sequelize');
 
 // ============================================
-// DOCUMENT REQUEST ENDPOINTS
+// YOUR EXISTING ENDPOINTS - KEEP THESE AS-IS
+// ============================================
+
+// Example: Add all your existing endpoints here
+// (authentication, documents, sharing, verification, etc.)
+// Keep everything that's already working
+
+// ============================================
+// NEW: MODEL DEFINITIONS
+// ============================================
+
+const DocumentRequest = db.sequelize.define('DocumentRequest', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  owner_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
+  owner_email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  owner_name: DataTypes.STRING,
+  issuer_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
+  issuer_email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  issuer_organization: DataTypes.STRING,
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    defaultValue: 'pending',
+  },
+  message: DataTypes.TEXT,
+  issuer_message: DataTypes.TEXT,
+}, {
+  tableName: 'document_requests',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+});
+
+const DocumentRequestItem = db.sequelize.define('DocumentRequestItem', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  document_request_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
+  document_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
+}, {
+  tableName: 'document_request_items',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
+});
+
+// Setup associations
+DocumentRequest.hasMany(DocumentRequestItem, {
+  as: 'items',
+  foreignKey: 'document_request_id',
+  onDelete: 'CASCADE',
+});
+
+DocumentRequestItem.belongsTo(DocumentRequest, {
+  foreignKey: 'document_request_id',
+});
+
+DocumentRequestItem.belongsTo(db.Document, {
+  foreignKey: 'document_id',
+});
+
+// ============================================
+// NEW: DOCUMENT REQUEST ENDPOINTS
 // ============================================
 
 // 1. GET /api/issuers
-// Get all available issuers (users with role='issuer')
-app.get('/api/issuers', async (req, res) => {
+router.get('/issuers', async (req, res) => {
   try {
     console.log('📥 GET /api/issuers');
 
@@ -42,8 +133,7 @@ app.get('/api/issuers', async (req, res) => {
 });
 
 // 2. POST /api/document-requests
-// Owner creates a document request
-app.post('/api/document-requests', async (req, res) => {
+router.post('/document-requests', async (req, res) => {
   try {
     const {
       ownerId,
@@ -68,7 +158,7 @@ app.post('/api/document-requests', async (req, res) => {
       });
     }
 
-    // Verify issuer exists and has role='issuer'
+    // Verify issuer exists
     const issuer = await db.User.findByPk(issuerId);
     if (!issuer) {
       return res.status(404).json({
@@ -85,10 +175,9 @@ app.post('/api/document-requests', async (req, res) => {
     }
 
     // Create the request record
-    const { v4: uuidv4 } = require('uuid');
     const requestId = uuidv4();
-
-    const documentRequest = await db.DocumentRequest.create({
+    
+    const documentRequest = await DocumentRequest.create({
       id: requestId,
       owner_id: ownerId,
       owner_email: ownerEmail,
@@ -106,7 +195,7 @@ app.post('/api/document-requests', async (req, res) => {
       document_id: docId,
     }));
 
-    await db.DocumentRequestItem.bulkCreate(items);
+    await DocumentRequestItem.bulkCreate(items);
 
     console.log(`✅ Created request ${requestId} with ${documentIds.length} documents`);
 
@@ -132,14 +221,12 @@ app.post('/api/document-requests', async (req, res) => {
 });
 
 // 3. GET /api/document-requests
-// Get document requests (filtered by ownerId OR issuerId)
-app.get('/api/document-requests', async (req, res) => {
+router.get('/document-requests', async (req, res) => {
   try {
     const { ownerId, issuerId } = req.query;
 
     console.log('📥 GET /api/document-requests', { ownerId, issuerId });
 
-    // Must provide one filter
     if (!ownerId && !issuerId) {
       return res.status(400).json({
         success: false,
@@ -147,7 +234,6 @@ app.get('/api/document-requests', async (req, res) => {
       });
     }
 
-    // Build where clause
     const where = {};
     if (ownerId) {
       where.owner_id = ownerId;
@@ -155,12 +241,11 @@ app.get('/api/document-requests', async (req, res) => {
       where.issuer_id = issuerId;
     }
 
-    // Fetch requests with associated documents
-    const requests = await db.DocumentRequest.findAll({
+    const requests = await DocumentRequest.findAll({
       where,
       include: [
         {
-          model: db.DocumentRequestItem,
+          model: DocumentRequestItem,
           as: 'items',
           attributes: ['id'],
           include: [
@@ -174,7 +259,6 @@ app.get('/api/document-requests', async (req, res) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Transform response to match expected format
     const transformedRequests = requests.map(req => ({
       id: req.id,
       owner_id: req.owner_id,
@@ -207,14 +291,12 @@ app.get('/api/document-requests', async (req, res) => {
 });
 
 // 4. PUT /api/document-requests
-// Issuer updates request status (approve/reject)
-app.put('/api/document-requests', async (req, res) => {
+router.put('/document-requests', async (req, res) => {
   try {
     const { id, status, message } = req.body;
 
     console.log('🔄 PUT /api/document-requests', { id, status });
 
-    // Validation
     if (!id || !status) {
       return res.status(400).json({
         success: false,
@@ -229,8 +311,7 @@ app.put('/api/document-requests', async (req, res) => {
       });
     }
 
-    // Find request
-    const documentRequest = await db.DocumentRequest.findByPk(id);
+    const documentRequest = await DocumentRequest.findByPk(id);
     if (!documentRequest) {
       return res.status(404).json({
         success: false,
@@ -238,7 +319,6 @@ app.put('/api/document-requests', async (req, res) => {
       });
     }
 
-    // Update request
     await documentRequest.update({
       status,
       issuer_message: message || null,
@@ -265,14 +345,14 @@ app.put('/api/document-requests', async (req, res) => {
   }
 });
 
-// 5. DELETE /api/document-requests (optional bonus)
-app.delete('/api/document-requests/:id', async (req, res) => {
+// 5. DELETE /api/document-requests/:id (optional)
+router.delete('/document-requests/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     console.log('🗑️ DELETE /api/document-requests', { id });
 
-    const documentRequest = await db.DocumentRequest.findByPk(id);
+    const documentRequest = await DocumentRequest.findByPk(id);
     if (!documentRequest) {
       return res.status(404).json({
         success: false,
@@ -280,12 +360,10 @@ app.delete('/api/document-requests/:id', async (req, res) => {
       });
     }
 
-    // Delete associated items first
-    await db.DocumentRequestItem.destroy({
+    await DocumentRequestItem.destroy({
       where: { document_request_id: id },
     });
 
-    // Delete request
     await documentRequest.destroy();
 
     console.log(`✅ Deleted request ${id}`);
@@ -304,5 +382,7 @@ app.delete('/api/document-requests/:id', async (req, res) => {
 });
 
 // ============================================
-// END OF DOCUMENT REQUEST ENDPOINTS
+// EXPORT
 // ============================================
+
+module.exports = router;
