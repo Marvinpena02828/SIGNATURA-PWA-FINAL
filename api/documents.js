@@ -1,4 +1,6 @@
-// pages/api/documents.js - Consolidated: documents + issuers + document-requests
+// api/documents.js - Consolidated API for documents, issuers, and document requests
+// This file handles Express-style routing (for root /api/ folder, not Next.js pages/api/)
+
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,83 +9,133 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export default function setupDocumentsRouter(app) {
+  // ============================================
+  // GET /api/documents
+  // Handles: documents, issuers, document-requests
+  // ============================================
+  
+  app.get('/api/documents', async (req, res) => {
+    try {
+      const { role, endpoint, ownerId, issuerId } = req.query;
+      
+      console.log('📥 GET /api/documents', { role, endpoint, ownerId, issuerId });
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+      // ROUTE 1: Get Issuers (GET /api/documents?role=issuer)
+      if (role === 'issuer') {
+        return handleGetIssuers(req, res);
+      }
 
-  try {
-    // Determine which handler to call based on query parameters or method
-    const { role, endpoint, ownerId, issuerId, ownerEmail } = req.query;
+      // ROUTE 2: Get Document Requests (GET /api/documents?endpoint=document-requests&ownerId=xxx)
+      if (endpoint === 'document-requests') {
+        return handleGetDocumentRequests(req, res);
+      }
 
-    console.log('📨 API Request:', { method: req.method, endpoint, role, ownerId, issuerId });
-
-    // DOCUMENTS OPERATIONS
-    if (req.method === 'GET' && !role && !endpoint) {
-      // GET /api/documents?ownerId=xxx or ?issuerId=xxx
+      // ROUTE 3: Get Documents (GET /api/documents?ownerId=xxx or ?issuerId=xxx)
       return handleGetDocuments(req, res);
+    } catch (error) {
+      console.error('❌ Error in GET /api/documents:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error',
+      });
     }
+  });
 
-    if (req.method === 'POST' && !endpoint) {
-      // POST /api/documents - Create document
+  // ============================================
+  // POST /api/documents
+  // Handles: create documents, create document requests
+  // ============================================
+  
+  app.post('/api/documents', async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      
+      console.log('📤 POST /api/documents', { endpoint });
+
+      // ROUTE 1: Create Document Request (POST with endpoint: 'document-requests')
+      if (endpoint === 'document-requests') {
+        return handleCreateDocumentRequest(req, res);
+      }
+
+      // ROUTE 2: Create Document (POST without endpoint)
       return handleCreateDocument(req, res);
+    } catch (error) {
+      console.error('❌ Error in POST /api/documents:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error',
+      });
     }
+  });
 
-    // ISSUERS OPERATIONS
-    if (req.method === 'GET' && role === 'issuer') {
-      // GET /api/documents?role=issuer
-      return handleGetIssuers(req, res);
+  // ============================================
+  // PUT /api/documents
+  // Handles: update document requests
+  // ============================================
+  
+  app.put('/api/documents', async (req, res) => {
+    try {
+      const { endpoint } = req.query;
+      
+      console.log('📝 PUT /api/documents', { endpoint });
+
+      // Update Document Request
+      if (endpoint === 'document-requests' || req.body?.id) {
+        return handleUpdateDocumentRequest(req, res);
+      }
+
+      res.status(400).json({
+        success: false,
+        error: 'Invalid request',
+      });
+    } catch (error) {
+      console.error('❌ Error in PUT /api/documents:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error',
+      });
     }
+  });
 
-    // DOCUMENT REQUESTS OPERATIONS
-    if (req.method === 'GET' && endpoint === 'document-requests') {
-      // GET /api/documents?endpoint=document-requests&ownerId=xxx
-      return handleGetDocumentRequests(req, res);
+  // ============================================
+  // DELETE /api/documents
+  // Handles: delete document requests
+  // ============================================
+  
+  app.delete('/api/documents', async (req, res) => {
+    try {
+      const { endpoint } = req.query;
+      
+      console.log('🗑️ DELETE /api/documents', { endpoint });
+
+      // Delete Document Request
+      if (endpoint === 'document-requests' || req.body?.id) {
+        return handleDeleteDocumentRequest(req, res);
+      }
+
+      res.status(400).json({
+        success: false,
+        error: 'Invalid request',
+      });
+    } catch (error) {
+      console.error('❌ Error in DELETE /api/documents:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error',
+      });
     }
-
-    if (req.method === 'POST' && req.body?.endpoint === 'document-requests') {
-      // POST /api/documents with endpoint: 'document-requests'
-      return handleCreateDocumentRequest(req, res);
-    }
-
-    if (req.method === 'PUT' && endpoint === 'document-requests') {
-      // PUT /api/documents?endpoint=document-requests
-      return handleUpdateDocumentRequest(req, res);
-    }
-
-    if (req.method === 'DELETE' && endpoint === 'document-requests') {
-      // DELETE /api/documents?endpoint=document-requests
-      return handleDeleteDocumentRequest(req, res);
-    }
-
-    // If no route matched
-    console.error('❌ No matching route for:', { method: req.method, endpoint, role });
-    return res.status(404).json({
-      success: false,
-      error: 'Endpoint not found',
-    });
-  } catch (error) {
-    console.error('❌ Unexpected error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Internal server error',
-    });
-  }
+  });
 }
 
 // ============================================
-// DOCUMENTS HANDLERS
+// HANDLER FUNCTIONS
 // ============================================
 
 async function handleGetDocuments(req, res) {
   try {
     const { issuerId, ownerId } = req.query;
-    console.log('📥 GET /api/documents', { issuerId, ownerId });
+    console.log('📥 GET /api/documents (documents)', { issuerId, ownerId });
 
     let query = supabase.from('documents').select('*');
 
@@ -99,7 +151,7 @@ async function handleGetDocuments(req, res) {
       data: data || [],
     });
   } catch (error) {
-    console.error('❌ Error in GET /api/documents:', error);
+    console.error('❌ Error in handleGetDocuments:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -110,7 +162,7 @@ async function handleGetDocuments(req, res) {
 async function handleCreateDocument(req, res) {
   try {
     const { issuerId, title, documentType } = req.body;
-    console.log('📤 POST /api/documents', { issuerId, title });
+    console.log('📤 POST /api/documents (create document)', { issuerId, title });
 
     if (!issuerId || !title || !documentType) {
       return res.status(400).json({
@@ -138,7 +190,7 @@ async function handleCreateDocument(req, res) {
       data,
     });
   } catch (error) {
-    console.error('❌ Error in POST /api/documents:', error);
+    console.error('❌ Error in handleCreateDocument:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -146,13 +198,9 @@ async function handleCreateDocument(req, res) {
   }
 }
 
-// ============================================
-// ISSUERS HANDLERS
-// ============================================
-
 async function handleGetIssuers(req, res) {
   try {
-    console.log('📥 GET /api/documents?role=issuer');
+    console.log('📥 GET /api/documents (issuers)');
 
     const { data: issuers, error } = await supabase
       .from('users')
@@ -169,7 +217,7 @@ async function handleGetIssuers(req, res) {
       data: issuers || [],
     });
   } catch (error) {
-    console.error('❌ Error in GET /api/documents?role=issuer:', error);
+    console.error('❌ Error in handleGetIssuers:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -177,14 +225,10 @@ async function handleGetIssuers(req, res) {
   }
 }
 
-// ============================================
-// DOCUMENT REQUESTS HANDLERS
-// ============================================
-
 async function handleGetDocumentRequests(req, res) {
   try {
     const { ownerId, issuerId } = req.query;
-    console.log('📥 GET /api/documents?endpoint=document-requests', { ownerId, issuerId });
+    console.log('📥 GET /api/documents (document-requests)', { ownerId, issuerId });
 
     if (!ownerId && !issuerId) {
       return res.status(400).json({
@@ -217,7 +261,7 @@ async function handleGetDocumentRequests(req, res) {
       data: requests || [],
     });
   } catch (error) {
-    console.error('❌ Error in GET /api/documents?endpoint=document-requests:', error);
+    console.error('❌ Error in handleGetDocumentRequests:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -237,15 +281,13 @@ async function handleCreateDocumentRequest(req, res) {
       message,
     } = req.body;
 
-    console.log('📤 POST /api/documents (endpoint: document-requests)', {
+    console.log('📤 POST /api/documents (create document-request)', {
       ownerId,
       issuerId,
       documentCount: documentIds?.length,
     });
 
-    // ============================================
     // VALIDATION
-    // ============================================
     if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -260,9 +302,7 @@ async function handleCreateDocumentRequest(req, res) {
       });
     }
 
-    // ============================================
     // VERIFY ISSUER EXISTS
-    // ============================================
     const { data: issuer, error: issuerError } = await supabase
       .from('users')
       .select('id, role, organization_name')
@@ -279,9 +319,7 @@ async function handleCreateDocumentRequest(req, res) {
 
     console.log('✅ Issuer verified:', issuer.organization_name);
 
-    // ============================================
     // CREATE REQUEST
-    // ============================================
     const requestId = uuidv4();
 
     const { data: documentRequest, error: createError } = await supabase
@@ -307,9 +345,7 @@ async function handleCreateDocumentRequest(req, res) {
 
     console.log('✅ Request created:', requestId);
 
-    // ============================================
     // CREATE REQUEST ITEMS
-    // ============================================
     const items = documentIds.map((docId) => ({
       id: uuidv4(),
       document_request_id: requestId,
@@ -322,7 +358,6 @@ async function handleCreateDocumentRequest(req, res) {
 
     if (itemsError) {
       console.error('❌ Failed to create request items:', itemsError);
-      // Delete request if items creation fails
       await supabase
         .from('document_requests')
         .delete()
@@ -332,9 +367,6 @@ async function handleCreateDocumentRequest(req, res) {
 
     console.log(`✅ Created ${documentIds.length} request items`);
 
-    // ============================================
-    // RETURN SUCCESS
-    // ============================================
     res.status(201).json({
       success: true,
       data: {
@@ -345,7 +377,7 @@ async function handleCreateDocumentRequest(req, res) {
       },
     });
   } catch (error) {
-    console.error('❌ Error in POST /api/documents (endpoint: document-requests):', error);
+    console.error('❌ Error in handleCreateDocumentRequest:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to create request',
@@ -357,7 +389,7 @@ async function handleUpdateDocumentRequest(req, res) {
   try {
     const { id, status, issuerMessage } = req.body;
 
-    console.log('📝 PUT /api/documents?endpoint=document-requests', { id, status });
+    console.log('📝 PUT /api/documents (update document-request)', { id, status });
 
     if (!id || !status) {
       return res.status(400).json({
@@ -369,30 +401,10 @@ async function handleUpdateDocumentRequest(req, res) {
     if (!['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid status. Must be pending, approved, or rejected',
+        error: 'Invalid status',
       });
     }
 
-    // ============================================
-    // VERIFY REQUEST EXISTS
-    // ============================================
-    const { data: request, error: fetchError } = await supabase
-      .from('document_requests')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !request) {
-      console.error('❌ Request not found:', fetchError);
-      return res.status(404).json({
-        success: false,
-        error: 'Request not found',
-      });
-    }
-
-    // ============================================
-    // UPDATE REQUEST
-    // ============================================
     const { data: updated, error: updateError } = await supabase
       .from('document_requests')
       .update({
@@ -415,7 +427,7 @@ async function handleUpdateDocumentRequest(req, res) {
       data: updated,
     });
   } catch (error) {
-    console.error('❌ Error in PUT /api/documents?endpoint=document-requests:', error);
+    console.error('❌ Error in handleUpdateDocumentRequest:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update request',
@@ -427,7 +439,7 @@ async function handleDeleteDocumentRequest(req, res) {
   try {
     const { id } = req.body;
 
-    console.log('🗑️ DELETE /api/documents?endpoint=document-requests', { id });
+    console.log('🗑️ DELETE /api/documents (delete document-request)', { id });
 
     if (!id) {
       return res.status(400).json({
@@ -453,7 +465,7 @@ async function handleDeleteDocumentRequest(req, res) {
       message: 'Request deleted successfully',
     });
   } catch (error) {
-    console.error('❌ Error in DELETE /api/documents?endpoint=document-requests:', error);
+    console.error('❌ Error in handleDeleteDocumentRequest:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to delete request',
