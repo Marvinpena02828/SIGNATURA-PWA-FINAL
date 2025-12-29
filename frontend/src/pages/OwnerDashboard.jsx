@@ -41,24 +41,30 @@ export default function OwnerDashboard() {
       setError(null);
 
       if (!user || !user.id) {
+        console.warn('⚠️ User ID not available');
         setLoading(false);
         return;
       }
 
       console.log('📊 Fetching owner dashboard data...');
+      console.log('🆔 Owner ID:', user.id);
 
-      // Fetch documents for this owner
+      // ✅ Fetch documents for this owner
       try {
+        console.log('📄 Fetching documents for owner:', user.id);
         const res = await fetch(`/api/documents?ownerId=${user.id}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.success) setDocuments(data.data || []);
+          if (data.success) {
+            console.log('✅ Documents:', data.data);
+            setDocuments(data.data || []);
+          }
         }
       } catch (err) {
-        console.error('Error fetching documents:', err);
+        console.error('❌ Error fetching documents:', err);
       }
 
-      // Fetch verification requests
+      // ✅ Fetch verification requests
       try {
         const res = await fetch(`/api/verification-requests?ownerId=${user.id}`);
         if (res.ok) {
@@ -66,10 +72,10 @@ export default function OwnerDashboard() {
           if (data.success) setRequests(data.data || []);
         }
       } catch (err) {
-        console.error('Error fetching requests:', err);
+        console.error('❌ Error fetching verification requests:', err);
       }
 
-      // Fetch shares
+      // ✅ Fetch shares
       try {
         const res = await fetch(
           `/api/sharing?ownerId=${user.id}&ownerEmail=${encodeURIComponent(user.email || '')}`
@@ -79,29 +85,44 @@ export default function OwnerDashboard() {
           if (data.success) setShares(data.data || []);
         }
       } catch (err) {
-        console.error('Error fetching shares:', err);
+        console.error('❌ Error fetching shares:', err);
       }
 
-      // ✅ FIXED: Fetch issuers with correct endpoint
+      // ✅ FIXED: Fetch document requests (the ones owner sent to issuers)
       try {
-        console.log('📍 Fetching issuers from /api/documents?role=issuer');
+        console.log('📋 Fetching document requests for owner:', user.id);
+        const res = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            console.log('✅ Document requests:', data.data);
+            setRequests(data.data || []);
+          }
+        } else {
+          console.error(`❌ Document requests fetch failed: ${res.status}`);
+        }
+      } catch (err) {
+        console.error('❌ Error fetching document requests:', err);
+      }
+
+      // ✅ Fetch issuers
+      try {
+        console.log('📍 Fetching issuers...');
         const res = await fetch('/api/documents?role=issuer');
         if (res.ok) {
           const data = await res.json();
-          console.log('✅ Issuers fetched:', data);
           if (data.success) {
+            console.log('✅ Issuers:', data.data);
             setIssuers(data.data || []);
           }
         } else {
           console.error(`❌ Issuers fetch failed: ${res.status}`);
-          setIssuers([]);
         }
       } catch (err) {
         console.error('❌ Error fetching issuers:', err);
-        setIssuers([]);
       }
     } catch (err) {
-      console.error('Error in fetchData:', err);
+      console.error('❌ Error in fetchData:', err);
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
@@ -124,7 +145,7 @@ export default function OwnerDashboard() {
         }
       }
     } catch (err) {
-      console.error('Error fetching issuer documents:', err);
+      console.error('❌ Error fetching issuer documents:', err);
       toast.error('Failed to load documents');
     }
   };
@@ -153,7 +174,6 @@ export default function OwnerDashboard() {
     try {
       console.log('📤 Submitting document request...');
       
-      // ✅ FIXED: Call correct endpoint with correct payload
       const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,21 +200,14 @@ export default function OwnerDashboard() {
         setRequestMessage('');
         setIssuerDocuments([]);
 
-        // Refresh requests
-        try {
-          const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
-          if (reqRes.ok) {
-            const reqData = await reqRes.json();
-            if (reqData.success) setRequests(reqData.data || []);
-          }
-        } catch (err) {
-          console.error('Error refreshing requests:', err);
-        }
+        // ✅ FIXED: Refresh requests immediately
+        console.log('🔄 Refreshing requests...');
+        await fetchData();
       } else {
         throw new Error(data.error || 'Failed to send request');
       }
     } catch (err) {
-      console.error('Error submitting request:', err);
+      console.error('❌ Error submitting request:', err);
       toast.error(err.message || 'Error submitting request');
     } finally {
       setLoadingRequest(false);
@@ -222,7 +235,10 @@ export default function OwnerDashboard() {
   const filteredIssuers = issuers.filter((issuer) =>
     issuer.organization_name?.toLowerCase().includes(searchIssuer.toLowerCase())
   );
+  
+  // ✅ FIXED: Properly filter requests
   const pendingRequestsCount = requests.filter((r) => r.status === 'pending').length;
+  const approvedRequestsCount = requests.filter((r) => r.status === 'approved').length;
 
   if (loading) {
     return (
@@ -276,14 +292,12 @@ export default function OwnerDashboard() {
             </p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-purple-500">
-            <h3 className="text-gray-600 text-sm font-medium">Outgoing Requests</h3>
+            <h3 className="text-gray-600 text-sm font-medium">Pending Requests</h3>
             <p className="text-3xl font-bold text-purple-600 mt-2">{pendingRequestsCount}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-green-500">
             <h3 className="text-gray-600 text-sm font-medium">Approved</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">
-              {requests.filter((r) => r.status === 'approved').length}
-            </p>
+            <p className="text-3xl font-bold text-green-600 mt-2">{approvedRequestsCount}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-orange-500">
             <h3 className="text-gray-600 text-sm font-medium">Available Issuers</h3>
@@ -441,12 +455,14 @@ export default function OwnerDashboard() {
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-signatura-dark">📤 My Requests</h2>
+            <p className="text-sm text-gray-500 mt-1">Document requests you've sent to issuers</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issuer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Documents</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Date</th>
                 </tr>
@@ -454,14 +470,17 @@ export default function OwnerDashboard() {
               <tbody className="divide-y divide-gray-200">
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="px-6 py-8 text-center text-gray-500">
-                      No requests sent
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      No requests sent yet
                     </td>
                   </tr>
                 ) : (
                   requests.map((req) => (
                     <tr key={req.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{req.issuer_organization}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{req.issuer_organization || 'Unknown'}</td>
+                      <td className="px-6 py-4 text-gray-600 text-sm">
+                        {req.items?.length || 0} document(s)
+                      </td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
