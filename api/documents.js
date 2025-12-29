@@ -1,4 +1,3 @@
-// api/documents.js - Complete working API for Vercel
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -53,15 +52,20 @@ async function handleGet(req, res) {
   console.log('📥 GET Request:', { role, endpoint, ownerId, issuerId });
 
   try {
-    // Get Issuers
+    // Get Issuers - FIXED: Removed organization_type
     if (role === 'issuer') {
+      console.log('🔍 Fetching issuers from users table...');
+      
       const { data: issuers, error } = await supabase
         .from('users')
-        .select('id, email, organization_name, organization_type, created_at')
+        .select('id, email, organization_name, created_at')
         .eq('role', 'issuer')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase Error:', error);
+        throw error;
+      }
 
       console.log(`✅ Found ${issuers?.length || 0} issuers`);
       return res.status(200).json({
@@ -72,6 +76,8 @@ async function handleGet(req, res) {
 
     // Get Document Requests
     if (endpoint === 'document-requests') {
+      console.log('📋 Fetching document requests...');
+      
       if (!ownerId && !issuerId) {
         return res.status(400).json({
           success: false,
@@ -93,12 +99,21 @@ async function handleGet(req, res) {
         )
         .order('created_at', { ascending: false });
 
-      if (ownerId) query = query.eq('owner_id', ownerId);
-      if (issuerId) query = query.eq('issuer_id', issuerId);
+      if (ownerId) {
+        console.log('🔍 Filtering by ownerId:', ownerId);
+        query = query.eq('owner_id', ownerId);
+      }
+      if (issuerId) {
+        console.log('🔍 Filtering by issuerId:', issuerId);
+        query = query.eq('issuer_id', issuerId);
+      }
 
       const { data: requests, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase Error:', error);
+        throw error;
+      }
 
       console.log(`✅ Found ${requests?.length || 0} requests`);
       return res.status(200).json({
@@ -108,14 +123,25 @@ async function handleGet(req, res) {
     }
 
     // Get Documents (default)
+    console.log('📄 Fetching documents...');
+    
     let query = supabase.from('documents').select('*');
 
-    if (issuerId) query = query.eq('issuer_id', issuerId);
-    if (ownerId) query = query.eq('owner_id', ownerId);
+    if (issuerId) {
+      console.log('🔍 Filtering by issuerId:', issuerId);
+      query = query.eq('issuer_id', issuerId);
+    }
+    if (ownerId) {
+      console.log('🔍 Filtering by ownerId:', ownerId);
+      query = query.eq('owner_id', ownerId);
+    }
 
     const { data: documents, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase Error:', error);
+      throw error;
+    }
 
     console.log(`✅ Found ${documents?.length || 0} documents`);
     return res.status(200).json({
@@ -142,6 +168,8 @@ async function handlePost(req, res) {
   try {
     // Create Document Request
     if (endpoint === 'document-requests') {
+      console.log('📋 Creating document request...');
+      
       // Validate inputs
       if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
         return res.status(400).json({
@@ -158,6 +186,8 @@ async function handlePost(req, res) {
       }
 
       // Verify issuer exists
+      console.log('🔍 Verifying issuer...');
+      
       const { data: issuer, error: issuerError } = await supabase
         .from('users')
         .select('id, role, organization_name')
@@ -235,6 +265,8 @@ async function handlePost(req, res) {
     }
 
     // Create Document
+    console.log('📄 Creating document...');
+    
     if (!issuerId || !title || !documentType) {
       return res.status(400).json({
         success: false,
