@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiCheck, FiX, FiDownload, FiUpload, FiEye } from 'react-icons/fi';
+import { FiLogOut, FiCheck, FiX, FiDownload, FiUpload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function IssuerDashboard() {
@@ -44,6 +44,7 @@ export default function IssuerDashboard() {
       setLoading(true);
       setError(null);
       console.log('📊 Fetching issuer data for:', user?.email);
+      console.log('🆔 User ID:', user?.id);
 
       if (!user || !user.id) {
         console.warn('⚠️ User ID not available');
@@ -51,31 +52,44 @@ export default function IssuerDashboard() {
         return;
       }
 
-      // Fetch incoming requests for this issuer
+      // ✅ FIXED: Fetch incoming requests with correct endpoint
       try {
-        const reqRes = await fetch(`/api/document-requests?issuerId=${user.id}`);
+        console.log('📋 Fetching requests for issuer:', user.id);
+        const reqRes = await fetch(`/api/documents?endpoint=document-requests&issuerId=${user.id}`);
+        
         if (reqRes.ok) {
           const reqData = await reqRes.json();
+          console.log('✅ Requests fetched:', reqData);
           if (reqData.success) {
-            console.log('✅ Incoming requests:', reqData.data);
             setIncomingRequests(reqData.data || []);
           }
+        } else {
+          console.error(`❌ Request fetch failed: ${reqRes.status}`);
+          setIncomingRequests([]);
         }
       } catch (err) {
         console.error('⚠️ Error fetching requests:', err);
+        setIncomingRequests([]);
       }
 
-      // Fetch issued documents
+      // ✅ FIXED: Fetch issued documents
       try {
+        console.log('📄 Fetching documents for issuer:', user.id);
         const docsRes = await fetch(`/api/documents?issuerId=${user.id}`);
+        
         if (docsRes.ok) {
           const docsData = await docsRes.json();
+          console.log('✅ Documents fetched:', docsData);
           if (docsData.success) {
             setIssuedDocuments(docsData.data || []);
           }
+        } else {
+          console.error(`❌ Documents fetch failed: ${docsRes.status}`);
+          setIssuedDocuments([]);
         }
       } catch (err) {
         console.error('⚠️ Error fetching documents:', err);
+        setIssuedDocuments([]);
       }
     } catch (err) {
       console.error('❌ Error in fetchData:', err);
@@ -91,7 +105,7 @@ export default function IssuerDashboard() {
       dateRequested: new Date().toLocaleDateString(),
       signatureId: '',
       fullName: request.owner_name || '',
-      documentType: request.documents?.[0]?.document_type || '',
+      documentType: request.items?.[0]?.document?.document_type || '',
       documentId: '',
       processedBy: user?.full_name || '',
       approvedBy: user?.full_name || '',
@@ -126,18 +140,19 @@ export default function IssuerDashboard() {
     setSubmitting(true);
 
     try {
-      // Update request status to approved
-      const updateRes = await fetch('/api/document-requests', {
+      // ✅ FIXED: Update request status with correct endpoint
+      const updateRes = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: selectedRequest.id,
           status: 'approved',
-          message: `Approved by ${user?.full_name}`,
+          issuerMessage: `Approved by ${user?.full_name}`,
         }),
       });
 
       const updateData = await updateRes.json();
+      console.log('✅ Approval response:', updateData);
 
       if (updateData.success) {
         toast.success('Request approved and document issued!');
@@ -161,13 +176,13 @@ export default function IssuerDashboard() {
     if (!window.confirm('Are you sure you want to reject this request?')) return;
 
     try {
-      const res = await fetch('/api/document-requests', {
+      const res = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: requestId,
           status: 'rejected',
-          message: `Rejected by ${user?.full_name}`,
+          issuerMessage: `Rejected by ${user?.full_name}`,
         }),
       });
 
@@ -180,6 +195,7 @@ export default function IssuerDashboard() {
         ));
       }
     } catch (err) {
+      console.error('Error rejecting request:', err);
       toast.error('Error rejecting request');
     }
   };
@@ -286,10 +302,10 @@ export default function IssuerDashboard() {
                         {request.owner_name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
-                        {request.ownerEmail}
+                        {request.owner_email}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
-                        {request.documents?.length || 0} document(s)
+                        {request.items?.length || 0} document(s)
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
