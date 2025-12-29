@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './utils/supabase';
+import { initializePWA } from './utils/pwaSetup'; // ✅ ADD THIS
+import PWAFeatures from './components/PWAFeatures'; // ✅ ADD THIS
 
 // Pages
 import Landing from './pages/Landing';
@@ -55,6 +57,11 @@ function App() {
   const setUser = useAuthStore((state) => state.setUser);
   const setRole = useAuthStore((state) => state.setRole);
   const setIsLoading = useAuthStore((state) => state.setIsLoading);
+
+  useEffect(() => {
+    // ✅ Initialize PWA on app load
+    initializePWA();
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -113,6 +120,8 @@ function App() {
   return (
     <Router>
       <Toaster position="top-right" />
+      {/* ✅ Add PWA Features at top */}
+      <PWAFeatures />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
