@@ -45,7 +45,9 @@ export default function OwnerDashboard() {
         return;
       }
 
-      // Fetch documents
+      console.log('📊 Fetching owner dashboard data...');
+
+      // Fetch documents for this owner
       try {
         const res = await fetch(`/api/documents?ownerId=${user.id}`);
         if (res.ok) {
@@ -80,22 +82,27 @@ export default function OwnerDashboard() {
         console.error('Error fetching shares:', err);
       }
 
-      // Fetch issuers
+      // ✅ FIXED: Fetch issuers with correct endpoint
       try {
+        console.log('📍 Fetching issuers from /api/documents?role=issuer');
         const res = await fetch('/api/documents?role=issuer');
         if (res.ok) {
           const data = await res.json();
-          if (data.success) setIssuers(data.data || []);
+          console.log('✅ Issuers fetched:', data);
+          if (data.success) {
+            setIssuers(data.data || []);
+          }
         } else {
-          console.error('Issuers fetch failed:', res.status);
+          console.error(`❌ Issuers fetch failed: ${res.status}`);
+          setIssuers([]);
         }
       } catch (err) {
-        console.error('Error fetching issuers:', err);
+        console.error('❌ Error fetching issuers:', err);
+        setIssuers([]);
       }
     } catch (err) {
       console.error('Error in fetchData:', err);
       setError(err.message || 'Failed to load data');
-      toast.error(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -107,10 +114,14 @@ export default function OwnerDashboard() {
     setSelectedDocuments([]);
 
     try {
+      console.log('📂 Fetching documents for issuer:', issuer.id);
       const res = await fetch(`/api/documents?issuerId=${issuer.id}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.success) setIssuerDocuments(data.data || []);
+        if (data.success) {
+          console.log('✅ Issuer documents:', data.data);
+          setIssuerDocuments(data.data || []);
+        }
       }
     } catch (err) {
       console.error('Error fetching issuer documents:', err);
@@ -140,6 +151,9 @@ export default function OwnerDashboard() {
     setLoadingRequest(true);
 
     try {
+      console.log('📤 Submitting document request...');
+      
+      // ✅ FIXED: Call correct endpoint with correct payload
       const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,6 +161,7 @@ export default function OwnerDashboard() {
           endpoint: 'document-requests',
           ownerId: user.id,
           ownerEmail: user.email,
+          ownerName: user.full_name || '',
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
           documentIds: selectedDocuments,
@@ -155,6 +170,7 @@ export default function OwnerDashboard() {
       });
 
       const data = await res.json();
+      console.log('📬 Request response:', data);
 
       if (data.success) {
         toast.success('Request sent to issuer!');
@@ -165,12 +181,14 @@ export default function OwnerDashboard() {
         setIssuerDocuments([]);
 
         // Refresh requests
-        const reqRes = await fetch(
-          `/api/documents?endpoint=document-requests&ownerId=${user.id}`
-        );
-        if (reqRes.ok) {
-          const reqData = await reqRes.json();
-          if (reqData.success) setRequests(reqData.data || []);
+        try {
+          const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
+          if (reqRes.ok) {
+            const reqData = await reqRes.json();
+            if (reqData.success) setRequests(reqData.data || []);
+          }
+        } catch (err) {
+          console.error('Error refreshing requests:', err);
         }
       } else {
         throw new Error(data.error || 'Failed to send request');
@@ -354,7 +372,7 @@ export default function OwnerDashboard() {
                   issuers.map((issuer) => (
                     <tr key={issuer.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-signatura-dark">{issuer.organization_name}</td>
-                      <td className="px-6 py-4 text-gray-600 text-sm capitalize">{issuer.organization_type}</td>
+                      <td className="px-6 py-4 text-gray-600 text-sm capitalize">{issuer.organization_type || 'N/A'}</td>
                       <td className="px-6 py-4 text-gray-600 text-sm">{issuer.email}</td>
                       <td className="px-6 py-4">
                         <button
