@@ -191,7 +191,7 @@ export function setupInstallPrompt(onInstallPrompt) {
 export function isRunningAsInstalled() {
   const isInstalled =
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true ||
+    window.navigator.standalone === true ||
     document.referrer.includes('android-app://');
 
   console.log('[PWA] Running as installed:', isInstalled);
