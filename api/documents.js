@@ -52,7 +52,7 @@ async function handleGet(req, res) {
   console.log('📥 GET Request:', { role, endpoint, ownerId, issuerId });
 
   try {
-    // Get Issuers - FIXED: Removed organization_type
+    // Get Issuers
     if (role === 'issuer') {
       console.log('🔍 Fetching issuers from users table...');
       
@@ -94,6 +94,14 @@ async function handleGet(req, res) {
             id,
             document_id,
             document:documents(id, title, document_type)
+          ),
+          issued_document:issued_documents(
+            id,
+            file_url,
+            file_name,
+            signatura_id,
+            document_id,
+            approved_by
           )
         `
         )
@@ -119,6 +127,45 @@ async function handleGet(req, res) {
       return res.status(200).json({
         success: true,
         data: requests || [],
+      });
+    }
+
+    // Get Issued Documents
+    if (endpoint === 'issued-documents') {
+      console.log('📄 Fetching issued documents...');
+      
+      if (!ownerId && !issuerId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Must provide ownerId or issuerId',
+        });
+      }
+
+      let query = supabase
+        .from('issued_documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ownerId) {
+        console.log('🔍 Filtering by ownerId:', ownerId);
+        query = query.eq('owner_id', ownerId);
+      }
+      if (issuerId) {
+        console.log('🔍 Filtering by issuerId:', issuerId);
+        query = query.eq('issuer_id', issuerId);
+      }
+
+      const { data: docs, error } = await query;
+
+      if (error) {
+        console.error('❌ Supabase Error:', error);
+        throw error;
+      }
+
+      console.log(`✅ Found ${docs?.length || 0} issued documents`);
+      return res.status(200).json({
+        success: true,
+        data: docs || [],
       });
     }
 
@@ -303,10 +350,10 @@ async function handlePost(req, res) {
 }
 
 // ============================================
-// PUT Handler
+// PUT Handler - Issue Document with File
 // ============================================
 async function handlePut(req, res) {
-  const { id, status, issuerMessage } = req.body;
+  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName } = req.body;
 
   console.log('📝 PUT Request:', { id, status });
 
@@ -325,6 +372,7 @@ async function handlePut(req, res) {
       });
     }
 
+    // Update document request status
     const { data: updated, error } = await supabase
       .from('document_requests')
       .update({
@@ -332,12 +380,97 @@ async function handlePut(req, res) {
         issuer_message: issuerMessage || null,
       })
       .eq('id', id)
-      .select()
+      .select(
+        `
+        *,
+        owner:users!owner_id(id, email, full_name),
+        issuer:users!issuer_id(id, email, organization_name)
+      `
+      )
       .single();
 
     if (error) throw error;
 
     console.log('✅ Request updated:', id);
+
+    // If approved, create issued document
+    if (status === 'approved' && fileBase64 && fileName) {
+      console.log('📄 Creating issued document with file...');
+      
+      try {
+        // Upload file to Supabase Storage
+        const filePath = `${updated.issuer_id}/${id}/${fileName}`;
+        const fileBuffer = Buffer.from(fileBase64, 'base64');
+
+        const { data: uploadData, error: uploadError } = await supabase
+          .storage
+          .from('issued-documents')
+          .upload(filePath, fileBuffer, {
+            contentType: 'application/pdf',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('❌ Upload Error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('✅ File uploaded:', filePath);
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase
+          .storage
+          .from('issued-documents')
+          .getPublicUrl(filePath);
+
+        console.log('✅ Public URL:', publicUrl);
+
+        // Create issued document record
+        const { data: issuedDoc, error: docError } = await supabase
+          .from('issued_documents')
+          .insert({
+            id: uuidv4(),
+            document_request_id: id,
+            owner_id: updated.owner_id,
+            issuer_id: updated.issuer_id,
+            signatura_id: signatureId || null,
+            document_id: documentId || null,
+            document_type: updated.items?.[0]?.document?.document_type || null,
+            file_url: publicUrl,
+            file_name: fileName,
+            file_size: fileBuffer.length,
+            processed_by: processedBy || null,
+            approved_by: approvedBy || null,
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (docError) {
+          console.error('❌ Issued Document Error:', docError);
+          throw docError;
+        }
+
+        console.log('✅ Issued document created:', issuedDoc.id);
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            request: updated,
+            issuedDocument: issuedDoc,
+          },
+        });
+      } catch (err) {
+        console.error('⚠️ File handling error (non-critical):', err);
+        // Still return success since request was updated
+        return res.status(200).json({
+          success: true,
+          data: { request: updated },
+          warning: 'Request approved but file upload failed',
+        });
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: updated,
