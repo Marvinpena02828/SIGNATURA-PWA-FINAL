@@ -89,7 +89,7 @@ async function handleGet(req, res) {
       });
     }
 
-    // Get Document Requests
+    // Get Document Requests - FIXED: Simple SELECT
     if (endpoint === 'document-requests') {
       console.log('📋 Fetching document requests...');
       
@@ -102,24 +102,7 @@ async function handleGet(req, res) {
 
       let query = supabase
         .from('document_requests')
-        .select(
-          `
-          *,
-          items:document_request_items(
-            id,
-            document_id,
-            document:documents(id, title, document_type)
-          ),
-          issued_document:issued_documents(
-            id,
-            file_url,
-            file_name,
-            signatura_id,
-            document_id,
-            approved_by
-          )
-        `
-        )
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (ownerId) {
@@ -508,95 +491,12 @@ async function updateDocumentRequest(req, res) {
         issuer_message: issuerMessage || null,
       })
       .eq('id', id)
-      .select(
-        `
-        *,
-        owner:users!owner_id(id, email, full_name),
-        issuer:users!issuer_id(id, email, organization_name)
-      `
-      )
+      .select()
       .single();
 
     if (error) throw error;
 
     console.log('✅ Request updated:', id);
-
-    // If approved, create issued document
-    if (status === 'approved' && fileBase64 && fileName) {
-      console.log('📄 Creating issued document with file...');
-      
-      try {
-        // Upload file to Supabase Storage
-        const filePath = `${updated.issuer_id}/${id}/${fileName}`;
-        const fileBuffer = Buffer.from(fileBase64, 'base64');
-
-        const { data: uploadData, error: uploadError } = await supabase
-          .storage
-          .from('issued-documents')
-          .upload(filePath, fileBuffer, {
-            contentType: 'application/pdf',
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error('❌ Upload Error:', uploadError);
-          throw uploadError;
-        }
-
-        console.log('✅ File uploaded:', filePath);
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase
-          .storage
-          .from('issued-documents')
-          .getPublicUrl(filePath);
-
-        console.log('✅ Public URL:', publicUrl);
-
-        // Create issued document record
-        const { data: issuedDoc, error: docError } = await supabase
-          .from('issued_documents')
-          .insert({
-            id: uuidv4(),
-            document_request_id: id,
-            owner_id: updated.owner_id,
-            issuer_id: updated.issuer_id,
-            signatura_id: signatureId || null,
-            document_id: documentId || null,
-            document_type: updated.items?.[0]?.document?.document_type || null,
-            file_url: publicUrl,
-            file_name: fileName,
-            file_size: fileBuffer.length,
-            processed_by: processedBy || null,
-            approved_by: approvedBy || null,
-            status: 'active',
-          })
-          .select()
-          .single();
-
-        if (docError) {
-          console.error('❌ Issued Document Error:', docError);
-          throw docError;
-        }
-
-        console.log('✅ Issued document created:', issuedDoc.id);
-
-        return res.status(200).json({
-          success: true,
-          data: {
-            request: updated,
-            issuedDocument: issuedDoc,
-          },
-        });
-      } catch (err) {
-        console.error('⚠️ File handling error (non-critical):', err);
-        return res.status(200).json({
-          success: true,
-          data: { request: updated },
-          warning: 'Request approved but file upload failed',
-        });
-      }
-    }
 
     return res.status(200).json({
       success: true,
@@ -625,19 +525,6 @@ async function shareDocument(req, res) {
       return res.status(400).json({
         success: false,
         error: 'Missing documentId or ownerId',
-      });
-    }
-
-    const { data: doc, error: docError } = await supabase
-      .from('issued_documents')
-      .select('id, owner_id')
-      .eq('id', documentId)
-      .single();
-
-    if (docError || doc.owner_id !== ownerId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized to share this document',
       });
     }
 
@@ -701,7 +588,7 @@ async function checkDocumentAccess(req, res) {
 
     const { data: share, error: shareError } = await supabase
       .from('document_shares')
-      .select(`*,document:issued_documents(id,file_url,file_name,owner:users!owner_id(id,email,full_name),status,expires_at)`)
+      .select('*')
       .eq('share_token', shareToken)
       .single();
 
@@ -733,22 +620,12 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    await supabase.from('document_access_logs').insert({
-      id: uuidv4(),
-      document_id: share.document_id,
-      share_id: share.id,
-      user_id: userId || null,
-      action: 'view',
-      ip_address: req.ip || 'unknown',
-      user_agent: req.get('user-agent'),
-    });
-
     console.log('✅ Access granted');
 
     return res.status(200).json({
       success: true,
       data: {
-        document: share.document,
+        shareToken: share.share_token,
         permissions: {
           view: share.can_view,
           print: share.can_print,
@@ -782,7 +659,7 @@ async function getDocumentShares(req, res) {
 
     const { data: shares, error } = await supabase
       .from('document_shares')
-      .select(`*,document:issued_documents(id,file_name,document_type),recipient:users!recipient_id(email,full_name)`)
+      .select('*')
       .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
@@ -813,19 +690,6 @@ async function revokeShare(req, res) {
       return res.status(400).json({
         success: false,
         error: 'Missing shareId or ownerId',
-      });
-    }
-
-    const { data: share, error: getError } = await supabase
-      .from('document_shares')
-      .select('owner_id')
-      .eq('id', shareId)
-      .single();
-
-    if (getError || share.owner_id !== ownerId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized',
       });
     }
 
@@ -913,7 +777,7 @@ async function getAccessRequests(req, res) {
   try {
     const { data: requests, error } = await supabase
       .from('document_access_requests')
-      .select(`*,document:issued_documents(id,file_name)`)
+      .select('*')
       .eq('owner_id', ownerId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
