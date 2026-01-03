@@ -117,9 +117,33 @@ export default function IssuerDashboard() {
   const handleApprovalFormChange = (e) => {
     const { name, value, files } = e.target;
     if (files) {
+      const file = files[0];
+      
+      // Validate file size (max 10MB for safe transmission)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`File is too large! Max size is 10MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        return;
+      }
+
+      // Validate file type (PDF and images)
+      const ALLOWED_TYPES = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+      ];
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error('Only PDF and image files (JPG, PNG, GIF, WebP) are allowed');
+        return;
+      }
+
       setApprovalForm(prev => ({
         ...prev,
-        uploadedFile: files[0],
+        uploadedFile: file,
       }));
     } else {
       setApprovalForm(prev => ({
@@ -146,65 +170,77 @@ export default function IssuerDashboard() {
 
     try {
       console.log('📤 Approving request:', selectedRequest.id);
-      console.log('📄 Preparing file:', approvalForm.uploadedFile.name);
+      console.log('📄 Processing file:', approvalForm.uploadedFile.name);
 
-      // Convert file to base64 for sending to API
-      const reader = new FileReader();
-      
-      await new Promise((resolve, reject) => {
+      // Convert file to base64
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
         reader.onload = () => {
-          const base64String = reader.result.split(',')[1];
-
-          // Send to API with base64 file
-          fetch('/api/documents', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: selectedRequest.id,
-              status: 'approved',
-              issuerMessage: `Approved by ${user?.full_name}`,
-              signatureId: approvalForm.signatureId,
-              documentId: approvalForm.documentId,
-              processedBy: user?.full_name,
-              approvedBy: user?.full_name,
-              fileBase64: base64String,
-              fileName: approvalForm.uploadedFile.name,
-              fileSize: approvalForm.uploadedFile.size,
-              ownerId: selectedRequest.owner_id,
-              issuerId: user?.id,
-            }),
-          })
-            .then(res => res.json())
-            .then(async (updateData) => {
-              console.log('✅ Approval response:', updateData);
-
-              if (updateData.success) {
-                toast.success('✅ Request approved!');
-                toast.success('📄 Document issued successfully!');
-                setShowApprovalModal(false);
-                setSelectedRequest(null);
-                
-                // Refresh data
-                await fetchData();
-              } else {
-                throw new Error(updateData.error || 'Failed to approve');
-              }
-            })
-            .catch((err) => {
-              console.error('❌ Error approving request:', err);
-              toast.error(err.message || 'Error approving request');
-              setSubmitting(false);
-            });
-
-          resolve();
+          const result = reader.result.split(',')[1];
+          resolve(result);
         };
         reader.onerror = reject;
         reader.readAsDataURL(approvalForm.uploadedFile);
       });
 
+      console.log('✅ File converted to base64');
+
+      // Send to API
+      const updateRes = await fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedRequest.id,
+          status: 'approved',
+          issuerMessage: `Approved by ${user?.full_name}`,
+          signatureId: approvalForm.signatureId,
+          documentId: approvalForm.documentId,
+          processedBy: user?.full_name,
+          approvedBy: user?.full_name,
+          fileBase64: base64String,
+          fileName: approvalForm.uploadedFile.name,
+          fileSize: approvalForm.uploadedFile.size,
+          ownerId: selectedRequest.owner_id,
+          issuerId: user?.id,
+        }),
+      });
+
+      console.log('📤 Request sent to API');
+
+      if (!updateRes.ok) {
+        const errorData = await updateRes.text();
+        console.error('❌ API Error:', updateRes.status, errorData);
+        throw new Error(`API Error ${updateRes.status}: ${errorData}`);
+      }
+
+      const updateData = await updateRes.json();
+      console.log('✅ Approval response:', updateData);
+
+      if (updateData.success) {
+        toast.success('✅ Request approved!');
+        toast.success('📄 Document issued successfully!');
+        setShowApprovalModal(false);
+        setSelectedRequest(null);
+        setApprovalForm({
+          dateRequested: new Date().toLocaleDateString(),
+          signatureId: '',
+          fullName: '',
+          documentType: '',
+          documentId: '',
+          processedBy: user?.full_name || '',
+          approvedBy: user?.full_name || '',
+          uploadedFile: null,
+        });
+        
+        // Refresh data
+        await fetchData();
+      } else {
+        throw new Error(updateData.error || 'Failed to approve');
+      }
     } catch (err) {
-      console.error('❌ Error in approval:', err);
+      console.error('❌ Error approving request:', err);
       toast.error(err.message || 'Error approving request');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -562,14 +598,14 @@ export default function IssuerDashboard() {
                   📄 Upload Digital Document *
                 </label>
                 <p className="text-xs text-gray-600 mb-3">
-                  Upload the digital document (PDF). Owner can view and print, but cannot download to system.
+                  Upload documents (PDF, JPG, PNG, GIF, WebP). Owner can view and print, but cannot download to system.
                 </p>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-signatura-red transition">
                   <input
                     type="file"
                     name="uploadedFile"
                     onChange={handleApprovalFormChange}
-                    accept=".pdf"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
                     className="hidden"
                     id="file-upload"
                   />
@@ -579,7 +615,7 @@ export default function IssuerDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       <p className="text-gray-600 font-medium">Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-500">PDF files only (max 50MB)</p>
+                      <p className="text-xs text-gray-500">PDF or Images (JPG, PNG, GIF, WebP) - max 10MB</p>
                     </div>
                   </label>
                   {approvalForm.uploadedFile && (
