@@ -12,7 +12,7 @@ export default function IssuerDashboard() {
 
   // States
   const [incomingRequests, setIncomingRequests] = useState([]);
-  const [issuedDocuments, setIssuedDocuments] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -44,7 +44,7 @@ export default function IssuerDashboard() {
       setLoading(true);
       setError(null);
       console.log('📊 Fetching issuer data for:', user?.email);
-      console.log('🆔 User ID:', user?.id);
+      console.log('🆔 Issuer ID:', user?.id);
 
       if (!user || !user.id) {
         console.warn('⚠️ User ID not available');
@@ -52,14 +52,14 @@ export default function IssuerDashboard() {
         return;
       }
 
-      // ✅ FIXED: Fetch incoming requests with correct endpoint
+      // ✅ Fetch incoming requests (document requests FOR this issuer)
       try {
         console.log('📋 Fetching requests for issuer:', user.id);
         const reqRes = await fetch(`/api/documents?endpoint=document-requests&issuerId=${user.id}`);
         
         if (reqRes.ok) {
           const reqData = await reqRes.json();
-          console.log('✅ Requests fetched:', reqData);
+          console.log('✅ Requests fetched:', reqData.data);
           if (reqData.success) {
             setIncomingRequests(reqData.data || []);
           }
@@ -72,24 +72,24 @@ export default function IssuerDashboard() {
         setIncomingRequests([]);
       }
 
-      // ✅ FIXED: Fetch issued documents
+      // ✅ Fetch documents created by this issuer
       try {
         console.log('📄 Fetching documents for issuer:', user.id);
         const docsRes = await fetch(`/api/documents?issuerId=${user.id}`);
         
         if (docsRes.ok) {
           const docsData = await docsRes.json();
-          console.log('✅ Documents fetched:', docsData);
+          console.log('✅ Documents fetched:', docsData.data);
           if (docsData.success) {
-            setIssuedDocuments(docsData.data || []);
+            setDocuments(docsData.data || []);
           }
         } else {
           console.error(`❌ Documents fetch failed: ${docsRes.status}`);
-          setIssuedDocuments([]);
+          setDocuments([]);
         }
       } catch (err) {
         console.error('⚠️ Error fetching documents:', err);
-        setIssuedDocuments([]);
+        setDocuments([]);
       }
     } catch (err) {
       console.error('❌ Error in fetchData:', err);
@@ -140,7 +140,9 @@ export default function IssuerDashboard() {
     setSubmitting(true);
 
     try {
-      // ✅ FIXED: Update request status with correct endpoint
+      console.log('📤 Approving request:', selectedRequest.id);
+
+      // ✅ Update request status to approved
       const updateRes = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -148,6 +150,10 @@ export default function IssuerDashboard() {
           id: selectedRequest.id,
           status: 'approved',
           issuerMessage: `Approved by ${user?.full_name}`,
+          signatureId: approvalForm.signatureId,
+          documentId: approvalForm.documentId,
+          processedBy: user?.full_name,
+          approvedBy: user?.full_name,
         }),
       });
 
@@ -155,7 +161,7 @@ export default function IssuerDashboard() {
       console.log('✅ Approval response:', updateData);
 
       if (updateData.success) {
-        toast.success('Request approved and document issued!');
+        toast.success('Request approved!');
         setShowApprovalModal(false);
         setSelectedRequest(null);
         
@@ -165,7 +171,7 @@ export default function IssuerDashboard() {
         throw new Error(updateData.error || 'Failed to approve');
       }
     } catch (err) {
-      console.error('Error approving request:', err);
+      console.error('❌ Error approving request:', err);
       toast.error(err.message || 'Error approving request');
     } finally {
       setSubmitting(false);
@@ -176,6 +182,8 @@ export default function IssuerDashboard() {
     if (!window.confirm('Are you sure you want to reject this request?')) return;
 
     try {
+      console.log('🚫 Rejecting request:', requestId);
+
       const res = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -187,16 +195,19 @@ export default function IssuerDashboard() {
       });
 
       const data = await res.json();
+      console.log('✅ Rejection response:', data);
 
       if (data.success) {
         toast.success('Request rejected');
         setIncomingRequests(incomingRequests.map(r => 
           r.id === requestId ? {...r, status: 'rejected'} : r
         ));
+      } else {
+        throw new Error(data.error || 'Failed to reject');
       }
     } catch (err) {
-      console.error('Error rejecting request:', err);
-      toast.error('Error rejecting request');
+      console.error('❌ Error rejecting request:', err);
+      toast.error(err.message || 'Error rejecting request');
     }
   };
 
@@ -242,6 +253,7 @@ export default function IssuerDashboard() {
         </div>
       </header>
 
+      {/* Error Banner */}
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4">
           <p className="text-red-700">{error}</p>
@@ -265,8 +277,8 @@ export default function IssuerDashboard() {
             <p className="text-3xl font-bold text-red-600 mt-2">{rejectedRequests.length}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500">
-            <h3 className="text-gray-600 text-sm font-medium">Documents Issued</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{issuedDocuments.length}</p>
+            <h3 className="text-gray-600 text-sm font-medium">Documents Created</h3>
+            <p className="text-3xl font-bold text-blue-600 mt-2">{documents.length}</p>
           </div>
         </div>
 
@@ -349,11 +361,11 @@ export default function IssuerDashboard() {
           </div>
         </div>
 
-        {/* ISSUED DOCUMENTS */}
+        {/* DOCUMENTS CREATED */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-signatura-dark">📄 Documents Issued</h2>
-            <p className="text-sm text-gray-500 mt-1">Digital documents you have issued</p>
+            <h2 className="text-xl font-bold text-signatura-dark">📄 Documents Created</h2>
+            <p className="text-sm text-gray-500 mt-1">Documents you have created in the system</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -361,26 +373,22 @@ export default function IssuerDashboard() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Title</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issued To</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issued Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Created Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {issuedDocuments.length === 0 ? (
+                {documents.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      No documents issued yet
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      No documents created yet
                     </td>
                   </tr>
                 ) : (
-                  issuedDocuments.map((doc) => (
+                  documents.map((doc) => (
                     <tr key={doc.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-gray-900">{doc.title}</td>
                       <td className="px-6 py-4 text-gray-600 text-sm capitalize">{doc.document_type}</td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {doc.owner?.full_name || doc.owner?.email || 'N/A'}
-                      </td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           {doc.status}
@@ -405,10 +413,10 @@ export default function IssuerDashboard() {
             {/* Header */}
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h2 className="text-2xl font-bold text-signatura-dark">
-                📋 Document Request Approval Form
+                📋 Approve Document Request
               </h2>
               <p className="text-sm text-gray-600 mt-2">
-                Owner: {selectedRequest.owner_name}
+                From: {selectedRequest.owner_name}
               </p>
             </div>
 
@@ -418,7 +426,7 @@ export default function IssuerDashboard() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date & Time Requested
+                    Date Requested
                   </label>
                   <input
                     type="text"
@@ -438,6 +446,7 @@ export default function IssuerDashboard() {
                     onChange={handleApprovalFormChange}
                     placeholder="S123-456-7890"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                    required
                   />
                 </div>
               </div>
@@ -445,7 +454,7 @@ export default function IssuerDashboard() {
               {/* Owner info */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  Owner Name
                 </label>
                 <input
                   type="text"
@@ -460,7 +469,7 @@ export default function IssuerDashboard() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Requested
+                    Document Type
                   </label>
                   <input
                     type="text"
@@ -479,8 +488,9 @@ export default function IssuerDashboard() {
                     name="documentId"
                     value={approvalForm.documentId}
                     onChange={handleApprovalFormChange}
-                    placeholder="DOC-001"
+                    placeholder="DOC-2024-001"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                    required
                   />
                 </div>
               </div>
@@ -495,7 +505,6 @@ export default function IssuerDashboard() {
                     type="text"
                     name="processedBy"
                     value={approvalForm.processedBy}
-                    onChange={handleApprovalFormChange}
                     disabled
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                   />
@@ -508,30 +517,9 @@ export default function IssuerDashboard() {
                     type="text"
                     name="approvedBy"
                     value={approvalForm.approvedBy}
-                    onChange={handleApprovalFormChange}
                     disabled
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                   />
-                </div>
-              </div>
-
-              {/* File upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Digital Document (Optional)
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                  <input
-                    type="file"
-                    name="uploadedFile"
-                    onChange={handleApprovalFormChange}
-                    className="w-full"
-                  />
-                  {approvalForm.uploadedFile && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✓ {approvalForm.uploadedFile.name}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -547,9 +535,9 @@ export default function IssuerDashboard() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
                 >
-                  {submitting ? 'Approving...' : '✓ Approve & Issue'}
+                  {submitting ? 'Approving...' : '✓ Approve Request'}
                 </button>
               </div>
             </form>
