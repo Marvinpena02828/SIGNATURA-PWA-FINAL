@@ -57,9 +57,72 @@ async function handleGet(req, res) {
       return await checkDocumentAccess(req, res);
     }
 
-    // Get Document Shares
+    // Get Document Shares (documents shared WITH this owner)
     if (endpoint === 'document-shares') {
-      return await getDocumentShares(req, res);
+      console.log('📋 Fetching document shares for owner:', ownerId);
+      
+      if (!ownerId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Must provide ownerId',
+        });
+      }
+
+      // Get all shares where this user is the owner (recipient)
+      const { data: shares, error } = await supabase
+        .from('document_shares')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase Error:', error);
+        throw error;
+      }
+
+      // Enrich with document details
+      let enrichedShares = [];
+      if (shares && shares.length > 0) {
+        enrichedShares = await Promise.all(
+          shares.map(async (share) => {
+            try {
+              // Get the issued document
+              const { data: doc } = await supabase
+                .from('issued_documents')
+                .select('*')
+                .eq('id', share.document_id)
+                .single();
+
+              // Get issuer info
+              const { data: issuer } = await supabase
+                .from('users')
+                .select('id, email, organization_name')
+                .eq('id', doc?.issuer_id)
+                .single();
+
+              return {
+                ...share,
+                file_name: doc?.file_name,
+                file_url: doc?.file_url,
+                file_size: doc?.file_size,
+                document_type: doc?.document_type,
+                issuer_organization: issuer?.organization_name,
+                created_at: doc?.created_at,
+              };
+            } catch (err) {
+              console.error('⚠️ Error enriching share:', err);
+              return share;
+            }
+          })
+        );
+      }
+
+      console.log(`✅ Found ${enrichedShares?.length || 0} shares`);
+      return res.status(200).json({
+        success: true,
+        data: enrichedShares || [],
+      });
     }
 
     // Get Access Requests
