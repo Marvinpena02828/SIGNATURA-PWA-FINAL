@@ -142,7 +142,26 @@ export default function IssuerDashboard() {
     try {
       console.log('📤 Approving request:', selectedRequest.id);
 
-      // ✅ Update request status to approved
+      // Prepare file data if uploaded
+      let fileBase64 = null;
+      let fileName = null;
+
+      if (approvalForm.uploadedFile) {
+        // Convert file to base64
+        const reader = new FileReader();
+        await new Promise((resolve, reject) => {
+          reader.onload = () => {
+            // Get base64 without data:application/pdf;base64, prefix
+            fileBase64 = reader.result.split(',')[1];
+            fileName = approvalForm.uploadedFile.name;
+            resolve();
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(approvalForm.uploadedFile);
+        });
+      }
+
+      // ✅ Update request status to approved AND create issued document
       const updateRes = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -154,6 +173,8 @@ export default function IssuerDashboard() {
           documentId: approvalForm.documentId,
           processedBy: user?.full_name,
           approvedBy: user?.full_name,
+          fileBase64: fileBase64,
+          fileName: fileName,
         }),
       });
 
@@ -161,7 +182,10 @@ export default function IssuerDashboard() {
       console.log('✅ Approval response:', updateData);
 
       if (updateData.success) {
-        toast.success('Request approved!');
+        toast.success('✅ Request approved and document issued!');
+        if (fileBase64) {
+          toast.success('📄 Document uploaded successfully');
+        }
         setShowApprovalModal(false);
         setSelectedRequest(null);
         
@@ -525,6 +549,44 @@ export default function IssuerDashboard() {
                 </div>
               </div>
 
+              {/* Digital Document Upload */}
+              <div className="border-t border-gray-200 pt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  📄 Upload Digital Document *
+                </label>
+                <p className="text-xs text-gray-600 mb-3">
+                  Upload the digital document (PDF). Owner can view and print, but cannot download to system.
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-signatura-red transition">
+                  <input
+                    type="file"
+                    name="uploadedFile"
+                    onChange={handleApprovalFormChange}
+                    accept=".pdf"
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer block">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="text-gray-600 font-medium">Click to upload or drag and drop</p>
+                      <p className="text-xs text-gray-500">PDF files only (max 50MB)</p>
+                    </div>
+                  </label>
+                  {approvalForm.uploadedFile && (
+                    <div className="mt-4 text-left bg-green-50 border border-green-200 rounded p-3">
+                      <p className="text-sm text-green-700 font-medium">✓ File selected:</p>
+                      <p className="text-sm text-green-600">{approvalForm.uploadedFile.name}</p>
+                      <p className="text-xs text-green-500">
+                        {(approvalForm.uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Buttons */}
               <div className="flex gap-2 pt-4 border-t border-gray-200">
                 <button
@@ -536,10 +598,11 @@ export default function IssuerDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+                  disabled={submitting || !approvalForm.uploadedFile}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  title={!approvalForm.uploadedFile ? 'Please upload a document first' : ''}
                 >
-                  {submitting ? 'Approving...' : '✓ Approve Request'}
+                  {submitting ? '⏳ Issuing Document...' : '✓ Approve & Issue Document'}
                 </button>
               </div>
             </form>
