@@ -47,11 +47,26 @@ export default async function handler(req, res) {
 // GET Handler
 // ============================================
 async function handleGet(req, res) {
-  const { role, endpoint, ownerId, issuerId } = req.query;
+  const { role, endpoint, ownerId, issuerId, shareToken, userId } = req.query;
 
   console.log('📥 GET Request:', { role, endpoint, ownerId, issuerId });
 
   try {
+    // Check Document Access
+    if (endpoint === 'check-access') {
+      return await checkDocumentAccess(req, res);
+    }
+
+    // Get Document Shares
+    if (endpoint === 'document-shares') {
+      return await getDocumentShares(req, res);
+    }
+
+    // Get Access Requests
+    if (endpoint === 'access-requests') {
+      return await getAccessRequests(req, res);
+    }
+
     // Get Issuers
     if (role === 'issuer') {
       console.log('🔍 Fetching issuers from users table...');
@@ -208,119 +223,234 @@ async function handleGet(req, res) {
 // POST Handler
 // ============================================
 async function handlePost(req, res) {
-  const { endpoint, issuerId, title, documentType, ownerId, ownerEmail, ownerName, issuerEmail, documentIds, message } = req.body;
+  const { endpoint } = req.body;
 
-  console.log('📤 POST Request:', { endpoint, issuerId, title });
+  console.log('📤 POST Request:', { endpoint });
 
   try {
+    // Share Document
+    if (endpoint === 'share-document') {
+      return await shareDocument(req, res);
+    }
+
+    // Request Access
+    if (endpoint === 'request-access') {
+      return await requestDocumentAccess(req, res);
+    }
+
     // Create Document Request
     if (endpoint === 'document-requests') {
-      console.log('📋 Creating document request...');
-      
-      // Validate inputs
-      if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing required fields: ownerId, issuerId, documentIds',
-        });
-      }
-
-      if (!ownerEmail || !issuerEmail) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing email fields',
-        });
-      }
-
-      // Verify issuer exists
-      console.log('🔍 Verifying issuer...');
-      
-      const { data: issuer, error: issuerError } = await supabase
-        .from('users')
-        .select('id, role, organization_name')
-        .eq('id', issuerId)
-        .single();
-
-      if (issuerError || !issuer || issuer.role !== 'issuer') {
-        console.error('❌ Issuer Error:', issuerError);
-        return res.status(404).json({
-          success: false,
-          error: 'Issuer not found or invalid',
-        });
-      }
-
-      console.log('✅ Issuer verified:', issuer.organization_name);
-
-      // Create request
-      const requestId = uuidv4();
-
-      const { data: docRequest, error: createError } = await supabase
-        .from('document_requests')
-        .insert({
-          id: requestId,
-          owner_id: ownerId,
-          owner_email: ownerEmail,
-          owner_name: ownerName || null,
-          issuer_id: issuerId,
-          issuer_email: issuerEmail,
-          issuer_organization: issuer.organization_name,
-          status: 'pending',
-          message: message || null,
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('❌ Create Request Error:', createError);
-        throw createError;
-      }
-
-      console.log('✅ Request created:', requestId);
-
-      // Create request items
-      const items = documentIds.map((docId) => ({
-        id: uuidv4(),
-        document_request_id: requestId,
-        document_id: docId,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('document_request_items')
-        .insert(items);
-
-      if (itemsError) {
-        console.error('❌ Items Error:', itemsError);
-        // Rollback
-        await supabase
-          .from('document_requests')
-          .delete()
-          .eq('id', requestId);
-        throw itemsError;
-      }
-
-      console.log(`✅ Created ${documentIds.length} items`);
-
-      return res.status(201).json({
-        success: true,
-        data: {
-          id: requestId,
-          status: 'pending',
-          document_count: documentIds.length,
-          issuer_organization: issuer.organization_name,
-        },
-      });
+      return await createDocumentRequest(req, res);
     }
 
-    // Create Document
-    console.log('📄 Creating document...');
-    
-    if (!issuerId || !title || !documentType) {
+    // Create Document (default)
+    return await createDocument(req, res);
+  } catch (error) {
+    console.error('❌ POST Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+// ============================================
+// PUT Handler
+// ============================================
+async function handlePut(req, res) {
+  const { endpoint } = req.body;
+
+  console.log('📝 PUT Request:', { endpoint });
+
+  try {
+    // Revoke Share
+    if (endpoint === 'revoke-share') {
+      return await revokeShare(req, res);
+    }
+
+    // Approve Access
+    if (endpoint === 'approve-access') {
+      return await approveAccessRequest(req, res);
+    }
+
+    // Reject Access
+    if (endpoint === 'reject-access') {
+      return await rejectAccessRequest(req, res);
+    }
+
+    // Update Document Request (default)
+    return await updateDocumentRequest(req, res);
+  } catch (error) {
+    console.error('❌ PUT Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+// ============================================
+// DELETE Handler
+// ============================================
+async function handleDelete(req, res) {
+  const { id } = req.body;
+
+  console.log('🗑️ DELETE Request:', { id });
+
+  try {
+    if (!id) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: issuerId, title, documentType',
+        error: 'Missing id',
       });
     }
 
+    const { error } = await supabase
+      .from('document_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    console.log('✅ Request deleted:', id);
+    return res.status(200).json({
+      success: true,
+      message: 'Deleted successfully',
+    });
+  } catch (error) {
+    console.error('❌ DELETE Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+// Create Document Request
+async function createDocumentRequest(req, res) {
+  const { ownerId, ownerEmail, ownerName, issuerId, issuerEmail, documentIds, message } = req.body;
+
+  console.log('📋 Creating document request...');
+  
+  if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: ownerId, issuerId, documentIds',
+    });
+  }
+
+  if (!ownerEmail || !issuerEmail) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing email fields',
+    });
+  }
+
+  try {
+    // Verify issuer exists
+    console.log('🔍 Verifying issuer...');
+    
+    const { data: issuer, error: issuerError } = await supabase
+      .from('users')
+      .select('id, role, organization_name')
+      .eq('id', issuerId)
+      .single();
+
+    if (issuerError || !issuer || issuer.role !== 'issuer') {
+      console.error('❌ Issuer Error:', issuerError);
+      return res.status(404).json({
+        success: false,
+        error: 'Issuer not found or invalid',
+      });
+    }
+
+    console.log('✅ Issuer verified:', issuer.organization_name);
+
+    // Create request
+    const requestId = uuidv4();
+
+    const { data: docRequest, error: createError } = await supabase
+      .from('document_requests')
+      .insert({
+        id: requestId,
+        owner_id: ownerId,
+        owner_email: ownerEmail,
+        owner_name: ownerName || null,
+        issuer_id: issuerId,
+        issuer_email: issuerEmail,
+        issuer_organization: issuer.organization_name,
+        status: 'pending',
+        message: message || null,
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('❌ Create Request Error:', createError);
+      throw createError;
+    }
+
+    console.log('✅ Request created:', requestId);
+
+    // Create request items
+    const items = documentIds.map((docId) => ({
+      id: uuidv4(),
+      document_request_id: requestId,
+      document_id: docId,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('document_request_items')
+      .insert(items);
+
+    if (itemsError) {
+      console.error('❌ Items Error:', itemsError);
+      // Rollback
+      await supabase
+        .from('document_requests')
+        .delete()
+        .eq('id', requestId);
+      throw itemsError;
+    }
+
+    console.log(`✅ Created ${documentIds.length} items`);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: requestId,
+        status: 'pending',
+        document_count: documentIds.length,
+        issuer_organization: issuer.organization_name,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Create Request Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+// Create Document
+async function createDocument(req, res) {
+  const { issuerId, title, documentType } = req.body;
+
+  console.log('📄 Creating document...');
+  
+  if (!issuerId || !title || !documentType) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: issuerId, title, documentType',
+    });
+  }
+
+  try {
     const { data: newDoc, error: docError } = await supabase
       .from('documents')
       .insert({
@@ -341,7 +471,7 @@ async function handlePost(req, res) {
       data: newDoc,
     });
   } catch (error) {
-    console.error('❌ POST Error:', error);
+    console.error('❌ Create Document Error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -349,13 +479,11 @@ async function handlePost(req, res) {
   }
 }
 
-// ============================================
-// PUT Handler - Issue Document with File
-// ============================================
-async function handlePut(req, res) {
+// Update Document Request
+async function updateDocumentRequest(req, res) {
   const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName } = req.body;
 
-  console.log('📝 PUT Request:', { id, status });
+  console.log('📝 Updating document request:', id);
 
   try {
     if (!id || !status) {
@@ -462,7 +590,6 @@ async function handlePut(req, res) {
         });
       } catch (err) {
         console.error('⚠️ File handling error (non-critical):', err);
-        // Still return success since request was updated
         return res.status(200).json({
           success: true,
           data: { request: updated },
@@ -476,7 +603,7 @@ async function handlePut(req, res) {
       data: updated,
     });
   } catch (error) {
-    console.error('❌ PUT Error:', error);
+    console.error('❌ Update Request Error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -485,67 +612,11 @@ async function handlePut(req, res) {
 }
 
 // ============================================
-// DELETE Handler
-// ============================================
-async function handleDelete(req, res) {
-  const { id } = req.body;
-
-  console.log('🗑️ DELETE Request:', { id });
-
-  try {
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing id',
-      });
-    }
-
-    const { error } = await supabase
-      .from('document_requests')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    console.log('✅ Request deleted:', id);
-    return res.status(200).json({
-      success: true,
-      message: 'Deleted successfully',
-    });
-  } catch (error) {
-    console.error('❌ DELETE Error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-
-// api/documents.js - ADD THESE ENDPOINTS
-
-// ============================================
-// DOCUMENT SHARING ENDPOINTS
+// DOCUMENT SHARING FUNCTIONS
 // ============================================
 
-/**
- * POST /api/documents (add to existing POST handler)
- * endpoint: 'share-document'
- * 
- * Share document with specific person/email
- */
 async function shareDocument(req, res) {
-  const {
-    documentId,
-    ownerId,
-    recipientId,
-    recipientEmail,
-    canView = true,
-    canPrint = true,
-    canDownload = false, // Default: NO download
-    canShare = false,
-    expiresAt = null,
-  } = req.body;
+  const { documentId, ownerId, recipientId, recipientEmail, canView = true, canPrint = true, canDownload = false, canShare = false, expiresAt = null } = req.body;
 
   console.log('📤 Sharing document:', { documentId, recipientEmail });
 
@@ -557,7 +628,6 @@ async function shareDocument(req, res) {
       });
     }
 
-    // Verify owner owns this document
     const { data: doc, error: docError } = await supabase
       .from('issued_documents')
       .select('id, owner_id')
@@ -571,12 +641,11 @@ async function shareDocument(req, res) {
       });
     }
 
-    // Create share record
-    const shareToken = require('uuid').v4();
+    const shareToken = uuidv4();
     const { data: share, error: shareError } = await supabase
       .from('document_shares')
       .insert({
-        id: require('uuid').v4(),
+        id: uuidv4(),
         document_id: documentId,
         owner_id: ownerId,
         recipient_id: recipientId || null,
@@ -585,9 +654,9 @@ async function shareDocument(req, res) {
         share_token: shareToken,
         can_view: canView,
         can_print: canPrint,
-        can_download: canDownload, // Owner decides
+        can_download: canDownload,
         can_share: canShare,
-        is_approved: !recipientId, // Auto-approve if owner sharing directly
+        is_approved: !recipientId,
         approval_date: !recipientId ? new Date() : null,
         approved_by: ownerId,
         expires_at: expiresAt,
@@ -599,21 +668,13 @@ async function shareDocument(req, res) {
 
     console.log('✅ Document shared:', share.id);
 
-    // TODO: Send email to recipient if recipientEmail provided
-    // sendShareEmail(recipientEmail, documentId, shareToken);
-
     return res.status(201).json({
       success: true,
       data: {
         shareId: share.id,
         shareToken: share.share_token,
         shareLink: `/shared/${share.share_token}`,
-        permissions: {
-          view: canView,
-          print: canPrint,
-          download: canDownload,
-          share: canShare,
-        },
+        permissions: { view: canView, print: canPrint, download: canDownload, share: canShare },
       },
     });
   } catch (error) {
@@ -625,11 +686,6 @@ async function shareDocument(req, res) {
   }
 }
 
-/**
- * GET /api/documents?endpoint=check-access&shareToken=...
- * 
- * Check if user has access to shared document
- */
 async function checkDocumentAccess(req, res) {
   const { shareToken, userId } = req.query;
 
@@ -643,20 +699,9 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    // Get share record
     const { data: share, error: shareError } = await supabase
       .from('document_shares')
-      .select(`
-        *,
-        document:issued_documents(
-          id,
-          file_url,
-          file_name,
-          owner:users!owner_id(id, email, full_name),
-          status,
-          expires_at
-        )
-      `)
+      .select(`*,document:issued_documents(id,file_url,file_name,owner:users!owner_id(id,email,full_name),status,expires_at)`)
       .eq('share_token', shareToken)
       .single();
 
@@ -667,7 +712,6 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    // Check if share is revoked
     if (share.is_revoked) {
       return res.status(403).json({
         success: false,
@@ -675,7 +719,6 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    // Check expiration
     if (share.expires_at && new Date(share.expires_at) < new Date()) {
       return res.status(403).json({
         success: false,
@@ -683,7 +726,6 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    // Check if approved
     if (!share.is_approved) {
       return res.status(403).json({
         success: false,
@@ -691,9 +733,8 @@ async function checkDocumentAccess(req, res) {
       });
     }
 
-    // Log access
     await supabase.from('document_access_logs').insert({
-      id: require('uuid').v4(),
+      id: uuidv4(),
       document_id: share.document_id,
       share_id: share.id,
       user_id: userId || null,
@@ -711,7 +752,7 @@ async function checkDocumentAccess(req, res) {
         permissions: {
           view: share.can_view,
           print: share.can_print,
-          download: share.can_download, // Key: download controlled by owner
+          download: share.can_download,
           share: share.can_share,
         },
         expiresAt: share.expires_at,
@@ -726,11 +767,6 @@ async function checkDocumentAccess(req, res) {
   }
 }
 
-/**
- * GET /api/documents?endpoint=document-shares&ownerId=...
- * 
- * Get all shares created by owner
- */
 async function getDocumentShares(req, res) {
   const { ownerId } = req.query;
 
@@ -746,15 +782,7 @@ async function getDocumentShares(req, res) {
 
     const { data: shares, error } = await supabase
       .from('document_shares')
-      .select(`
-        *,
-        document:issued_documents(
-          id,
-          file_name,
-          document_type
-        ),
-        recipient:users!recipient_id(email, full_name)
-      `)
+      .select(`*,document:issued_documents(id,file_name,document_type),recipient:users!recipient_id(email,full_name)`)
       .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
@@ -775,12 +803,6 @@ async function getDocumentShares(req, res) {
   }
 }
 
-/**
- * PUT /api/documents
- * endpoint: 'revoke-share'
- * 
- * Revoke access to shared document
- */
 async function revokeShare(req, res) {
   const { shareId, ownerId } = req.body;
 
@@ -794,7 +816,6 @@ async function revokeShare(req, res) {
       });
     }
 
-    // Verify owner
     const { data: share, error: getError } = await supabase
       .from('document_shares')
       .select('owner_id')
@@ -808,7 +829,6 @@ async function revokeShare(req, res) {
       });
     }
 
-    // Revoke
     const { data: revoked, error: revokeError } = await supabase
       .from('document_shares')
       .update({
@@ -837,12 +857,6 @@ async function revokeShare(req, res) {
   }
 }
 
-/**
- * POST /api/documents
- * endpoint: 'request-access'
- * 
- * 3rd party requests access to document
- */
 async function requestDocumentAccess(req, res) {
   const { documentId, ownerId, requesterEmail, requesterName, reason } = req.body;
 
@@ -856,12 +870,11 @@ async function requestDocumentAccess(req, res) {
       });
     }
 
-    // Create access request
-    const token = require('uuid').v4();
+    const token = uuidv4();
     const { data: request, error: requestError } = await supabase
       .from('document_access_requests')
       .insert({
-        id: require('uuid').v4(),
+        id: uuidv4(),
         document_id: documentId,
         owner_id: ownerId,
         requester_email: requesterEmail,
@@ -869,7 +882,7 @@ async function requestDocumentAccess(req, res) {
         reason: reason || null,
         request_token: token,
         status: 'pending',
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       })
       .select()
       .single();
@@ -877,9 +890,6 @@ async function requestDocumentAccess(req, res) {
     if (requestError) throw requestError;
 
     console.log('✅ Access request created');
-
-    // TODO: Notify owner of access request
-    // sendAccessRequestEmail(ownerId, documentId, requesterEmail, reason);
 
     return res.status(201).json({
       success: true,
@@ -897,21 +907,13 @@ async function requestDocumentAccess(req, res) {
   }
 }
 
-/**
- * GET /api/documents?endpoint=access-requests&ownerId=...
- * 
- * Get pending access requests for owner
- */
 async function getAccessRequests(req, res) {
   const { ownerId } = req.query;
 
   try {
     const { data: requests, error } = await supabase
       .from('document_access_requests')
-      .select(`
-        *,
-        document:issued_documents(id, file_name)
-      `)
+      .select(`*,document:issued_documents(id,file_name)`)
       .eq('owner_id', ownerId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
@@ -931,25 +933,12 @@ async function getAccessRequests(req, res) {
   }
 }
 
-/**
- * PUT /api/documents
- * endpoint: 'approve-access'
- * 
- * Owner approves access request
- */
 async function approveAccessRequest(req, res) {
-  const {
-    requestId,
-    ownerId,
-    canPrint = true,
-    canDownload = false,
-    expiresAt = null,
-  } = req.body;
+  const { requestId, ownerId, canPrint = true, canDownload = false, expiresAt = null } = req.body;
 
   console.log('✅ Approving access request:', requestId);
 
   try {
-    // Get request
     const { data: request, error: getError } = await supabase
       .from('document_access_requests')
       .select('*')
@@ -963,12 +952,11 @@ async function approveAccessRequest(req, res) {
       });
     }
 
-    // Create share for requester
-    const shareToken = require('uuid').v4();
+    const shareToken = uuidv4();
     const { data: share, error: shareError } = await supabase
       .from('document_shares')
       .insert({
-        id: require('uuid').v4(),
+        id: uuidv4(),
         document_id: request.document_id,
         owner_id: ownerId,
         recipient_email: request.requester_email,
@@ -988,7 +976,6 @@ async function approveAccessRequest(req, res) {
 
     if (shareError) throw shareError;
 
-    // Update request status
     await supabase
       .from('document_access_requests')
       .update({
@@ -999,9 +986,6 @@ async function approveAccessRequest(req, res) {
       .eq('id', requestId);
 
     console.log('✅ Access approved');
-
-    // TODO: Send approval email to requester
-    // sendAccessApprovedEmail(request.requester_email, shareToken);
 
     return res.status(200).json({
       success: true,
@@ -1019,12 +1003,6 @@ async function approveAccessRequest(req, res) {
   }
 }
 
-/**
- * PUT /api/documents
- * endpoint: 'reject-access'
- * 
- * Owner rejects access request
- */
 async function rejectAccessRequest(req, res) {
   const { requestId, ownerId } = req.body;
 
