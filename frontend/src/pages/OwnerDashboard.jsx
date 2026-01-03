@@ -51,11 +51,15 @@ export default function OwnerDashboard() {
       const docsData = await docsRes.json();
       if (docsData.success) setDocuments(docsData.data || []);
 
-      // Fetch verification requests
-      const reqRes = await fetch(`/api/verification-requests?ownerId=${user.id}`);
-      if (!reqRes.ok) throw new Error('Failed to fetch requests');
-      const reqData = await reqRes.json();
-      if (reqData.success) setRequests(reqData.data || []);
+      // Fetch document requests (endpoint: document-requests)
+      const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        if (reqData.success) {
+          console.log('✅ Document requests fetched:', reqData.data);
+          setRequests(reqData.data || []);
+        }
+      }
 
       // Fetch shares
       const sharesRes = await fetch(
@@ -70,7 +74,7 @@ export default function OwnerDashboard() {
 
       // Fetch all issuers - WITH ERROR HANDLING
       try {
-        const issuersRes = await fetch('/api/issuers');
+        const issuersRes = await fetch('/api/documents?role=issuer');
         if (issuersRes.ok) {
           const issuersData = await issuersRes.json();
           if (issuersData.success) {
@@ -142,12 +146,16 @@ export default function OwnerDashboard() {
     setLoadingRequest(true);
 
     try {
-      const res = await fetch('/api/document-requests', {
+      console.log('📤 Submitting document request...');
+      
+      const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          endpoint: 'document-requests',
           ownerId: user?.id,
           ownerEmail: user?.email,
+          ownerName: user?.full_name || '',
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
           documentIds: selectedDocuments,
@@ -161,6 +169,7 @@ export default function OwnerDashboard() {
       }
 
       const data = await res.json();
+      console.log('📬 Request response:', data);
 
       if (data.success) {
         toast.success('Request sent to issuer!');
@@ -172,72 +181,16 @@ export default function OwnerDashboard() {
         setSearchIssuer('');
         
         // Refresh requests
-        const reqRes = await fetch(`/api/document-requests?ownerId=${user.id}`);
-        if (reqRes.ok) {
-          const reqData = await reqRes.json();
-          if (reqData.success) setRequests(reqData.data || []);
-        }
+        console.log('🔄 Refreshing requests...');
+        await fetchData();
       } else {
         throw new Error(data.error || 'Failed to send request');
       }
     } catch (err) {
-      console.error('Error submitting request:', err);
+      console.error('❌ Error submitting request:', err);
       toast.error(err.message || 'Error submitting request');
     } finally {
       setLoadingRequest(false);
-    }
-  };
-
-  const handleApproveRequest = async (requestId) => {
-    try {
-      const res = await fetch('/api/verification-requests', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: requestId, status: 'approved' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Request approved!');
-        setRequests(requests.map(r => r.id === requestId ? {...r, status: 'approved'} : r));
-      }
-    } catch (err) {
-      toast.error('Error approving request');
-    }
-  };
-
-  const handleRejectRequest = async (requestId) => {
-    try {
-      const res = await fetch('/api/verification-requests', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: requestId, status: 'rejected' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Request rejected!');
-        setRequests(requests.map(r => r.id === requestId ? {...r, status: 'rejected'} : r));
-      }
-    } catch (err) {
-      toast.error('Error rejecting request');
-    }
-  };
-
-  const handleRevokeShare = async (shareId) => {
-    if (!window.confirm('Revoke this share? The recipient will lose access.')) return;
-
-    try {
-      const res = await fetch('/api/sharing', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: shareId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Share revoked!');
-        setShares(shares.filter(s => s.id !== shareId));
-      }
-    } catch (err) {
-      toast.error('Error revoking share');
     }
   };
 
@@ -269,6 +222,17 @@ export default function OwnerDashboard() {
 
   // Get pending requests count
   const pendingRequestsCount = requests.filter(r => r.status === 'pending').length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-signatura-red"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -537,4 +501,122 @@ export default function OwnerDashboard() {
       {/* ISSUER SELECTION & DOCUMENT REQUEST MODAL */}
       {showIssuerModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h2 className="text-2xl font-bold text-signatura-dark">
+                {selectedIssuer ? '📄 Select Documents to Request' : '🏢 Select an Issuer'}
+              </h2>
+              {selectedIssuer && (
+                <p className="text-sm text-gray-600 mt-2">{selectedIssuer.organization_name}</p>
+              )}
+            </div>
+
+            <div className="p-6">
+              {!selectedIssuer ? (
+                <>
+                  <div className="mb-4">
+                    <div className="relative">
+                      <FiSearch className="absolute left-3 top-3 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search issuers..."
+                        value={searchIssuer}
+                        onChange={(e) => setSearchIssuer(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {filteredIssuers.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">No issuers found</p>
+                    ) : (
+                      filteredIssuers.map((issuer) => (
+                        <button
+                          key={issuer.id}
+                          onClick={() => handleSelectIssuer(issuer)}
+                          className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                        >
+                          <p className="font-medium text-gray-900">{issuer.organization_name}</p>
+                          <p className="text-sm text-gray-600">{issuer.email}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleSubmitRequest} className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Documents</h3>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg p-4">
+                      {issuerDocuments.length === 0 ? (
+                        <p className="text-center text-gray-500">No documents available from this issuer</p>
+                      ) : (
+                        issuerDocuments.map((doc) => (
+                          <label key={doc.id} className="flex items-start p-3 hover:bg-gray-50 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedDocuments.includes(doc.id)}
+                              onChange={() => toggleDocumentSelection(doc.id)}
+                              className="mt-1 mr-3"
+                            />
+                            <div>
+                              <p className="font-medium text-gray-900">{doc.title}</p>
+                              <p className="text-xs text-gray-600">{doc.document_type}</p>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Message (Optional)</label>
+                    <textarea
+                      value={requestMessage}
+                      onChange={(e) => setRequestMessage(e.target.value)}
+                      placeholder="Add a message to the issuer..."
+                      rows="3"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedIssuer(null);
+                        setIssuerDocuments([]);
+                        setSelectedDocuments([]);
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowIssuerModal(false);
+                        setSelectedIssuer(null);
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loadingRequest || selectedDocuments.length === 0}
+                      className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent disabled:opacity-50 font-medium"
+                    >
+                      {loadingRequest ? 'Sending...' : 'Send Request'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
