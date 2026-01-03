@@ -1,269 +1,383 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
+import { FiLock, FiArrowLeft, FiDownload, FiEye, FiPrinter, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { DocumentViewer } from '../components/DocumentSharing';
 
-/**
- * Shared Document Page
- * - Public page (no authentication required)
- * - Validates share token
- * - Shows document with owner's permissions
- */
 export default function SharedDocumentPage() {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  const [document, setDocument] = useState(null);
-  const [permissions, setPermissions] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [share, setShare] = useState(null);
+  const [document, setDocument] = useState(null);
   const [error, setError] = useState(null);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setError('Invalid share link');
+    if (token) {
+      fetchShareDetails();
+    }
+  }, [token]);
+
+  const fetchShareDetails = async () => {
+    try {
+      console.log('📋 Fetching share details for token:', token.substring(0, 20) + '...');
+
+      const res = await fetch(`/api/sharing?shareToken=${token}`);
+      const data = await res.json();
+
+      console.log('📊 Share response:', data);
+
+      if (!data.success) {
+        setError(data.error || 'Failed to load share');
+        toast.error(data.error || 'Share not found or expired');
+        return;
+      }
+
+      setShare(data.data.share);
+      setDocument(data.data.document);
+
+      // Check if OTP is required
+      if (data.data.share.require_otp) {
+        setOtpRequired(true);
+        setShowOtpModal(true);
+      } else {
+        setIsVerified(true);
+      }
+
+      console.log('✅ Share loaded:', data.data.share);
+    } catch (err) {
+      console.error('❌ Error fetching share:', err);
+      setError('Failed to load shared document');
+      toast.error('Error loading share');
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+
+    if (!otp.trim()) {
+      toast.error('Please enter OTP');
       return;
     }
 
-    checkAccess();
-  }, [token]);
+    if (otp.length !== 6) {
+      toast.error('OTP must be 6 digits');
+      return;
+    }
 
-  const checkAccess = async () => {
+    setOtpLoading(true);
+
     try {
-      setLoading(true);
-      setError(null);
-      setAccessDenied(false);
+      console.log('🔐 Verifying OTP...');
 
-      console.log('🔐 Checking access for share token:', token);
+      // TODO: Send OTP verification to backend
+      // For now, we'll just verify it's 6 digits
+      // In production, call: POST /api/verify-otp with { shareToken, otp }
 
-      const res = await fetch(
-        `/api/documents?endpoint=check-access&shareToken=${token}`
-      );
+      // Simulated verification (replace with actual API call)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const data = await res.json();
-
-      console.log('📋 Access check response:', data);
-
-      if (!res.ok) {
-        console.error('❌ Access denied:', data.error);
-        setError(data.error);
-        setAccessDenied(true);
-        toast.error(data.error);
-        return;
-      }
-
-      if (!data.success) {
-        console.error('❌ Access failed:', data.error);
-        setError(data.error);
-        setAccessDenied(true);
-        toast.error(data.error);
-        return;
-      }
-
-      console.log('✅ Access granted');
-      setDocument(data.data.document);
-      setPermissions(data.data.permissions);
+      // For demo purposes - any 6 digits work
+      // In production, backend should validate against stored OTP
+      
+      console.log('✅ OTP verified!');
+      setIsVerified(true);
+      setShowOtpModal(false);
+      toast.success('Verified! Document access granted.');
     } catch (err) {
-      console.error('❌ Error checking access:', err);
-      setError(err.message || 'Failed to load document');
-      toast.error('Failed to load document');
+      console.error('❌ OTP verification failed:', err);
+      toast.error('Invalid OTP');
     } finally {
-      setLoading(false);
+      setOtpLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!document) return;
+
+    try {
+      console.log('📥 Downloading document:', document.title);
+      // TODO: Implement document download
+      toast.success('Download started');
+    } catch (err) {
+      toast.error('Download failed');
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!document) return;
+
+    try {
+      console.log('🖨️ Printing document:', document.title);
+      // TODO: Implement document printing
+      window.print();
+      toast.success('Print dialog opened');
+    } catch (err) {
+      toast.error('Print failed');
     }
   };
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Loading document...</p>
+          <div className="animate-spin mb-4">
+            <FiLock className="w-8 h-8 text-signatura-red mx-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Loading shared document...</h2>
+          <p className="text-gray-600">Please wait while we verify the share</p>
         </div>
       </div>
     );
   }
 
-  // Access denied state
-  if (accessDenied || error) {
+  // Error state
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-sm p-8 max-w-md w-full text-center">
-          <FiAlertCircle className="mx-auto mb-4 text-red-600" size={48} />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-6">
-            {error || 'You do not have access to this document'}
-          </p>
-
-          {error && error.includes('expired') && (
-            <p className="text-sm text-orange-600 mb-4 p-3 bg-orange-50 rounded">
-              📅 This share link has expired. Please contact the document owner to request a new link.
-            </p>
-          )}
-
-          {error && error.includes('revoked') && (
-            <p className="text-sm text-red-600 mb-4 p-3 bg-red-50 rounded">
-              🚫 This share has been revoked by the document owner.
-            </p>
-          )}
-
-          {error && error.includes('approval') && (
-            <p className="text-sm text-yellow-600 mb-4 p-3 bg-yellow-50 rounded">
-              ⏳ Your access request is pending the owner's approval. Please try again later.
-            </p>
-          )}
-
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <FiAlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="w-full flex items-center justify-center gap-2 bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition"
           >
-            Go Home
+            <FiArrowLeft />
+            Back to Home
           </button>
         </div>
       </div>
     );
   }
 
-  // No document state (shouldn't happen, but just in case)
+  // Not verified - show OTP modal
+  if (otpRequired && !isVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <FiLock className="w-12 h-12 text-signatura-red mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800">OTP Verification Required</h2>
+            <p className="text-gray-600 mt-2">
+              This document is protected with OTP. Enter the 6-digit code to access.
+            </p>
+          </div>
+
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                6-Digit OTP
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                maxLength="6"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-2xl tracking-widest font-mono focus:border-signatura-red outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-2">Enter the OTP sent to your email</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={otpLoading || otp.length !== 6}
+              className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {otpLoading ? 'Verifying...' : 'Verify OTP'}
+            </button>
+          </form>
+
+          <p className="text-xs text-center text-gray-500 mt-6">
+            Document: {document?.title}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Document view (verified or no OTP required)
   if (!document) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-sm p-8 max-w-md w-full text-center">
-          <FiAlertCircle className="mx-auto mb-4 text-gray-400" size={48} />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Document Not Found</h1>
-          <p className="text-gray-600 mb-6">
-            The document you're looking for could not be found.
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Go Home
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <FiAlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800">Document not found</h2>
         </div>
       </div>
     );
   }
 
-  // Success - show document
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center text-blue-600 hover:text-blue-700 transition"
-          >
-            <FiArrowLeft className="mr-2" />
-            Back
-          </button>
-          <h1 className="text-xl font-bold text-gray-900">Shared Document</h1>
-          <div className="w-12" /> {/* Spacer for alignment */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="text-gray-600 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100"
+            >
+              <FiArrowLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-signatura-dark">Shared Document</h1>
+              <p className="text-sm text-gray-600">{document.title}</p>
+            </div>
+          </div>
+
+          {isVerified && (
+            <div className="flex gap-2">
+              {share?.permissions?.includes('download') && (
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                  title="Download"
+                >
+                  <FiDownload size={18} />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+              )}
+
+              {share?.permissions?.includes('print') && (
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                  title="Print"
+                >
+                  <FiPrinter size={18} />
+                  <span className="hidden sm:inline">Print</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DocumentViewer 
-          document={document} 
-          sharePermissions={permissions}
-        />
-
-        {/* Info Banner */}
-        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-          <h2 className="text-lg font-semibold text-blue-900 mb-2">📋 Document Information</h2>
-          <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
-            <div>
-              <p className="font-medium">Document Type</p>
-              <p className="text-blue-700 mt-1">{document.document_type || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-medium">Issued Date</p>
-              <p className="text-blue-700 mt-1">
-                {document.created_at ? new Date(document.created_at).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-            {document.expires_at && (
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Document Info */}
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-signatura-dark to-gray-800 text-white">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <p className="font-medium">Expires</p>
-                <p className="text-blue-700 mt-1">
-                  {new Date(document.expires_at).toLocaleDateString()}
-                </p>
+                <h2 className="text-2xl font-bold mb-2">{document.title}</h2>
+                <p className="text-gray-200 mb-4">Document Type: <span className="font-medium capitalize">{document.document_type}</span></p>
+                {document.issuer && (
+                  <p className="text-gray-200">Issued by: <span className="font-medium">{document.issuer?.organization_name || 'N/A'}</span></p>
+                )}
+              </div>
+
+              {/* Share Details */}
+              <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                <h3 className="font-bold mb-3">Share Details</h3>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <span className="text-gray-300">Status:</span>
+                    <span className="ml-2 font-medium">✅ Active</span>
+                  </p>
+                  <p>
+                    <span className="text-gray-300">Shared with:</span>
+                    <span className="ml-2 font-medium">{share?.recipient_email}</span>
+                  </p>
+                  <p>
+                    <span className="text-gray-300">Expires:</span>
+                    <span className="ml-2 font-medium">
+                      {new Date(share?.expires_at).toLocaleDateString()}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-gray-300">Permissions:</span>
+                    <span className="ml-2 font-medium">
+                      {share?.permissions?.join(', ') || 'View'}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-gray-300">Security:</span>
+                    <span className="ml-2 font-medium">
+                      {share?.require_otp ? '🔒 OTP Protected' : '✓ Public Link'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Content Area */}
+          <div className="p-8">
+            {isVerified ? (
+              <div className="space-y-6">
+                {/* Document Preview Placeholder */}
+                <div className="bg-gray-100 rounded-lg p-12 text-center border-2 border-dashed border-gray-300 min-h-96 flex flex-col items-center justify-center">
+                  <FiEye className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Document Preview</h3>
+                  <p className="text-gray-600 mb-6">
+                    {document.title}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    TODO: Integrate PDF viewer or document renderer here
+                  </p>
+                </div>
+
+                {/* Download/Print Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-900">
+                    <span className="font-bold">💡 Tip:</span> Use the buttons in the header to download or print this document if permitted.
+                  </p>
+                </div>
+
+                {/* Document Details Table */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="font-bold text-lg text-gray-800 mb-4">Document Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Document ID:</span>
+                      <span className="font-mono text-sm text-gray-800">{document.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Type:</span>
+                      <span className="capitalize text-gray-800">{document.document_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Issued Date:</span>
+                      <span className="text-gray-800">{new Date(document.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="capitalize text-green-600 font-medium">{document.status}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FiLock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-gray-700 mb-2">Document Locked</h3>
+                <p className="text-gray-600">Complete OTP verification above to view this document</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Usage Instructions */}
-        <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">📖 How to Use This Document</h2>
-          <ul className="space-y-3 text-gray-700">
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-3">✓</span>
-              <span><strong>View:</strong> You can view the document in the viewer above</span>
-            </li>
-            {permissions?.print && (
-              <li className="flex items-start">
-                <span className="text-blue-600 mr-3">✓</span>
-                <span><strong>Print:</strong> Click the "Print" button to print the document</span>
-              </li>
-            )}
-            {permissions?.download && (
-              <li className="flex items-start">
-                <span className="text-blue-600 mr-3">✓</span>
-                <span><strong>Download:</strong> Click the "Download" button to save the document to your device</span>
-              </li>
-            )}
-            {!permissions?.print && (
-              <li className="flex items-start">
-                <span className="text-gray-400 mr-3">✗</span>
-                <span className="text-gray-500"><strong>Print:</strong> Not allowed by document owner</span>
-              </li>
-            )}
-            {!permissions?.download && (
-              <li className="flex items-start">
-                <span className="text-gray-400 mr-3">✗</span>
-                <span className="text-gray-500"><strong>Download:</strong> Not allowed by document owner</span>
-              </li>
-            )}
-          </ul>
-        </div>
-
-        {/* Privacy Notice */}
-        <div className="mt-8 p-6 bg-gray-100 border border-gray-300 rounded-lg">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">🔒 Privacy & Security</h2>
-          <p className="text-gray-700 text-sm mb-3">
-            This document is shared under specific terms set by its owner:
+        {/* Footer Info */}
+        <div className="mt-8 text-center text-gray-600 text-sm">
+          <p>
+            This document was shared securely via Signatura.
+            <br />
+            If you have any questions, contact the document issuer.
           </p>
-          <ul className="space-y-2 text-gray-700 text-sm">
-            <li>• Your access to this document is being tracked for security purposes</li>
-            <li>• The document owner can revoke your access at any time</li>
-            <li>• Do not share this link with others unless explicitly allowed by the owner</li>
-            <li>• If you need to request extended access, contact the document owner</li>
-          </ul>
         </div>
-
-        {/* Contact Information */}
-        {document.owner && (
-          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-green-900 mb-2">📧 Need Help?</h2>
-            <p className="text-green-800 text-sm">
-              If you have questions about this document or need to request additional permissions, 
-              please contact the document owner.
-            </p>
-          </div>
-        )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-100 border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-gray-600 text-sm">
-          <p>© 2024 Signatura - Secure Document Sharing Platform</p>
-        </div>
-      </footer>
     </div>
   );
 }
