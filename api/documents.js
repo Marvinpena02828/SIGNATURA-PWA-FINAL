@@ -486,7 +486,7 @@ async function createDocument(req, res) {
 
 // Update Document Request
 async function updateDocumentRequest(req, res) {
-  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName } = req.body;
+  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileUrl, fileName, fileSize } = req.body;
 
   console.log('📝 Updating document request:', id);
 
@@ -519,6 +519,76 @@ async function updateDocumentRequest(req, res) {
     if (error) throw error;
 
     console.log('✅ Request updated:', id);
+
+    // If approved with file, create issued document
+    if (status === 'approved' && fileUrl && fileName) {
+      console.log('📄 Creating issued document...');
+      
+      try {
+        // Create issued document record
+        const { data: issuedDoc, error: docError } = await supabase
+          .from('issued_documents')
+          .insert({
+            id: uuidv4(),
+            document_request_id: id,
+            owner_id: updated.owner_id,
+            issuer_id: updated.issuer_id,
+            signatura_id: signatureId || null,
+            document_id: documentId || null,
+            document_type: 'issued_document',
+            file_url: fileUrl,
+            file_name: fileName,
+            file_size: fileSize || 0,
+            processed_by: processedBy || null,
+            approved_by: approvedBy || null,
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (docError) {
+          console.error('❌ Issued Document Error:', docError);
+          throw docError;
+        }
+
+        console.log('✅ Issued document created:', issuedDoc.id);
+
+        // Create automatic share with owner
+        await supabase
+          .from('document_shares')
+          .insert({
+            id: uuidv4(),
+            document_id: issuedDoc.id,
+            owner_id: updated.owner_id,
+            share_type: 'direct',
+            can_view: true,
+            can_print: true,
+            can_download: false,  // Key: Owner cannot download
+            can_share: true,      // Owner can share with others
+            is_approved: true,
+            approval_date: new Date(),
+            approved_by: updated.issuer_id,
+          });
+
+        console.log('✅ Document automatically shared with owner');
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            request: updated,
+            issuedDocument: issuedDoc,
+          },
+        });
+      } catch (err) {
+        console.error('⚠️ Document creation error:', err);
+        // Still return success for request approval
+        return res.status(200).json({
+          success: true,
+          data: { request: updated },
+          warning: 'Request approved but document creation failed',
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,
