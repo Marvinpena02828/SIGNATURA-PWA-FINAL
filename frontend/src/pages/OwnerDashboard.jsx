@@ -155,7 +155,7 @@ export default function OwnerDashboard() {
           endpoint: 'document-requests',
           ownerId: user?.id,
           ownerEmail: user?.email,
-          ownerName: user?.full_name || '',
+          ownerName: user?.full_name || user?.email || 'Owner',
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
           documentIds: selectedDocuments,
