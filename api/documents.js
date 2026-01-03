@@ -486,7 +486,7 @@ async function createDocument(req, res) {
 
 // Update Document Request
 async function updateDocumentRequest(req, res) {
-  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileUrl, fileName, fileSize } = req.body;
+  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName, fileSize, ownerId, issuerId } = req.body;
 
   console.log('📝 Updating document request:', id);
 
@@ -521,22 +521,47 @@ async function updateDocumentRequest(req, res) {
     console.log('✅ Request updated:', id);
 
     // If approved with file, create issued document
-    if (status === 'approved' && fileUrl && fileName) {
-      console.log('📄 Creating issued document...');
+    if (status === 'approved' && fileBase64 && fileName) {
+      console.log('📄 Creating issued document with file...');
       
       try {
+        // Upload file to Supabase Storage using SERVICE_ROLE_KEY
+        const filePath = `documents/${issuerId}/${id}/${fileName}`;
+        const fileBuffer = Buffer.from(fileBase64, 'base64');
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('issued-documents')
+          .upload(filePath, fileBuffer, {
+            contentType: 'application/pdf',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('❌ Upload Error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('✅ File uploaded:', filePath);
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('issued-documents')
+          .getPublicUrl(filePath);
+
+        console.log('✅ Public URL:', publicUrl);
+
         // Create issued document record
         const { data: issuedDoc, error: docError } = await supabase
           .from('issued_documents')
           .insert({
             id: uuidv4(),
             document_request_id: id,
-            owner_id: updated.owner_id,
-            issuer_id: updated.issuer_id,
+            owner_id: ownerId,
+            issuer_id: issuerId,
             signatura_id: signatureId || null,
             document_id: documentId || null,
             document_type: 'issued_document',
-            file_url: fileUrl,
+            file_url: publicUrl,
             file_name: fileName,
             file_size: fileSize || 0,
             processed_by: processedBy || null,
@@ -553,24 +578,28 @@ async function updateDocumentRequest(req, res) {
 
         console.log('✅ Issued document created:', issuedDoc.id);
 
-        // Create automatic share with owner
-        await supabase
+        // Create automatic share with owner (view + print, NO download)
+        const { error: shareError } = await supabase
           .from('document_shares')
           .insert({
             id: uuidv4(),
             document_id: issuedDoc.id,
-            owner_id: updated.owner_id,
+            owner_id: ownerId,
             share_type: 'direct',
             can_view: true,
             can_print: true,
-            can_download: false,  // Key: Owner cannot download
-            can_share: true,      // Owner can share with others
+            can_download: false,  // Key: Owner CANNOT download to system
+            can_share: true,      // Owner CAN share with 3rd party
             is_approved: true,
             approval_date: new Date(),
-            approved_by: updated.issuer_id,
+            approved_by: issuerId,
           });
 
-        console.log('✅ Document automatically shared with owner');
+        if (shareError) {
+          console.error('⚠️ Share creation error:', shareError);
+        } else {
+          console.log('✅ Document automatically shared with owner');
+        }
 
         return res.status(200).json({
           success: true,
@@ -585,7 +614,7 @@ async function updateDocumentRequest(req, res) {
         return res.status(200).json({
           success: true,
           data: { request: updated },
-          warning: 'Request approved but document creation failed',
+          warning: 'Request approved but document creation failed: ' + err.message,
         });
       }
     }
