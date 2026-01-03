@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { createClient } from '@supabase/supabase-js';
 import { FiLogOut, FiCheck, FiX, FiDownload, FiUpload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+
+// Initialize Supabase
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 export default function IssuerDashboard() {
   const navigate = useNavigate();
@@ -137,31 +144,42 @@ export default function IssuerDashboard() {
       return;
     }
 
+    if (!approvalForm.uploadedFile) {
+      toast.error('Please upload a document');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       console.log('📤 Approving request:', selectedRequest.id);
+      console.log('📄 Uploading file:', approvalForm.uploadedFile.name);
 
-      // Prepare file data if uploaded
-      let fileBase64 = null;
-      let fileName = null;
+      // Step 1: Upload file to Supabase Storage
+      const fileName = `${selectedRequest.id}-${approvalForm.uploadedFile.name}`;
+      const filePath = `documents/${user?.id}/${fileName}`;
 
-      if (approvalForm.uploadedFile) {
-        // Convert file to base64
-        const reader = new FileReader();
-        await new Promise((resolve, reject) => {
-          reader.onload = () => {
-            // Get base64 without data:application/pdf;base64, prefix
-            fileBase64 = reader.result.split(',')[1];
-            fileName = approvalForm.uploadedFile.name;
-            resolve();
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(approvalForm.uploadedFile);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('issued-documents')
+        .upload(filePath, approvalForm.uploadedFile, {
+          upsert: false,
         });
+
+      if (uploadError) {
+        console.error('❌ Upload Error:', uploadError);
+        throw new Error(`File upload failed: ${uploadError.message}`);
       }
 
-      // ✅ Update request status to approved AND create issued document
+      console.log('✅ File uploaded:', uploadData);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('issued-documents')
+        .getPublicUrl(filePath);
+
+      console.log('✅ Public URL:', publicUrl);
+
+      // Step 2: Update request status to approved with file URL
       const updateRes = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -173,8 +191,9 @@ export default function IssuerDashboard() {
           documentId: approvalForm.documentId,
           processedBy: user?.full_name,
           approvedBy: user?.full_name,
-          fileBase64: fileBase64,
-          fileName: fileName,
+          fileUrl: publicUrl,
+          fileName: approvalForm.uploadedFile.name,
+          fileSize: approvalForm.uploadedFile.size,
         }),
       });
 
@@ -182,10 +201,8 @@ export default function IssuerDashboard() {
       console.log('✅ Approval response:', updateData);
 
       if (updateData.success) {
-        toast.success('✅ Request approved and document issued!');
-        if (fileBase64) {
-          toast.success('📄 Document uploaded successfully');
-        }
+        toast.success('✅ Request approved!');
+        toast.success('📄 Document issued successfully!');
         setShowApprovalModal(false);
         setSelectedRequest(null);
         
