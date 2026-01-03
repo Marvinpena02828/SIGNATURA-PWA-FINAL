@@ -11,7 +11,7 @@ import IssuerDashboard from './pages/IssuerDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SharedDocumentPage from './pages/SharedDocumentPage';
-
+import ReceivedDocuments from './pages/ReceivedDocuments';
 // NotFound component
 const NotFound = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -152,7 +152,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+<Route path="/received-documents" element={<ReceivedDocuments />} />
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
