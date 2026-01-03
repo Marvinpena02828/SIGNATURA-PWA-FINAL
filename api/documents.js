@@ -89,7 +89,7 @@ async function handleGet(req, res) {
       });
     }
 
-    // Get Document Requests - FIXED: Simple SELECT
+    // Get Document Requests - FIXED: Include document details
     if (endpoint === 'document-requests') {
       console.log('📋 Fetching document requests...');
       
@@ -114,11 +114,33 @@ async function handleGet(req, res) {
         query = query.eq('issuer_id', issuerId);
       }
 
-      const { data: requests, error } = await query;
+      let { data: requests, error } = await query;
 
       if (error) {
         console.error('❌ Supabase Error:', error);
         throw error;
+      }
+
+      // Enrich requests with items and document details
+      if (requests && requests.length > 0) {
+        const enrichedRequests = await Promise.all(
+          requests.map(async (req) => {
+            try {
+              // Fetch items and related documents for this request
+              const { data: items } = await supabase
+                .from('document_request_items')
+                .select('id, document_id, document:documents(id, title, document_type)')
+                .eq('document_request_id', req.id);
+
+              req.items = items || [];
+            } catch (err) {
+              console.error('⚠️ Error fetching items for request:', req.id, err);
+              req.items = [];
+            }
+            return req;
+          })
+        );
+        requests = enrichedRequests;
       }
 
       console.log(`✅ Found ${requests?.length || 0} requests`);
