@@ -1,383 +1,457 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiLock, FiArrowLeft, FiDownload, FiEye, FiPrinter, FiAlertCircle } from 'react-icons/fi';
+import { FiShare2, FiLock, FiEye, FiPrinter, FiDownload, FiTrash2, FiCheck, FiX, FiClock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-export default function SharedDocumentPage() {
-  const { token } = useParams();
-  const navigate = useNavigate();
+/**
+ * Document Viewer Component
+ * - Print-only by default
+ * - No system download
+ * - Owner controls permissions
+ */
+export function DocumentViewer({ document, sharePermissions }) {
+  const [isPrinting, setIsPrinting] = useState(false);
 
+  const handlePrint = () => {
+    setIsPrinting(true);
+    window.print();
+    setTimeout(() => setIsPrinting(false), 1000);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{document.file_name}</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Issued by: {document.issuer_name || 'Unknown'}
+          </p>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex gap-2">
+          {/* Print Button */}
+          {sharePermissions?.print && (
+            <button
+              onClick={handlePrint}
+              disabled={isPrinting}
+              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              title="Print this document"
+            >
+              <FiPrinter className="mr-2" />
+              Print
+            </button>
+          )}
+
+          {/* Download Button (only if owner allows) */}
+          {sharePermissions?.download ? (
+            <a
+              href={document.file_url}
+              download
+              className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              title="Download document"
+            >
+              <FiDownload className="mr-2" />
+              Download
+            </a>
+          ) : (
+            <button
+              disabled
+              title="Download not allowed by owner"
+              className="flex items-center bg-gray-300 text-gray-600 px-4 py-2 rounded-lg cursor-not-allowed"
+            >
+              <FiDownload className="mr-2" />
+              <span className="line-through">Download</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Document Viewer */}
+      <div className="p-6 bg-gray-50 min-h-[600px]">
+        {document.file_url ? (
+          <iframe
+            src={document.file_url}
+            title="Document"
+            className="w-full h-[600px] border border-gray-200 rounded-lg"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-[600px] text-gray-500">
+            <p>Document not available</p>
+          </div>
+        )}
+      </div>
+
+      {/* Permissions Info */}
+      <div className="p-6 bg-yellow-50 border-t border-gray-200">
+        <p className="text-sm text-yellow-700 flex items-center">
+          <FiLock className="mr-2" />
+          This document is protected. Permissions set by owner:
+        </p>
+        <ul className="mt-3 space-y-1 text-sm text-yellow-600 ml-6">
+          <li>✓ View: Allowed</li>
+          <li>{sharePermissions?.print ? '✓ Print: Allowed' : '✗ Print: Not allowed'}</li>
+          <li>{sharePermissions?.download ? '✓ Download: Allowed' : '✗ Download: Not allowed'}</li>
+          <li>{sharePermissions?.share ? '✓ Share: Allowed' : '✗ Share: Not allowed'}</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Share Document Modal
+ * - Owner shares with specific people
+ * - Controls permissions (print, download, share)
+ */
+export function ShareDocumentModal({ document, isOpen, onClose, onShare }) {
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [canPrint, setCanPrint] = useState(true);
+  const [canDownload, setCanDownload] = useState(false); // Default: NO
+  const [canShare, setCanShare] = useState(false);
+  const [expiresAt, setExpiresAt] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!recipientEmail) {
+      toast.error('Please enter recipient email');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await onShare({
+        documentId: document.id,
+        recipientEmail,
+        canPrint,
+        canDownload,
+        canShare,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
+
+      setRecipientEmail('');
+      setCanPrint(true);
+      setCanDownload(false);
+      setCanShare(false);
+      setExpiresAt('');
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full shadow-2xl p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+          <FiShare2 className="mr-2" />
+          Share Document
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Recipient Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recipient Email *
+            </label>
+            <input
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="recipient@example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Permissions */}
+          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 text-sm">Permissions</h3>
+
+            {/* Print */}
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={canPrint}
+                onChange={(e) => setCanPrint(e.target.checked)}
+                className="mr-3"
+              />
+              <FiPrinter className="mr-2 text-gray-600" size={16} />
+              <span className="text-sm text-gray-700">Allow Printing</span>
+            </label>
+
+            {/* Download - Clearly marked as restricted */}
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={canDownload}
+                onChange={(e) => setCanDownload(e.target.checked)}
+                className="mr-3"
+              />
+              <FiDownload className="mr-2 text-gray-600" size={16} />
+              <span className="text-sm text-gray-700">
+                Allow Download
+                <span className="text-red-600 font-medium ml-1">(Restricted)</span>
+              </span>
+            </label>
+
+            {/* Share */}
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={canShare}
+                onChange={(e) => setCanShare(e.target.checked)}
+                className="mr-3"
+              />
+              <FiShare2 className="mr-2 text-gray-600" size={16} />
+              <span className="text-sm text-gray-700">Allow Re-sharing</span>
+            </label>
+          </div>
+
+          {/* Expiration */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <FiClock className="mr-1" size={16} />
+              Expires (Optional)
+            </label>
+            <input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Info */}
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <p className="text-xs text-blue-700">
+              💡 By default, downloads are not allowed. Recipient can only view and print.
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Sharing...' : 'Share'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Access Control Panel
+ * - Show all shares
+ * - Show pending access requests
+ * - Manage permissions
+ */
+export function DocumentAccessControl({ document, ownerId }) {
+  const [shares, setShares] = useState([]);
+  const [accessRequests, setAccessRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [share, setShare] = useState(null);
-  const [document, setDocument] = useState(null);
-  const [error, setError] = useState(null);
-  const [otpRequired, setOtpRequired] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      fetchShareDetails();
-    }
-  }, [token]);
+    fetchAccessData();
+  }, [document.id]);
 
-  const fetchShareDetails = async () => {
+  const fetchAccessData = async () => {
     try {
-      console.log('📋 Fetching share details for token:', token.substring(0, 20) + '...');
-
-      const res = await fetch(`/api/sharing?shareToken=${token}`);
-      const data = await res.json();
-
-      console.log('📊 Share response:', data);
-
-      if (!data.success) {
-        setError(data.error || 'Failed to load share');
-        toast.error(data.error || 'Share not found or expired');
-        return;
+      // Fetch shares
+      const sharesRes = await fetch(
+        `/api/documents?endpoint=document-shares&ownerId=${ownerId}`
+      );
+      if (sharesRes.ok) {
+        const data = await sharesRes.json();
+        setShares(data.data || []);
       }
 
-      setShare(data.data.share);
-      setDocument(data.data.document);
-
-      // Check if OTP is required
-      if (data.data.share.require_otp) {
-        setOtpRequired(true);
-        setShowOtpModal(true);
-      } else {
-        setIsVerified(true);
+      // Fetch access requests
+      const requestsRes = await fetch(
+        `/api/documents?endpoint=access-requests&ownerId=${ownerId}`
+      );
+      if (requestsRes.ok) {
+        const data = await requestsRes.json();
+        setAccessRequests(data.data || []);
       }
-
-      console.log('✅ Share loaded:', data.data.share);
     } catch (err) {
-      console.error('❌ Error fetching share:', err);
-      setError('Failed to load shared document');
-      toast.error('Error loading share');
+      console.error('Error fetching access data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-
-    if (!otp.trim()) {
-      toast.error('Please enter OTP');
-      return;
-    }
-
-    if (otp.length !== 6) {
-      toast.error('OTP must be 6 digits');
-      return;
-    }
-
-    setOtpLoading(true);
+  const handleRevokeShare = async (shareId) => {
+    if (!window.confirm('Revoke access for this recipient?')) return;
 
     try {
-      console.log('🔐 Verifying OTP...');
+      const res = await fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'revoke-share',
+          shareId,
+          ownerId,
+        }),
+      });
 
-      // TODO: Send OTP verification to backend
-      // For now, we'll just verify it's 6 digits
-      // In production, call: POST /api/verify-otp with { shareToken, otp }
-
-      // Simulated verification (replace with actual API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // For demo purposes - any 6 digits work
-      // In production, backend should validate against stored OTP
-      
-      console.log('✅ OTP verified!');
-      setIsVerified(true);
-      setShowOtpModal(false);
-      toast.success('Verified! Document access granted.');
+      if (res.ok) {
+        toast.success('Access revoked');
+        fetchAccessData();
+      }
     } catch (err) {
-      console.error('❌ OTP verification failed:', err);
-      toast.error('Invalid OTP');
-    } finally {
-      setOtpLoading(false);
+      toast.error('Error revoking access');
     }
   };
 
-  const handleDownload = async () => {
-    if (!document) return;
-
+  const handleApproveRequest = async (requestId) => {
     try {
-      console.log('📥 Downloading document:', document.title);
-      // TODO: Implement document download
-      toast.success('Download started');
+      const res = await fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'approve-access',
+          requestId,
+          ownerId,
+          canDownload: false, // Default: NO download
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Access approved');
+        fetchAccessData();
+      }
     } catch (err) {
-      toast.error('Download failed');
+      toast.error('Error approving access');
     }
   };
 
-  const handlePrint = async () => {
-    if (!document) return;
-
+  const handleRejectRequest = async (requestId) => {
     try {
-      console.log('🖨️ Printing document:', document.title);
-      // TODO: Implement document printing
-      window.print();
-      toast.success('Print dialog opened');
+      const res = await fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'reject-access',
+          requestId,
+          ownerId,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Access request rejected');
+        fetchAccessData();
+      }
     } catch (err) {
-      toast.error('Print failed');
+      toast.error('Error rejecting request');
     }
   };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin mb-4">
-            <FiLock className="w-8 h-8 text-signatura-red mx-auto" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Loading shared document...</h2>
-          <p className="text-gray-600">Please wait while we verify the share</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <FiAlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="w-full flex items-center justify-center gap-2 bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition"
-          >
-            <FiArrowLeft />
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Not verified - show OTP modal
-  if (otpRequired && !isVerified) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-          <div className="text-center mb-6">
-            <FiLock className="w-12 h-12 text-signatura-red mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800">OTP Verification Required</h2>
-            <p className="text-gray-600 mt-2">
-              This document is protected with OTP. Enter the 6-digit code to access.
-            </p>
-          </div>
-
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                6-Digit OTP
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                maxLength="6"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-2xl tracking-widest font-mono focus:border-signatura-red outline-none"
-              />
-              <p className="text-xs text-gray-500 mt-2">Enter the OTP sent to your email</p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={otpLoading || otp.length !== 6}
-              className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {otpLoading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-          </form>
-
-          <p className="text-xs text-center text-gray-500 mt-6">
-            Document: {document?.title}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Document view (verified or no OTP required)
-  if (!document) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <FiAlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-800">Document not found</h2>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100"
-            >
-              <FiArrowLeft size={20} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-signatura-dark">Shared Document</h1>
-              <p className="text-sm text-gray-600">{document.title}</p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Current Shares */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Active Shares</h3>
 
-          {isVerified && (
-            <div className="flex gap-2">
-              {share?.permissions?.includes('download') && (
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                  title="Download"
-                >
-                  <FiDownload size={18} />
-                  <span className="hidden sm:inline">Download</span>
-                </button>
-              )}
-
-              {share?.permissions?.includes('print') && (
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                  title="Print"
-                >
-                  <FiPrinter size={18} />
-                  <span className="hidden sm:inline">Print</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Document Info */}
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-signatura-dark to-gray-800 text-white">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">{document.title}</h2>
-                <p className="text-gray-200 mb-4">Document Type: <span className="font-medium capitalize">{document.document_type}</span></p>
-                {document.issuer && (
-                  <p className="text-gray-200">Issued by: <span className="font-medium">{document.issuer?.organization_name || 'N/A'}</span></p>
-                )}
-              </div>
-
-              {/* Share Details */}
-              <div className="bg-white bg-opacity-10 rounded-lg p-4">
-                <h3 className="font-bold mb-3">Share Details</h3>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="text-gray-300">Status:</span>
-                    <span className="ml-2 font-medium">✅ Active</span>
-                  </p>
-                  <p>
-                    <span className="text-gray-300">Shared with:</span>
-                    <span className="ml-2 font-medium">{share?.recipient_email}</span>
-                  </p>
-                  <p>
-                    <span className="text-gray-300">Expires:</span>
-                    <span className="ml-2 font-medium">
-                      {new Date(share?.expires_at).toLocaleDateString()}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="text-gray-300">Permissions:</span>
-                    <span className="ml-2 font-medium">
-                      {share?.permissions?.join(', ') || 'View'}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="text-gray-300">Security:</span>
-                    <span className="ml-2 font-medium">
-                      {share?.require_otp ? '🔒 OTP Protected' : '✓ Public Link'}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Document Content Area */}
-          <div className="p-8">
-            {isVerified ? (
-              <div className="space-y-6">
-                {/* Document Preview Placeholder */}
-                <div className="bg-gray-100 rounded-lg p-12 text-center border-2 border-dashed border-gray-300 min-h-96 flex flex-col items-center justify-center">
-                  <FiEye className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-700 mb-2">Document Preview</h3>
-                  <p className="text-gray-600 mb-6">
-                    {document.title}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    TODO: Integrate PDF viewer or document renderer here
-                  </p>
-                </div>
-
-                {/* Download/Print Info */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-blue-900">
-                    <span className="font-bold">💡 Tip:</span> Use the buttons in the header to download or print this document if permitted.
-                  </p>
-                </div>
-
-                {/* Document Details Table */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="font-bold text-lg text-gray-800 mb-4">Document Information</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Document ID:</span>
-                      <span className="font-mono text-sm text-gray-800">{document.id}</span>
+        {shares.filter(s => !s.is_revoked).length === 0 ? (
+          <p className="text-gray-500 text-sm">No active shares</p>
+        ) : (
+          <div className="space-y-3">
+            {shares
+              .filter(s => !s.is_revoked)
+              .map(share => (
+                <div key={share.id} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-gray-900">{share.recipient_email}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Print: {share.can_print ? '✓' : '✗'} | Download: {share.can_download ? '✓' : '✗'} | Share: {share.can_share ? '✓' : '✗'}
+                      </p>
+                      {share.expires_at && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          Expires: {new Date(share.expires_at).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Type:</span>
-                      <span className="capitalize text-gray-800">{document.document_type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Issued Date:</span>
-                      <span className="text-gray-800">{new Date(document.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className="capitalize text-green-600 font-medium">{document.status}</span>
-                    </div>
+                    <button
+                      onClick={() => handleRevokeShare(share.id)}
+                      className="text-red-600 hover:bg-red-50 p-2 rounded"
+                      title="Revoke access"
+                    >
+                      <FiTrash2 />
+                    </button>
                   </div>
                 </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      {/* Access Requests */}
+      {accessRequests.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            Access Requests ({accessRequests.length})
+          </h3>
+
+          <div className="space-y-3">
+            {accessRequests.map(request => (
+              <div key={request.id} className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-medium text-gray-900">{request.requester_email}</p>
+                    {request.requester_name && (
+                      <p className="text-sm text-gray-600">{request.requester_name}</p>
+                    )}
+                  </div>
+                  <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
+                    Pending
+                  </span>
+                </div>
+
+                {request.reason && (
+                  <p className="text-sm text-gray-600 mb-3 p-2 bg-white rounded italic">
+                    "{request.reason}"
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApproveRequest(request.id)}
+                    className="flex items-center text-green-600 hover:bg-green-50 px-3 py-1 rounded text-sm"
+                  >
+                    <FiCheck className="mr-1" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleRejectRequest(request.id)}
+                    className="flex items-center text-red-600 hover:bg-red-50 px-3 py-1 rounded text-sm"
+                  >
+                    <FiX className="mr-1" />
+                    Reject
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <FiLock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-700 mb-2">Document Locked</h3>
-                <p className="text-gray-600">Complete OTP verification above to view this document</p>
-              </div>
-            )}
+            ))}
           </div>
         </div>
-
-        {/* Footer Info */}
-        <div className="mt-8 text-center text-gray-600 text-sm">
-          <p>
-            This document was shared securely via Signatura.
-            <br />
-            If you have any questions, contact the document issuer.
-          </p>
-        </div>
-      </main>
+      )}
     </div>
   );
 }
