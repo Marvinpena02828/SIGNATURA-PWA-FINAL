@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { createClient } from '@supabase/supabase-js';
 import { FiLogOut, FiCheck, FiX, FiDownload, FiUpload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-
-// Initialize Supabase
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export default function IssuerDashboard() {
   const navigate = useNavigate();
@@ -153,68 +146,65 @@ export default function IssuerDashboard() {
 
     try {
       console.log('📤 Approving request:', selectedRequest.id);
-      console.log('📄 Uploading file:', approvalForm.uploadedFile.name);
+      console.log('📄 Preparing file:', approvalForm.uploadedFile.name);
 
-      // Step 1: Upload file to Supabase Storage
-      const fileName = `${selectedRequest.id}-${approvalForm.uploadedFile.name}`;
-      const filePath = `documents/${user?.id}/${fileName}`;
+      // Convert file to base64 for sending to API
+      const reader = new FileReader();
+      
+      await new Promise((resolve, reject) => {
+        reader.onload = () => {
+          const base64String = reader.result.split(',')[1];
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('issued-documents')
-        .upload(filePath, approvalForm.uploadedFile, {
-          upsert: false,
-        });
+          // Send to API with base64 file
+          fetch('/api/documents', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: selectedRequest.id,
+              status: 'approved',
+              issuerMessage: `Approved by ${user?.full_name}`,
+              signatureId: approvalForm.signatureId,
+              documentId: approvalForm.documentId,
+              processedBy: user?.full_name,
+              approvedBy: user?.full_name,
+              fileBase64: base64String,
+              fileName: approvalForm.uploadedFile.name,
+              fileSize: approvalForm.uploadedFile.size,
+              ownerId: selectedRequest.owner_id,
+              issuerId: user?.id,
+            }),
+          })
+            .then(res => res.json())
+            .then(async (updateData) => {
+              console.log('✅ Approval response:', updateData);
 
-      if (uploadError) {
-        console.error('❌ Upload Error:', uploadError);
-        throw new Error(`File upload failed: ${uploadError.message}`);
-      }
+              if (updateData.success) {
+                toast.success('✅ Request approved!');
+                toast.success('📄 Document issued successfully!');
+                setShowApprovalModal(false);
+                setSelectedRequest(null);
+                
+                // Refresh data
+                await fetchData();
+              } else {
+                throw new Error(updateData.error || 'Failed to approve');
+              }
+            })
+            .catch((err) => {
+              console.error('❌ Error approving request:', err);
+              toast.error(err.message || 'Error approving request');
+              setSubmitting(false);
+            });
 
-      console.log('✅ File uploaded:', uploadData);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('issued-documents')
-        .getPublicUrl(filePath);
-
-      console.log('✅ Public URL:', publicUrl);
-
-      // Step 2: Update request status to approved with file URL
-      const updateRes = await fetch('/api/documents', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: selectedRequest.id,
-          status: 'approved',
-          issuerMessage: `Approved by ${user?.full_name}`,
-          signatureId: approvalForm.signatureId,
-          documentId: approvalForm.documentId,
-          processedBy: user?.full_name,
-          approvedBy: user?.full_name,
-          fileUrl: publicUrl,
-          fileName: approvalForm.uploadedFile.name,
-          fileSize: approvalForm.uploadedFile.size,
-        }),
+          resolve();
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(approvalForm.uploadedFile);
       });
 
-      const updateData = await updateRes.json();
-      console.log('✅ Approval response:', updateData);
-
-      if (updateData.success) {
-        toast.success('✅ Request approved!');
-        toast.success('📄 Document issued successfully!');
-        setShowApprovalModal(false);
-        setSelectedRequest(null);
-        
-        // Refresh data
-        await fetchData();
-      } else {
-        throw new Error(updateData.error || 'Failed to approve');
-      }
     } catch (err) {
-      console.error('❌ Error approving request:', err);
+      console.error('❌ Error in approval:', err);
       toast.error(err.message || 'Error approving request');
-    } finally {
       setSubmitting(false);
     }
   };
