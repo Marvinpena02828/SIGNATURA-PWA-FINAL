@@ -263,7 +263,7 @@ export default function OwnerDashboard() {
 
   // Separate shares
   const createdShares = shares.filter(s => s.shareType === 'created');
-  const receivedShares = shares.filter(s => s.shareType === 'received');
+  // receivedShares is already from state, don't filter again
 
   // Filter issuers by search
   const filteredIssuers = issuers.filter(issuer =>
