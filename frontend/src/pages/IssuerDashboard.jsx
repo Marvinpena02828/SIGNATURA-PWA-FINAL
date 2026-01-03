@@ -311,13 +311,15 @@ export default function IssuerDashboard() {
                   incomingRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-gray-900">
-                        {request.owner_name || 'N/A'}
+                        {request.owner_name || request.owner_email || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
-                        {request.owner_email}
+                        {request.owner_email || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
-                        {request.items?.length || 0} document(s)
+                        {request.items && request.items.length > 0 
+                          ? request.items.map(item => item.document?.document_type).join(', ') 
+                          : 'N/A'}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
