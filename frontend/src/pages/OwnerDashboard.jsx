@@ -243,13 +243,21 @@ export default function OwnerDashboard() {
             <h1 className="text-2xl font-bold text-signatura-dark">Owner Dashboard</h1>
             <p className="text-gray-600 text-sm">{user?.email}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition"
-          >
-            <FiLogOut className="mr-2" />
-            Logout
-          </button>
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => navigate('/received-documents')}
+              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              📥 Received Documents
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition"
+            >
+              <FiLogOut className="mr-2" />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
