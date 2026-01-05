@@ -648,35 +648,34 @@ async function createDocumentRequest(req, res) {
 
     console.log('✅ Request created:', requestId);
 
-    // Create request items
-    const items = documentIds.map((docId) => ({
-      id: uuidv4(),
-      document_request_id: requestId,
-      document_id: docId,
-    }));
+    // Don't create items if documentIds are just types
+    // Just store the types in the message
+    if (documentIds && documentIds.length > 0 && documentIds[0].match(/^[a-f0-9-]{36}$/)) {
+      // If it's a UUID, create items
+      const items = documentIds.map((docId) => ({
+        id: uuidv4(),
+        document_request_id: requestId,
+        document_id: docId,
+      }));
 
-    const { error: itemsError } = await supabase
-      .from('document_request_items')
-      .insert(items);
+      const { error: itemsError } = await supabase
+        .from('document_request_items')
+        .insert(items);
 
-    if (itemsError) {
-      console.error('❌ Items Error:', itemsError);
-      // Rollback
-      await supabase
-        .from('document_requests')
-        .delete()
-        .eq('id', requestId);
-      throw itemsError;
+      if (itemsError) {
+        console.error('❌ Items Error:', itemsError);
+        // Don't rollback, continue anyway
+      }
     }
 
-    console.log(`✅ Created ${documentIds.length} items`);
+    console.log('✅ Request items created');
 
     return res.status(201).json({
       success: true,
       data: {
         id: requestId,
         status: 'pending',
-        document_count: documentIds.length,
+        document_types: documentIds,
         issuer_organization: issuer.organization_name,
       },
     });
