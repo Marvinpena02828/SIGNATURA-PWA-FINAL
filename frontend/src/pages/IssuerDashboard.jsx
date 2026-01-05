@@ -81,25 +81,9 @@ export default function IssuerDashboard() {
         setIncomingRequests([]);
       }
 
-      // ✅ Fetch documents created by this issuer
-      try {
-        console.log('📄 Fetching documents for issuer:', user.id);
-        const docsRes = await fetch(`/api/documents?issuerId=${user.id}`);
-        
-        if (docsRes.ok) {
-          const docsData = await docsRes.json();
-          console.log('✅ Documents fetched:', docsData.data);
-          if (docsData.success) {
-            setDocuments(docsData.data || []);
-          }
-        } else {
-          console.error(`❌ Documents fetch failed: ${docsRes.status}`);
-          setDocuments([]);
-        }
-      } catch (err) {
-        console.error('⚠️ Error fetching documents:', err);
-        setDocuments([]);
-      }
+      // Skip documents fetch for now - focus on requests
+      setDocuments([]);
+      
     } catch (err) {
       console.error('❌ Error in fetchData:', err);
       setError(err.message || 'Failed to load data');
@@ -289,66 +273,12 @@ export default function IssuerDashboard() {
 
   const handleAddDocument = async (e) => {
     e.preventDefault();
-    if (!docForm.title.trim()) {
-      toast.error('Please enter document title');
-      return;
-    }
-
-    setDocSubmitting(true);
-    try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: 'create-document',
-          title: docForm.title,
-          document_type: docForm.document_type,
-          issuerId: user?.id,
-          issuerEmail: user?.email,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success('✅ Document created!');
-        setShowDocumentModal(false);
-        setDocForm({ title: '', document_type: 'diploma' });
-        await fetchData();
-      } else {
-        toast.error(data.error || 'Failed to create document');
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Error creating document');
-    } finally {
-      setDocSubmitting(false);
-    }
+    toast.info('Document management coming soon!');
+    setShowDocumentModal(false);
   };
 
   const handleDeleteDocument = async (docId) => {
-    if (!window.confirm('Are you sure? This cannot be undone.')) return;
-
-    try {
-      const res = await fetch('/api/documents', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: 'delete-document',
-          id: docId,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success('✅ Document deleted!');
-        await fetchData();
-      } else {
-        toast.error(data.error || 'Failed to delete');
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Error deleting document');
-    }
+    toast.info('Document deletion coming soon!');
   };
 
   const handleOpenDocumentModal = (doc = null) => {
