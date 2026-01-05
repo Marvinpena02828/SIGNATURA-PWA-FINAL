@@ -390,51 +390,6 @@ async function handlePost(req, res) {
 
     // Create Document
     if (endpoint === 'create-document') {
-      const { title, document_type, issuerId, issuerEmail } = req.body;
-
-      console.log('📄 Creating document:', { title, document_type });
-
-      if (!title || !document_type || !issuerId) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing required fields',
-        });
-      }
-
-      try {
-        const { data: doc, error } = await supabase
-          .from('documents')
-          .insert({
-            id: uuidv4(),
-            title,
-            document_type,
-            issuer_id: issuerId,
-            status: 'active',
-            document_hash: `hash-${Date.now()}`,
-            issuance_date: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        console.log('✅ Document created:', doc.id);
-
-        return res.status(200).json({
-          success: true,
-          data: doc,
-        });
-      } catch (err) {
-        console.error('❌ Error creating document:', err);
-        return res.status(500).json({
-          success: false,
-          error: err.message,
-        });
-      }
-    }
-
-    // Create Document
-    if (endpoint === 'create-document') {
       const { title, document_type, issuerId } = req.body;
 
       console.log('📄 Creating document:', { title, document_type });
