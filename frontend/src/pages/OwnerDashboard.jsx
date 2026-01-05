@@ -385,6 +385,8 @@ export default function OwnerDashboard() {
                         <td className="px-6 py-4 text-gray-600 text-sm">
                           {req.items && req.items.length > 0
                             ? req.items.map((item) => item.document?.document_type).join(', ')
+                            : req.message
+                            ? req.message.split('Requesting ')[1]?.split(' documents')[0]
                             : 'N/A'}
                         </td>
                       </tr>
