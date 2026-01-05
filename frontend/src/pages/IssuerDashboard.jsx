@@ -62,15 +62,27 @@ export default function IssuerDashboard() {
         `/api/documents?endpoint=document-requests&issuerId=${user?.id}`
       );
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log('✅ Requests data:', data);
-        if (data.success) {
-          setIncomingRequests(data.data || []);
-        }
+      console.log('Response status:', res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ API Error:', res.status, errorText);
+        setIncomingRequests([]);
+        return;
+      }
+
+      const data = await res.json();
+      console.log('✅ Requests data:', data);
+      
+      if (data && data.success && Array.isArray(data.data)) {
+        setIncomingRequests(data.data);
+      } else {
+        console.warn('⚠️ Invalid response format:', data);
+        setIncomingRequests([]);
       }
     } catch (err) {
-      console.error('Error fetching requests:', err);
+      console.error('❌ Error fetching requests:', err);
+      setIncomingRequests([]);
     }
   };
 
