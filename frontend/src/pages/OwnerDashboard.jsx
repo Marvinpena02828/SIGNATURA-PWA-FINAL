@@ -65,7 +65,7 @@ export default function OwnerDashboard() {
 
       // Fetch issuers
       try {
-        const issuerRes = await fetch('/api/documents?role=issuer');
+        const issuerRes = await fetch('/api/documents?endpoint=get-issuers');
         if (issuerRes.ok) {
           const issuerData = await issuerRes.json();
           if (issuerData.success && Array.isArray(issuerData.data)) {
