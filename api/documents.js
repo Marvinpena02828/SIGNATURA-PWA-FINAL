@@ -388,7 +388,52 @@ async function handlePost(req, res) {
       }
     }
 
-    // Create Document Request
+    // Create Document
+    if (endpoint === 'create-document') {
+      const { title, document_type, issuerId, issuerEmail } = req.body;
+
+      console.log('📄 Creating document:', { title, document_type });
+
+      if (!title || !document_type || !issuerId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+        });
+      }
+
+      try {
+        const { data: doc, error } = await supabase
+          .from('documents')
+          .insert({
+            id: uuidv4(),
+            title,
+            document_type,
+            issuer_id: issuerId,
+            status: 'active',
+            document_hash: `hash-${Date.now()}`,
+            issuance_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        console.log('✅ Document created:', doc.id);
+
+        return res.status(200).json({
+          success: true,
+          data: doc,
+        });
+      } catch (err) {
+        console.error('❌ Error creating document:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
+    // Request Document Creation (legacy support)
     if (endpoint === 'document-requests') {
       return await createDocumentRequest(req, res);
     }
@@ -443,9 +488,9 @@ async function handlePut(req, res) {
 // DELETE Handler
 // ============================================
 async function handleDelete(req, res) {
-  const { id } = req.body;
+  const { id, endpoint } = req.body;
 
-  console.log('🗑️ DELETE Request:', { id });
+  console.log('🗑️ DELETE Request:', { id, endpoint });
 
   try {
     if (!id) {
@@ -455,6 +500,25 @@ async function handleDelete(req, res) {
       });
     }
 
+    // Delete Document
+    if (endpoint === 'delete-document') {
+      console.log('📄 Deleting document:', id);
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Document deleted:', id);
+      return res.status(200).json({
+        success: true,
+        message: 'Document deleted successfully',
+      });
+    }
+
+    // Default: Delete Document Request
+    console.log('📋 Deleting document request:', id);
     const { error } = await supabase
       .from('document_requests')
       .delete()
