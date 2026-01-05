@@ -51,12 +51,19 @@ export default function OwnerDashboard() {
 
       // Fetch received documents
       try {
+        console.log('📥 Fetching received documents for owner:', user.id);
         const docsRes = await fetch(`/api/documents?endpoint=document-shares&ownerId=${user.id}`);
+        console.log('📥 Response status:', docsRes.status);
         if (docsRes.ok) {
           const docsData = await docsRes.json();
+          console.log('✅ RECEIVED DOCUMENTS DATA:', docsData);
+          console.log('📋 Document count:', docsData.data?.length || 0);
           if (docsData.success) {
             setReceivedDocuments(docsData.data || []);
           }
+        } else {
+          const errorText = await docsRes.text();
+          console.error('❌ Error response:', errorText);
         }
       } catch (err) {
         console.error('⚠️ Error fetching received documents:', err);
@@ -64,12 +71,20 @@ export default function OwnerDashboard() {
 
       // Fetch document requests
       try {
+        console.log('📋 Fetching requests for owner:', user.id);
         const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user.id}`);
+        console.log('📋 Requests fetch status:', reqRes.status);
         if (reqRes.ok) {
           const reqData = await reqRes.json();
+          console.log('✅ Requests data:', reqData);
+          console.log('📋 Request count:', reqData.data?.length || 0);
           if (reqData.success) {
             setRequests(reqData.data || []);
           }
+        } else {
+          console.error('❌ Requests fetch failed:', reqRes.status);
+          const text = await reqRes.text();
+          console.error('Response:', text);
         }
       } catch (err) {
         console.error('⚠️ Error fetching requests:', err);
