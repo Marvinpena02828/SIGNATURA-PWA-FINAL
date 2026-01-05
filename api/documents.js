@@ -764,6 +764,29 @@ async function updateDocumentRequest(req, res) {
 
         console.log('✅ Public URL:', publicUrl);
 
+        // Create a document record for this issued document
+        const { data: newDocument, error: newDocError } = await supabase
+          .from('documents')
+          .insert({
+            id: uuidv4(),
+            issuer_id: issuerId,
+            owner_id: ownerId,
+            title: fileName || 'Issued Document',
+            document_type: 'issued_document',
+            status: 'active',
+            document_hash: `hash-${Date.now()}`,
+            issuance_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (newDocError) {
+          console.error('❌ Document creation error:', newDocError);
+          throw newDocError;
+        }
+
+        console.log('✅ Document created:', newDocument.id);
+
         // Create issued document record
         const { data: issuedDoc, error: docError } = await supabase
           .from('issued_documents')
@@ -773,7 +796,7 @@ async function updateDocumentRequest(req, res) {
             owner_id: ownerId,
             issuer_id: issuerId,
             signatura_id: signatureId || null,
-            document_id: documentId || null,
+            document_id: newDocument.id, // Reference the created document
             document_type: 'issued_document',
             file_url: publicUrl,
             file_name: fileName,
@@ -801,10 +824,11 @@ async function updateDocumentRequest(req, res) {
 
         const shareData = {
           id: uuidv4(),
-          document_id: issuedDoc.id,
+          document_id: newDocument.id, // Reference the created document
           owner_id: ownerId,
+          recipient_email: updated.owner_email || 'unknown@example.com',
           share_token: crypto.randomBytes(32).toString('hex'),
-          permissions: ['view', 'print', 'share'],
+          permissions: ['view', 'print', 'share'], // text array
           expires_at: expiresAt.toISOString(),
         };
 
