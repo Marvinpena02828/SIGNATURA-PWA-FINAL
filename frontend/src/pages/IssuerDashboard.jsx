@@ -165,12 +165,23 @@ export default function IssuerDashboard() {
   };
 
   const handleOpenApprovalModal = (request) => {
+    // Try to get document type from items first, then from message
+    let docType = request.items?.[0]?.document?.document_type || '';
+    
+    if (!docType && request.message) {
+      // Extract from message like "Requesting diploma, certificate documents"
+      const match = request.message.match(/Requesting (.+?) documents/);
+      if (match) {
+        docType = match[1].split(',')[0].trim();
+      }
+    }
+
     setSelectedRequest(request);
     setApprovalForm({
       dateRequested: new Date().toLocaleDateString(),
       signatureId: '',
       fullName: request.owner_name || request.owner_email || 'Unknown',
-      documentType: request.items?.[0]?.document?.document_type || '',
+      documentType: docType,
       documentId: '',
       processedBy: user?.full_name || '',
       approvedBy: user?.full_name || '',
