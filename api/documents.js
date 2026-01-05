@@ -780,7 +780,7 @@ async function updateDocumentRequest(req, res) {
             issuer_id: issuerId,
             owner_id: ownerId,
             title: fileName || 'Issued Document',
-            document_type: 'issued_document',
+            document_type: 'certificate', // Use valid type
             status: 'active',
             document_hash: `hash-${Date.now()}`,
             issuance_date: new Date().toISOString(),
