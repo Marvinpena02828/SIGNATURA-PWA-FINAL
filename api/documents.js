@@ -58,6 +58,28 @@ async function handleGet(req, res) {
       return await checkDocumentAccess(req, res);
     }
 
+    // Get Issuers
+    if (endpoint === 'get-issuers') {
+      console.log('🔍 Fetching issuers from users table...');
+      
+      const { data: issuers, error } = await supabase
+        .from('users')
+        .select('id, email, organization_name, created_at')
+        .eq('role', 'issuer')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase Error:', error);
+        throw error;
+      }
+
+      console.log(`✅ Found ${issuers?.length || 0} issuers`);
+      return res.status(200).json({
+        success: true,
+        data: issuers || [],
+      });
+    }
+
     // Get Document Shares (documents shared WITH this owner)
     if (endpoint === 'document-shares') {
       console.log('📋 Fetching document shares for owner:', ownerId);
