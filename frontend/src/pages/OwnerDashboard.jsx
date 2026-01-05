@@ -359,7 +359,17 @@ export default function OwnerDashboard() {
                           )}
                           {doc.can_print && (
                             <button
-                              onClick={() => window.print()}
+                              onClick={() => {
+                                // Open document in new window for printing
+                                const printWindow = window.open(doc.file_url, 'print_window');
+                                if (printWindow) {
+                                  printWindow.addEventListener('load', () => {
+                                    printWindow.print();
+                                  });
+                                } else {
+                                  toast.error('Failed to open print window. Please check popup blocker.');
+                                }
+                              }}
                               className="text-green-600 hover:bg-green-50 px-3 py-1 rounded text-sm flex items-center gap-1"
                             >
                               <FiPrinter className="w-4 h-4" /> Print
@@ -519,7 +529,17 @@ export default function OwnerDashboard() {
                   <div className="flex gap-2">
                     {selectedDocument.can_print && (
                       <button
-                        onClick={() => window.print()}
+                        onClick={() => {
+                          // Open document in new window for printing
+                          const printWindow = window.open(selectedDocument.file_url, 'print_window');
+                          if (printWindow) {
+                            printWindow.addEventListener('load', () => {
+                              printWindow.print();
+                            });
+                          } else {
+                            toast.error('Failed to open print window. Please check popup blocker.');
+                          }
+                        }}
                         className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
                       >
                         <FiPrinter />
