@@ -758,6 +758,7 @@ async function updateDocumentRequest(req, res) {
           .replace(/\s+/g, '_') // Replace spaces with underscore
           .substring(0, 100); // Limit length
 
+        console.log('🔧 Original filename:', fileName);
         console.log('🔧 Sanitized filename:', sanitizedFileName);
 
         // Upload file to Supabase Storage using SERVICE_ROLE_KEY
@@ -771,17 +772,18 @@ async function updateDocumentRequest(req, res) {
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('issued-documents')
           .upload(filePath, fileBuffer, {
-            contentType: 'application/pdf',
+            contentType: 'application/octet-stream', // Use generic type
             upsert: false,
           });
 
         if (uploadError) {
           console.error('❌ Upload Error:', uploadError);
           console.error('Error details:', JSON.stringify(uploadError));
+          console.error('Status:', uploadError.statusCode);
           throw new Error(`Upload failed: ${uploadError.message}`);
         }
 
-        console.log('✅ File uploaded:', filePath);
+        console.log('✅ File uploaded successfully');
         console.log('📦 Upload data:', uploadData);
 
         // Get public URL
