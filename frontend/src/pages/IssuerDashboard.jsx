@@ -24,6 +24,10 @@ export default function IssuerDashboard() {
     document_type: 'diploma',
   });
   const [docSubmitting, setDocSubmitting] = useState(false);
+
+  // Approval modal states
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalForm, setApprovalForm] = useState({
     dateRequested: new Date().toLocaleDateString(),
     signatureId: '',
