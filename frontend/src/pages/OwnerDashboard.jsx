@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX } from 'react-icons/fi';
+import QRCode from 'qrcode.react';
 import toast from 'react-hot-toast';
 
 const DOCUMENT_TYPES = ['diploma', 'certificate', 'license', 'badge'];
@@ -31,6 +32,8 @@ export default function OwnerDashboard() {
     canShare: true,
     expiryDays: 30,
   });
+  const [shareLink, setShareLink] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     if (role !== 'owner') {
@@ -137,11 +140,10 @@ export default function OwnerDashboard() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success('✅ Document shared successfully!');
         const shareLink = `${window.location.origin}/shared/${data.data.shareToken}`;
-        console.log('Share link:', shareLink);
-        toast.success(`Share link: ${shareLink}`);
-        setShowShareModal(false);
+        setShareLink(shareLink);
+        setShowQRModal(true);
+        toast.success('✅ Document shared successfully!');
       } else {
         toast.error(data.error || 'Failed to share document');
       }
@@ -707,6 +709,87 @@ export default function OwnerDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && shareLink && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-signatura-dark">📱 Share Document</h2>
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 text-center">
+              <p className="text-gray-600 mb-6">Scan this QR code to view the document</p>
+
+              <div className="bg-gray-50 p-4 rounded-lg inline-block mb-6">
+                <QRCode
+                  value={shareLink}
+                  size={256}
+                  level="H"
+                  includeMargin={true}
+                  renderAs="canvas"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Or copy this link:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={shareLink}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareLink);
+                        toast.success('Link copied!');
+                      }}
+                      className="px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent flex items-center gap-2"
+                    >
+                      <FiCopy className="w-4 h-4" />
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const qrElement = document.querySelector('canvas');
+                    if (qrElement) {
+                      const link = document.createElement('a');
+                      link.href = qrElement.toDataURL();
+                      link.download = `document-qr-${Date.now()}.png`;
+                      link.click();
+                      toast.success('QR code downloaded!');
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Download QR Code
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowQRModal(false);
+                    setShowShareModal(false);
+                  }}
+                  className="w-full px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent font-medium"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
