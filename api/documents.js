@@ -478,40 +478,6 @@ async function handlePost(req, res) {
       }
     }
 
-    // Get Documents by issuerId
-    if (endpoint === 'get-documents') {
-      console.log('📄 Fetching documents for issuer:', issuerId);
-
-      if (!issuerId) {
-        return res.status(400).json({
-          success: false,
-          error: 'issuerId required',
-        });
-      }
-
-      try {
-        const { data: docs, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('issuer_id', issuerId)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        console.log(`✅ Found ${docs?.length || 0} documents`);
-        return res.status(200).json({
-          success: true,
-          data: docs || [],
-        });
-      } catch (err) {
-        console.error('❌ Error fetching documents:', err);
-        return res.status(500).json({
-          success: false,
-          error: err.message,
-        });
-      }
-    }
-
     // Request Document Creation (legacy support)
     if (endpoint === 'document-requests') {
       return await createDocumentRequest(req, res);
