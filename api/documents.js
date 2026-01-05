@@ -157,28 +157,6 @@ async function handleGet(req, res) {
       });
     }
 
-    // Get Documents by issuerId
-    if (issuerId) {
-      console.log('📄 Fetching documents for issuer:', issuerId);
-      
-      const { data: docs, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('issuer_id', issuerId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Supabase Error:', error);
-        throw error;
-      }
-
-      console.log(`✅ Found ${docs?.length || 0} documents`);
-      return res.status(200).json({
-        success: true,
-        data: docs || [],
-      });
-    }
-
     // Get Document Requests
     if (endpoint === 'document-requests') {
       console.log('📋 Fetching document requests...');
