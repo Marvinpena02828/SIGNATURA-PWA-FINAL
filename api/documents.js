@@ -152,9 +152,10 @@ async function handleGet(req, res) {
       });
     }
 
-    // Get Document Requests - FIXED: Include document details
+    // Get Document Requests
     if (endpoint === 'document-requests') {
       console.log('📋 Fetching document requests...');
+      console.log('🔍 Query params:', { ownerId, issuerId });
       
       if (!ownerId && !issuerId) {
         return res.status(400).json({
@@ -163,54 +164,42 @@ async function handleGet(req, res) {
         });
       }
 
-      let query = supabase
-        .from('document_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        let query = supabase
+          .from('document_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (ownerId) {
-        console.log('🔍 Filtering by ownerId:', ownerId);
-        query = query.eq('owner_id', ownerId);
+        if (ownerId) {
+          console.log('🔍 Filtering by ownerId:', ownerId);
+          query = query.eq('owner_id', ownerId);
+        }
+        if (issuerId) {
+          console.log('🔍 Filtering by issuerId:', issuerId);
+          query = query.eq('issuer_id', issuerId);
+        }
+
+        const { data: requests, error } = await query;
+
+        if (error) {
+          console.error('❌ Supabase Error:', error);
+          throw error;
+        }
+
+        console.log(`✅ Found ${requests?.length || 0} requests`);
+        
+        // Return with items (simplified - no enrichment)
+        return res.status(200).json({
+          success: true,
+          data: requests || [],
+        });
+      } catch (err) {
+        console.error('❌ Document requests error:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
       }
-      if (issuerId) {
-        console.log('🔍 Filtering by issuerId:', issuerId);
-        query = query.eq('issuer_id', issuerId);
-      }
-
-      let { data: requests, error } = await query;
-
-      if (error) {
-        console.error('❌ Supabase Error:', error);
-        throw error;
-      }
-
-      // Enrich requests with items and document details
-      if (requests && requests.length > 0) {
-        const enrichedRequests = await Promise.all(
-          requests.map(async (req) => {
-            try {
-              // Fetch items and related documents for this request
-              const { data: items } = await supabase
-                .from('document_request_items')
-                .select('id, document_id, document:documents(id, title, document_type)')
-                .eq('document_request_id', req.id);
-
-              req.items = items || [];
-            } catch (err) {
-              console.error('⚠️ Error fetching items for request:', req.id, err);
-              req.items = [];
-            }
-            return req;
-          })
-        );
-        requests = enrichedRequests;
-      }
-
-      console.log(`✅ Found ${requests?.length || 0} requests`);
-      return res.status(200).json({
-        success: true,
-        data: requests || [],
-      });
     }
 
     // Get Issued Documents
