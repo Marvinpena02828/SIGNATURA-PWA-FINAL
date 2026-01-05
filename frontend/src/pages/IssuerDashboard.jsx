@@ -45,7 +45,9 @@ export default function IssuerDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      await Promise.all([fetchRequests(), fetchDocuments()]);
+      await fetchRequests();
+      // Skip document fetch for now - will fetch on demand
+      setDocuments([]);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -73,22 +75,8 @@ export default function IssuerDashboard() {
   };
 
   const fetchDocuments = async () => {
-    try {
-      console.log('📄 Fetching documents for issuer:', user?.id);
-      const res = await fetch(
-        `/api/documents?endpoint=get-documents&issuerId=${user?.id}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        console.log('✅ Documents data:', data);
-        if (data.success) {
-          setDocuments(data.data || []);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching documents:', err);
-    }
+    // Skip for now - documents will be fetched after create
+    setDocuments([]);
   };
 
   const handleAddDocument = async (e) => {
@@ -119,9 +107,10 @@ export default function IssuerDashboard() {
 
       if (data.success) {
         toast.success('✅ Document created!');
+        // Add to local state
+        setDocuments((prev) => [data.data, ...prev]);
         setShowDocumentModal(false);
         setDocForm({ title: '', document_type: 'diploma' });
-        await fetchDocuments();
       } else {
         toast.error(data.error || 'Failed to create document');
       }
@@ -152,7 +141,8 @@ export default function IssuerDashboard() {
 
       if (data.success) {
         toast.success('✅ Document deleted!');
-        await fetchDocuments();
+        // Remove from local state
+        setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
       } else {
         toast.error(data.error || 'Failed to delete');
       }
