@@ -87,12 +87,25 @@ async function handleGet(req, res) {
         enrichedShares = await Promise.all(
           shares.map(async (share) => {
             try {
-              // Get the issued document
-              const { data: doc } = await supabase
+              console.log(`📍 Processing share ${share.id}:`, { document_id: share.document_id });
+              
+              // Get the issued document by matching document_id
+              const { data: doc, error: docError } = await supabase
                 .from('issued_documents')
                 .select('*')
-                .eq('id', share.document_id)
+                .eq('document_id', share.document_id)
                 .single();
+
+              console.log(`  ✅ Issued document found:`, { 
+                id: doc?.id,
+                file_name: doc?.file_name,
+                file_url: doc?.file_url,
+                document_id: doc?.document_id
+              });
+
+              if (!doc) {
+                console.warn(`  ⚠️ No issued_document found for document_id: ${share.document_id}`);
+              }
 
               // Get issuer info
               const { data: issuer } = await supabase
@@ -100,6 +113,8 @@ async function handleGet(req, res) {
                 .select('id, email, organization_name')
                 .eq('id', doc?.issuer_id)
                 .single();
+
+              console.log(`  👤 Issuer:`, issuer?.organization_name);
 
               return {
                 ...share,
@@ -124,6 +139,7 @@ async function handleGet(req, res) {
       }
 
       console.log(`✅ Found ${enrichedShares?.length || 0} shares`);
+      console.log('📋 Enriched data:', enrichedShares);
       return res.status(200).json({
         success: true,
         data: enrichedShares || [],
@@ -750,6 +766,7 @@ async function updateDocumentRequest(req, res) {
 
         console.log('📤 Uploading to:', filePath);
         console.log('👤 Owner ID:', ownerId, 'Issuer ID:', issuerId);
+        console.log('📦 File buffer size:', fileBuffer.length);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('issued-documents')
@@ -760,10 +777,12 @@ async function updateDocumentRequest(req, res) {
 
         if (uploadError) {
           console.error('❌ Upload Error:', uploadError);
-          throw uploadError;
+          console.error('Error details:', JSON.stringify(uploadError));
+          throw new Error(`Upload failed: ${uploadError.message}`);
         }
 
         console.log('✅ File uploaded:', filePath);
+        console.log('📦 Upload data:', uploadData);
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
