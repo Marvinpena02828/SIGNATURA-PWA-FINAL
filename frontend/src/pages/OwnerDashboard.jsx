@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX, FiQrCode } from 'react-icons/fi';
+import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX, FiBarcode } from 'react-icons/fi';
 import DocumentQRModal from './DocumentQRModal';
 import toast from 'react-hot-toast';
 
@@ -390,7 +390,7 @@ export default function OwnerDashboard() {
                             className="text-orange-600 hover:bg-orange-50 px-3 py-1 rounded text-sm flex items-center gap-1 font-medium"
                             title="Show verification QR code"
                           >
-                            <FiQrCode className="w-4 h-4" /> Verify
+                            <FiBarcode className="w-4 h-4" /> Verify
                           </button>
                         </td>
                       </tr>
