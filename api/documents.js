@@ -433,6 +433,85 @@ async function handlePost(req, res) {
       }
     }
 
+    // Create Document
+    if (endpoint === 'create-document') {
+      const { title, document_type, issuerId } = req.body;
+
+      console.log('📄 Creating document:', { title, document_type });
+
+      if (!title || !document_type || !issuerId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+        });
+      }
+
+      try {
+        const { data: doc, error } = await supabase
+          .from('documents')
+          .insert({
+            id: uuidv4(),
+            title,
+            document_type,
+            issuer_id: issuerId,
+            status: 'active',
+            document_hash: `hash-${Date.now()}`,
+            issuance_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        console.log('✅ Document created:', doc.id);
+
+        return res.status(200).json({
+          success: true,
+          data: doc,
+        });
+      } catch (err) {
+        console.error('❌ Error creating document:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
+    // Get Documents by issuerId
+    if (endpoint === 'get-documents') {
+      console.log('📄 Fetching documents for issuer:', issuerId);
+
+      if (!issuerId) {
+        return res.status(400).json({
+          success: false,
+          error: 'issuerId required',
+        });
+      }
+
+      try {
+        const { data: docs, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('issuer_id', issuerId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        console.log(`✅ Found ${docs?.length || 0} documents`);
+        return res.status(200).json({
+          success: true,
+          data: docs || [],
+        });
+      } catch (err) {
+        console.error('❌ Error fetching documents:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
     // Request Document Creation (legacy support)
     if (endpoint === 'document-requests') {
       return await createDocumentRequest(req, res);
