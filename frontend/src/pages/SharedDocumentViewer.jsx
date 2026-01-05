@@ -170,11 +170,21 @@ export default function SharedDocumentViewer() {
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex gap-4">
+            <div className="mt-6 flex gap-4 flex-wrap">
               {shareInfo.permissions?.includes('print') && (
                 <button
-                  onClick={() => window.print()}
-                  className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
+                  onClick={() => {
+                    // Open document in new window for printing
+                    const printWindow = window.open(shareInfo.document_id, 'print_window');
+                    if (printWindow) {
+                      printWindow.addEventListener('load', () => {
+                        printWindow.print();
+                      });
+                    } else {
+                      toast.error('Failed to open print window. Please check popup blocker.');
+                    }
+                  }}
+                  className="flex-1 min-w-[200px] bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
                 >
                   <FiPrinter className="w-5 h-5" />
                   Print Document
@@ -187,16 +197,18 @@ export default function SharedDocumentViewer() {
                     navigator.clipboard.writeText(url);
                     toast.success('Share link copied!');
                   }}
-                  className="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[200px] bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center gap-2"
                 >
                   <FiShare2 className="w-5 h-5" />
                   Copy Share Link
                 </button>
               )}
+            </div>
+            {shareInfo.permissions && (
               <p className="text-sm text-gray-500 mt-4">
                 💡 Tip: Only actions you have permission for are available above
               </p>
-            </div>
+            )}
           </div>
         </div>
 
