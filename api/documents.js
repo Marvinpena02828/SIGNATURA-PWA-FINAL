@@ -823,8 +823,9 @@ async function updateDocumentRequest(req, res) {
           console.error('Error code:', shareError.code);
           console.error('Error message:', shareError.message);
           throw shareError;
-        } else {
-          console.log('✅ Document shared successfully:', createdShare);
+        }
+
+        console.log('✅ Document shared successfully:', createdShare);
 
         return res.status(200).json({
           success: true,
