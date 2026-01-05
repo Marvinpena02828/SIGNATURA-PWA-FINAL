@@ -736,8 +736,16 @@ async function updateDocumentRequest(req, res) {
       console.log('📤 File:', fileName, 'Size:', fileSize);
       
       try {
+        // Sanitize filename - remove special characters
+        const sanitizedFileName = fileName
+          .replace(/[^\w\s.-]/g, '_') // Replace special chars with underscore
+          .replace(/\s+/g, '_') // Replace spaces with underscore
+          .substring(0, 100); // Limit length
+
+        console.log('🔧 Sanitized filename:', sanitizedFileName);
+
         // Upload file to Supabase Storage using SERVICE_ROLE_KEY
-        const filePath = `documents/${issuerId}/${id}/${fileName}`;
+        const filePath = `documents/${issuerId}/${id}/${sanitizedFileName}`;
         const fileBuffer = Buffer.from(fileBase64, 'base64');
 
         console.log('📤 Uploading to:', filePath);
@@ -799,7 +807,7 @@ async function updateDocumentRequest(req, res) {
             document_id: newDocument.id, // Reference the created document
             document_type: 'issued_document',
             file_url: publicUrl,
-            file_name: fileName,
+            file_name: sanitizedFileName,
             file_size: fileSize || 0,
             processed_by: processedBy || null,
             approved_by: approvedBy || null,
