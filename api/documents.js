@@ -330,6 +330,64 @@ async function handlePost(req, res) {
       return await requestDocumentAccess(req, res);
     }
 
+    // Check Share Access (for 3rd party viewing)
+    if (endpoint === 'check-share-access') {
+      const { shareToken } = req.body;
+
+      console.log('🔑 Checking share token:', shareToken);
+
+      if (!shareToken) {
+        return res.status(400).json({
+          success: false,
+          error: 'Share token required',
+        });
+      }
+
+      try {
+        const { data: share, error } = await supabase
+          .from('document_shares')
+          .select('*')
+          .eq('share_token', shareToken)
+          .single();
+
+        if (error || !share) {
+          console.log('❌ Share not found');
+          return res.status(403).json({
+            success: false,
+            error: 'Invalid share token',
+          });
+        }
+
+        // Check if expired
+        if (share.expires_at && new Date(share.expires_at) < new Date()) {
+          console.log('❌ Share expired');
+          return res.status(403).json({
+            success: false,
+            error: 'Share link has expired',
+          });
+        }
+
+        console.log('✅ Share access verified');
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            shareToken: share.share_token,
+            document_id: share.document_id,
+            owner_id: share.owner_id,
+            permissions: share.permissions || ['view'],
+            expires_at: share.expires_at,
+          },
+        });
+      } catch (err) {
+        console.error('❌ Share access error:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
     // Create Document Request
     if (endpoint === 'document-requests') {
       return await createDocumentRequest(req, res);
@@ -688,17 +746,21 @@ async function updateDocumentRequest(req, res) {
           expires_at: expiresAt.toISOString(),
         };
 
-        console.log('📋 Share data:', shareData);
+        console.log('📋 Share INSERT data:', shareData);
 
-        const { error: shareError } = await supabase
+        const { data: createdShare, error: shareError } = await supabase
           .from('document_shares')
-          .insert(shareData);
+          .insert(shareData)
+          .select()
+          .single();
 
         if (shareError) {
-          console.error('⚠️ Share creation error:', shareError);
+          console.error('❌ SHARE ERROR:', shareError);
+          console.error('Error code:', shareError.code);
+          console.error('Error message:', shareError.message);
+          throw shareError;
         } else {
-          console.log('✅ Document automatically shared with owner');
-        }
+          console.log('✅ Document shared successfully:', createdShare);
 
         return res.status(200).json({
           success: true,
