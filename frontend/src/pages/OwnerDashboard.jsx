@@ -83,6 +83,10 @@ export default function OwnerDashboard() {
   };
 
   const handleViewDocument = (doc) => {
+    console.log('📂 Opening document viewer');
+    console.log('  File URL:', doc.file_url);
+    console.log('  File Name:', doc.file_name);
+    console.log('  Full doc object:', doc);
     setSelectedDocument(doc);
     setShowDocumentModal(true);
   };
@@ -378,19 +382,31 @@ export default function OwnerDashboard() {
             <div className="p-6">
               {selectedDocument.file_url ? (
                 <>
-                  <div className="mb-6 bg-gray-50 rounded-lg p-4 min-h-[400px] flex items-center justify-center">
+                  <div className="mb-6 bg-gray-50 rounded-lg p-4 min-h-[400px] flex items-center justify-center overflow-auto">
                     {selectedDocument.file_url.includes('.pdf') ? (
                       <iframe
                         src={selectedDocument.file_url}
                         className="w-full h-[600px] rounded"
                         title="PDF Document"
+                        onError={(e) => {
+                          console.error('PDF load error:', e);
+                          e.target.innerHTML = '<p>Failed to load PDF</p>';
+                        }}
                       />
                     ) : (
-                      <img
-                        src={selectedDocument.file_url}
-                        alt={selectedDocument.file_name}
-                        className="max-w-full max-h-[600px] rounded"
-                      />
+                      <div className="relative">
+                        <img
+                          src={selectedDocument.file_url}
+                          alt={selectedDocument.file_name}
+                          className="max-w-full max-h-[600px] rounded"
+                          onError={(e) => {
+                            console.error('Image load error:', e);
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML += '<p className="text-red-500">Failed to load image: ' + selectedDocument.file_url + '</p>';
+                          }}
+                          onLoad={() => console.log('Image loaded successfully:', selectedDocument.file_url)}
+                        />
+                      </div>
                     )}
                   </div>
 
