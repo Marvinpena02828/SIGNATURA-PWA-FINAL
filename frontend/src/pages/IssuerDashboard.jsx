@@ -104,7 +104,7 @@ export default function IssuerDashboard() {
     setApprovalForm({
       dateRequested: new Date().toLocaleDateString(),
       signatureId: '',
-      fullName: request.owner_name || '',
+      fullName: request.owner_name || request.owner_email || 'Unknown',
       documentType: request.items?.[0]?.document?.document_type || '',
       documentId: '',
       processedBy: user?.full_name || '',
@@ -485,7 +485,7 @@ export default function IssuerDashboard() {
                 📋 Approve Document Request
               </h2>
               <p className="text-sm text-gray-600 mt-2">
-                From: {selectedRequest.owner_name}
+                From: {selectedRequest.owner_name || selectedRequest.owner_email || 'Unknown'}
               </p>
             </div>
 
