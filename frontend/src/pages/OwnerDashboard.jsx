@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye } from 'react-icons/fi';
+import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+
+const DOCUMENT_TYPES = ['diploma', 'certificate', 'license', 'badge'];
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
@@ -10,12 +12,17 @@ export default function OwnerDashboard() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  const [activeTab, setActiveTab] = useState('received'); // received, requests
+  const [activeTab, setActiveTab] = useState('received'); // received, requests, request-new
   const [receivedDocuments, setReceivedDocuments] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
+  const [issuers, setIssuers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedIssuer, setSelectedIssuer] = useState(null);
+  const [selectedDocTypes, setSelectedDocTypes] = useState([]);
 
   useEffect(() => {
     if (role !== 'owner') {
@@ -32,24 +39,11 @@ export default function OwnerDashboard() {
 
       // Fetch received documents
       try {
-        console.log('📥 Fetching received documents for owner:', user?.id);
-        const docsRes = await fetch(
-          `/api/documents?endpoint=document-shares&ownerId=${user?.id}`
-        );
-
+        const docsRes = await fetch(`/api/documents?endpoint=document-shares&ownerId=${user?.id}`);
         if (docsRes.ok) {
           const docsData = await docsRes.json();
-          console.log('✅ Documents:', docsData);
-          if (docsData.data && docsData.data[0]) {
-            console.log('📄 First document:', docsData.data[0]);
-            console.log('  - file_url:', docsData.data[0].file_url);
-            console.log('  - file_name:', docsData.data[0].file_name);
-            console.log('  - document_type:', docsData.data[0].document_type);
-            console.log('  - created_at:', docsData.data[0].created_at);
-          }
           if (docsData.success && Array.isArray(docsData.data)) {
             setReceivedDocuments(docsData.data);
-            console.log(`📄 Found ${docsData.data.length} documents`);
           }
         }
       } catch (err) {
@@ -58,21 +52,28 @@ export default function OwnerDashboard() {
 
       // Fetch my requests
       try {
-        console.log('📋 Fetching requests for owner:', user?.id);
-        const reqRes = await fetch(
-          `/api/documents?endpoint=document-requests&ownerId=${user?.id}`
-        );
-
+        const reqRes = await fetch(`/api/documents?endpoint=document-requests&ownerId=${user?.id}`);
         if (reqRes.ok) {
           const reqData = await reqRes.json();
-          console.log('✅ Requests data:', reqData);
           if (reqData.success && Array.isArray(reqData.data)) {
             setMyRequests(reqData.data);
-            console.log(`📋 Found ${reqData.data.length} requests`);
           }
         }
       } catch (err) {
         console.error('Error fetching requests:', err);
+      }
+
+      // Fetch issuers
+      try {
+        const issuerRes = await fetch('/api/documents?role=issuer');
+        if (issuerRes.ok) {
+          const issuerData = await issuerRes.json();
+          if (issuerData.success && Array.isArray(issuerData.data)) {
+            setIssuers(issuerData.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching issuers:', err);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -86,9 +87,66 @@ export default function OwnerDashboard() {
     console.log('📂 Opening document viewer');
     console.log('  File URL:', doc.file_url);
     console.log('  File Name:', doc.file_name);
-    console.log('  Full doc object:', doc);
     setSelectedDocument(doc);
     setShowDocumentModal(true);
+  };
+
+  const handleOpenRequestModal = (issuer) => {
+    setSelectedIssuer(issuer);
+    setSelectedDocTypes([]);
+    setShowRequestModal(true);
+  };
+
+  const handleToggleDocType = (type) => {
+    setSelectedDocTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSubmitRequest = async (e) => {
+    e.preventDefault();
+
+    if (selectedDocTypes.length === 0) {
+      toast.error('Please select at least one document type');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      // Create document request
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'document-requests',
+          ownerId: user?.id,
+          ownerEmail: user?.email,
+          ownerName: user?.full_name || user?.email,
+          issuerId: selectedIssuer.id,
+          issuerEmail: selectedIssuer.email,
+          documentIds: selectedDocTypes, // Will be document type names instead of IDs for now
+          message: `Requesting ${selectedDocTypes.join(', ')} documents`,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('✅ Request sent to issuer!');
+        setShowRequestModal(false);
+        setSelectedIssuer(null);
+        setSelectedDocTypes([]);
+        await fetchData(); // Refresh requests
+      } else {
+        toast.error(data.error || 'Failed to send request');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error sending request');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -150,26 +208,36 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gray-200">
+        <div className="flex gap-4 mb-8 border-b border-gray-200 overflow-x-auto">
           <button
             onClick={() => setActiveTab('received')}
-            className={`px-6 py-3 font-medium transition ${
+            className={`px-6 py-3 font-medium transition whitespace-nowrap ${
               activeTab === 'received'
                 ? 'text-signatura-red border-b-2 border-signatura-red'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            📥 Received Documents ({receivedDocuments.length})
+            📥 Received ({receivedDocuments.length})
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-6 py-3 font-medium transition ${
+            className={`px-6 py-3 font-medium transition whitespace-nowrap ${
               activeTab === 'requests'
                 ? 'text-signatura-red border-b-2 border-signatura-red'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             📋 My Requests ({myRequests.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('request-new')}
+            className={`px-6 py-3 font-medium transition whitespace-nowrap ${
+              activeTab === 'request-new'
+                ? 'text-signatura-red border-b-2 border-signatura-red'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            ➕ Request Documents
           </button>
         </div>
 
@@ -206,9 +274,6 @@ export default function OwnerDashboard() {
                         Received
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Permissions
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Actions
                       </th>
                     </tr>
@@ -233,56 +298,26 @@ export default function OwnerDashboard() {
                             ? new Date(doc.created_at).toLocaleDateString()
                             : 'N/A'}
                         </td>
-                        <td className="px-6 py-4 text-sm">
-                          <div className="flex gap-1 flex-wrap">
-                            {doc.can_view && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                                View
-                              </span>
-                            )}
-                            {doc.can_print && (
-                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                                Print
-                              </span>
-                            )}
-                            {doc.can_share && (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                                Share
-                              </span>
-                            )}
-                          </div>
-                        </td>
                         <td className="px-6 py-4 flex gap-2">
                           {doc.file_url && doc.can_view && (
-                            <>
-                              <button
-                                onClick={() => handleViewDocument(doc)}
-                                className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
-                                title="View document"
-                              >
-                                <FiEye className="w-4 h-4" />
-                                View
-                              </button>
-                              <a
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-green-600 hover:bg-green-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
-                                title="Open in new tab"
-                              >
-                                <FiDownload className="w-4 h-4" />
-                                Open
-                              </a>
-                            </>
-                          )}
-                          {doc.can_print && (
                             <button
-                              onClick={() => window.print()}
-                              className="text-gray-600 hover:bg-gray-100 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
-                              title="Print document"
+                              onClick={() => handleViewDocument(doc)}
+                              className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
                             >
-                              <FiPrinter className="w-4 h-4" />
+                              <FiEye className="w-4 h-4" />
+                              View
                             </button>
+                          )}
+                          {doc.file_url && (
+                            <a
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:bg-green-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
+                            >
+                              <FiDownload className="w-4 h-4" />
+                              Open
+                            </a>
                           )}
                         </td>
                       </tr>
@@ -294,7 +329,7 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* Requests Tab */}
+        {/* My Requests Tab */}
         {activeTab === 'requests' && (
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
@@ -360,6 +395,44 @@ export default function OwnerDashboard() {
             )}
           </div>
         )}
+
+        {/* Request Documents Tab */}
+        {activeTab === 'request-new' && (
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-signatura-dark">➕ Request Documents</h2>
+              <p className="text-sm text-gray-500 mt-1">Request documents from issuers</p>
+            </div>
+
+            {issuers.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-gray-500">No issuers available</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6 p-6">
+                {issuers.map((issuer) => (
+                  <div
+                    key={issuer.id}
+                    className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition"
+                  >
+                    <h3 className="text-lg font-bold text-gray-900">{issuer.organization_name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{issuer.email}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Joined {new Date(issuer.created_at).toLocaleDateString()}
+                    </p>
+                    <button
+                      onClick={() => handleOpenRequestModal(issuer)}
+                      className="mt-4 w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition font-medium flex items-center justify-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Request Documents
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Document Viewer Modal */}
@@ -388,83 +461,18 @@ export default function OwnerDashboard() {
                         src={selectedDocument.file_url}
                         className="w-full h-[600px] rounded"
                         title="PDF Document"
-                        onError={(e) => {
-                          console.error('PDF load error:', e);
-                          e.target.innerHTML = '<p>Failed to load PDF</p>';
-                        }}
                       />
                     ) : (
-                      <div className="relative">
-                        <img
-                          src={selectedDocument.file_url}
-                          alt={selectedDocument.file_name}
-                          className="max-w-full max-h-[600px] rounded"
-                          onError={(e) => {
-                            console.error('Image load error:', e);
-                            e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML += '<p className="text-red-500">Failed to load image: ' + selectedDocument.file_url + '</p>';
-                          }}
-                          onLoad={() => console.log('Image loaded successfully:', selectedDocument.file_url)}
-                        />
-                      </div>
+                      <img
+                        src={selectedDocument.file_url}
+                        alt={selectedDocument.file_name}
+                        className="max-w-full max-h-[600px] rounded"
+                        onError={(e) => {
+                          console.error('Image load error:', e);
+                        }}
+                        onLoad={() => console.log('Image loaded successfully')}
+                      />
                     )}
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-2">Document Info</h3>
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <span className="text-gray-600">File Name:</span>{' '}
-                          <span className="font-medium">{selectedDocument.file_name}</span>
-                        </p>
-                        <p>
-                          <span className="text-gray-600">Type:</span>{' '}
-                          <span className="font-medium capitalize">{selectedDocument.document_type}</span>
-                        </p>
-                        <p>
-                          <span className="text-gray-600">Size:</span>{' '}
-                          <span className="font-medium">
-                            {selectedDocument.file_size
-                              ? `${(selectedDocument.file_size / 1024 / 1024).toFixed(2)} MB`
-                              : 'N/A'}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-2">Permissions</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedDocument.can_view}
-                            disabled
-                            className="mr-2"
-                          />
-                          <label className="text-sm text-gray-700">View</label>
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedDocument.can_print}
-                            disabled
-                            className="mr-2"
-                          />
-                          <label className="text-sm text-gray-700">Print</label>
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedDocument.can_share}
-                            disabled
-                            className="mr-2"
-                          />
-                          <label className="text-sm text-gray-700">Share</label>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="flex gap-2">
@@ -477,15 +485,6 @@ export default function OwnerDashboard() {
                       <FiDownload />
                       Open in New Tab
                     </a>
-                    {selectedDocument.can_print && (
-                      <button
-                        onClick={() => window.print()}
-                        className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium flex items-center justify-center gap-2"
-                      >
-                        <FiPrinter />
-                        Print
-                      </button>
-                    )}
                     <button
                       onClick={() => setShowDocumentModal(false)}
                       className="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-400 font-medium"
@@ -500,6 +499,59 @@ export default function OwnerDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Modal */}
+      {showRequestModal && selectedIssuer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-signatura-dark">📋 Request Documents</h2>
+              <p className="text-sm text-gray-600 mt-1">From: {selectedIssuer.organization_name}</p>
+            </div>
+
+            <form onSubmit={handleSubmitRequest} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select document types you need *
+                </label>
+                <div className="space-y-2">
+                  {DOCUMENT_TYPES.map((type) => (
+                    <div key={type} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={type}
+                        checked={selectedDocTypes.includes(type)}
+                        onChange={() => handleToggleDocType(type)}
+                        className="w-4 h-4 text-signatura-red rounded focus:ring-2 focus:ring-signatura-red"
+                      />
+                      <label htmlFor={type} className="ml-3 text-sm text-gray-700 capitalize">
+                        {type}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowRequestModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || selectedDocTypes.length === 0}
+                  className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent disabled:opacity-50 font-medium"
+                >
+                  {submitting ? 'Sending...' : 'Send Request'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
