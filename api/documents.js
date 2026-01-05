@@ -109,6 +109,11 @@ async function handleGet(req, res) {
                 document_type: doc?.document_type,
                 issuer_organization: issuer?.organization_name,
                 created_at: doc?.created_at,
+                // Parse permissions
+                can_view: share.permissions?.includes('view'),
+                can_print: share.permissions?.includes('print'),
+                can_download: share.permissions?.includes('download'),
+                can_share: share.permissions?.includes('share'),
               };
             } catch (err) {
               console.error('⚠️ Error enriching share:', err);
@@ -636,14 +641,11 @@ async function updateDocumentRequest(req, res) {
           .insert({
             id: uuidv4(),
             document_id: issuedDoc.id,
-            owner_id: ownerId,
-            share_type: 'direct',
-            can_view: true,
-            can_print: true,
-            can_download: false,  // Key: Owner CANNOT download to system
-            can_share: true,      // Owner CAN share with 3rd party
+            owner_id: ownerId,  // The person receiving the document
+            recipient_email: updated.owner_email,  // Owner's email
+            permissions: ['view', 'print', 'share'],  // Can view, print, share - NOT download
             is_approved: true,
-            approval_date: new Date(),
+            approval_date: new Date().toISOString(),
             approved_by: issuerId,
           });
 
