@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus } from 'react-icons/fi';
+import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const DOCUMENT_TYPES = ['diploma', 'certificate', 'license', 'badge'];
@@ -12,7 +12,7 @@ export default function OwnerDashboard() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  const [activeTab, setActiveTab] = useState('received'); // received, requests, request-new
+  const [activeTab, setActiveTab] = useState('received');
   const [receivedDocuments, setReceivedDocuments] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [issuers, setIssuers] = useState([]);
@@ -23,6 +23,14 @@ export default function OwnerDashboard() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedIssuer, setSelectedIssuer] = useState(null);
   const [selectedDocTypes, setSelectedDocTypes] = useState([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareForm, setShareForm] = useState({
+    recipientEmail: '',
+    canPrint: true,
+    canDownload: false,
+    canShare: true,
+    expiryDays: 30,
+  });
 
   useEffect(() => {
     if (role !== 'owner') {
@@ -35,7 +43,6 @@ export default function OwnerDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('📊 Fetching owner data for:', user?.email);
 
       // Fetch received documents
       try {
@@ -84,11 +91,66 @@ export default function OwnerDashboard() {
   };
 
   const handleViewDocument = (doc) => {
-    console.log('📂 Opening document viewer');
-    console.log('  File URL:', doc.file_url);
-    console.log('  File Name:', doc.file_name);
     setSelectedDocument(doc);
     setShowDocumentModal(true);
+  };
+
+  const handleOpenShareModal = (doc) => {
+    setSelectedDocument(doc);
+    setShareForm({
+      recipientEmail: '',
+      canPrint: true,
+      canDownload: false,
+      canShare: true,
+      expiryDays: 30,
+    });
+    setShowShareModal(true);
+  };
+
+  const handleShareDocument = async (e) => {
+    e.preventDefault();
+
+    if (!shareForm.recipientEmail) {
+      toast.error('Please enter recipient email');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'share-document',
+          documentId: selectedDocument.document_id,
+          ownerId: user?.id,
+          recipientEmail: shareForm.recipientEmail,
+          canView: true,
+          canPrint: shareForm.canPrint,
+          canDownload: shareForm.canDownload,
+          canShare: shareForm.canShare,
+          expiryDays: shareForm.expiryDays,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('✅ Document shared successfully!');
+        const shareLink = `${window.location.origin}/shared/${data.data.shareToken}`;
+        console.log('Share link:', shareLink);
+        toast.success(`Share link: ${shareLink}`);
+        setShowShareModal(false);
+      } else {
+        toast.error(data.error || 'Failed to share document');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error sharing document');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleOpenRequestModal = (issuer) => {
@@ -114,7 +176,6 @@ export default function OwnerDashboard() {
     try {
       setSubmitting(true);
 
-      // Create document request
       const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +186,7 @@ export default function OwnerDashboard() {
           ownerName: user?.full_name || user?.email,
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
-          documentIds: selectedDocTypes, // Will be document type names instead of IDs for now
+          documentIds: selectedDocTypes,
           message: `Requesting ${selectedDocTypes.join(', ')} documents`,
         }),
       });
@@ -137,7 +198,7 @@ export default function OwnerDashboard() {
         setShowRequestModal(false);
         setSelectedIssuer(null);
         setSelectedDocTypes([]);
-        await fetchData(); // Refresh requests
+        await fetchData();
       } else {
         toast.error(data.error || 'Failed to send request');
       }
@@ -246,7 +307,7 @@ export default function OwnerDashboard() {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-signatura-dark">📥 My Received Documents</h2>
-              <p className="text-sm text-gray-500 mt-1">Documents shared with you by issuers</p>
+              <p className="text-sm text-gray-500 mt-1">Documents shared with you by issuers - Can print or share (no download)</p>
             </div>
 
             {receivedDocuments.length === 0 ? (
@@ -258,66 +319,59 @@ export default function OwnerDashboard() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        File Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Size
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        From
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Received
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Actions
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">File Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Size</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">From</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Received</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Permissions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {receivedDocuments.map((doc) => (
                       <tr key={doc.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900">
-                          {doc.file_name || 'Document'}
-                        </td>
-                        <td className="px-6 py-4 text-gray-600 text-sm capitalize">
-                          {doc.document_type || 'document'}
-                        </td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{doc.file_name || 'Document'}</td>
+                        <td className="px-6 py-4 text-gray-600 text-sm capitalize">{doc.document_type || 'document'}</td>
                         <td className="px-6 py-4 text-gray-600 text-sm">
                           {doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(2)} MB` : 'N/A'}
                         </td>
+                        <td className="px-6 py-4 text-gray-600 text-sm">{doc.issuer_organization || 'Unknown'}</td>
                         <td className="px-6 py-4 text-gray-600 text-sm">
-                          {doc.issuer_organization || 'Unknown'}
+                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">
-                          {doc.created_at
-                            ? new Date(doc.created_at).toLocaleDateString()
-                            : 'N/A'}
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex gap-1 flex-wrap">
+                            {doc.can_view && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">View</span>}
+                            {doc.can_print && <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Print ✓</span>}
+                            {doc.can_share && <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">Share ✓</span>}
+                            {!doc.can_download && <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">No Download</span>}
+                          </div>
                         </td>
                         <td className="px-6 py-4 flex gap-2">
                           {doc.file_url && doc.can_view && (
                             <button
                               onClick={() => handleViewDocument(doc)}
-                              className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
+                              className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded text-sm flex items-center gap-1"
                             >
-                              <FiEye className="w-4 h-4" />
-                              View
+                              <FiEye className="w-4 h-4" /> View
                             </button>
                           )}
-                          {doc.file_url && (
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-600 hover:bg-green-50 px-3 py-1 rounded transition font-medium text-sm flex items-center gap-1"
+                          {doc.can_print && (
+                            <button
+                              onClick={() => window.print()}
+                              className="text-green-600 hover:bg-green-50 px-3 py-1 rounded text-sm flex items-center gap-1"
                             >
-                              <FiDownload className="w-4 h-4" />
-                              Open
-                            </a>
+                              <FiPrinter className="w-4 h-4" /> Print
+                            </button>
+                          )}
+                          {doc.can_share && (
+                            <button
+                              onClick={() => handleOpenShareModal(doc)}
+                              className="text-purple-600 hover:bg-purple-50 px-3 py-1 rounded text-sm flex items-center gap-1"
+                            >
+                              <FiShare2 className="w-4 h-4" /> Share
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -346,18 +400,10 @@ export default function OwnerDashboard() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Issuer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Requested
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                        Documents
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Issuer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Documents</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -413,10 +459,7 @@ export default function OwnerDashboard() {
             ) : (
               <div className="grid md:grid-cols-2 gap-6 p-6">
                 {issuers.map((issuer) => (
-                  <div
-                    key={issuer.id}
-                    className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition"
-                  >
+                  <div key={issuer.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
                     <h3 className="text-lg font-bold text-gray-900">{issuer.organization_name}</h3>
                     <p className="text-sm text-gray-600 mt-1">{issuer.email}</p>
                     <p className="text-xs text-gray-500 mt-2">
@@ -424,7 +467,7 @@ export default function OwnerDashboard() {
                     </p>
                     <button
                       onClick={() => handleOpenRequestModal(issuer)}
-                      className="mt-4 w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition font-medium flex items-center justify-center gap-2"
+                      className="mt-4 w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent font-medium flex items-center justify-center gap-2"
                     >
                       <FiPlus className="w-4 h-4" />
                       Request Documents
@@ -469,24 +512,20 @@ export default function OwnerDashboard() {
                         src={selectedDocument.file_url}
                         alt={selectedDocument.file_name}
                         className="max-w-full max-h-[600px] rounded"
-                        onError={(e) => {
-                          console.error('Image load error:', e);
-                        }}
-                        onLoad={() => console.log('Image loaded successfully')}
                       />
                     )}
                   </div>
 
                   <div className="flex gap-2">
-                    <a
-                      href={selectedDocument.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2"
-                    >
-                      <FiDownload />
-                      Open in New Tab
-                    </a>
+                    {selectedDocument.can_print && (
+                      <button
+                        onClick={() => window.print()}
+                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
+                      >
+                        <FiPrinter />
+                        Print
+                      </button>
+                    )}
                     <button
                       onClick={() => setShowDocumentModal(false)}
                       className="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-400 font-medium"
@@ -501,6 +540,100 @@ export default function OwnerDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && selectedDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-signatura-dark">📤 Share Document</h2>
+              <p className="text-sm text-gray-600 mt-1">{selectedDocument.file_name}</p>
+            </div>
+
+            <form onSubmit={handleShareDocument} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={shareForm.recipientEmail}
+                  onChange={(e) => setShareForm({ ...shareForm, recipientEmail: e.target.value })}
+                  placeholder="recipient@example.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                  required
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">Permissions</label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={shareForm.canPrint}
+                      onChange={(e) => setShareForm({ ...shareForm, canPrint: e.target.checked })}
+                      className="w-4 h-4 text-signatura-red rounded"
+                    />
+                    <label className="ml-3 text-sm text-gray-700">Can Print</label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={shareForm.canDownload}
+                      onChange={(e) => setShareForm({ ...shareForm, canDownload: e.target.checked })}
+                      className="w-4 h-4 text-signatura-red rounded"
+                      disabled
+                    />
+                    <label className="ml-3 text-sm text-gray-400">Can Download (Disabled - Security)</label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={shareForm.canShare}
+                      onChange={(e) => setShareForm({ ...shareForm, canShare: e.target.checked })}
+                      className="w-4 h-4 text-signatura-red rounded"
+                    />
+                    <label className="ml-3 text-sm text-gray-700">Can Share Further</label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Expiry (days) *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={shareForm.expiryDays}
+                  onChange={(e) => setShareForm({ ...shareForm, expiryDays: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent disabled:opacity-50 font-medium flex items-center justify-center gap-2"
+                >
+                  <FiShare2 className="w-4 h-4" />
+                  Share
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
