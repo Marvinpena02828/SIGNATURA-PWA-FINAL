@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX } from 'react-icons/fi';
-import QRCode from 'qrcode.react';
+import { FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX, FiQrCode } from 'react-icons/fi';
+import DocumentQRModal from './DocumentQRModal';
 import toast from 'react-hot-toast';
 
 const DOCUMENT_TYPES = ['diploma', 'certificate', 'license', 'badge'];
@@ -34,6 +34,7 @@ export default function OwnerDashboard() {
   });
   const [shareLink, setShareLink] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showDocQRModal, setShowDocQRModal] = useState(false);
 
   useEffect(() => {
     if (role !== 'owner') {
@@ -362,7 +363,6 @@ export default function OwnerDashboard() {
                           {doc.can_print && (
                             <button
                               onClick={() => {
-                                // Open document in new window for printing
                                 const printWindow = window.open(doc.file_url, 'print_window');
                                 if (printWindow) {
                                   printWindow.addEventListener('load', () => {
@@ -385,6 +385,13 @@ export default function OwnerDashboard() {
                               <FiShare2 className="w-4 h-4" /> Share
                             </button>
                           )}
+                          <button
+                            onClick={() => setShowDocQRModal(doc)}
+                            className="text-orange-600 hover:bg-orange-50 px-3 py-1 rounded text-sm flex items-center gap-1 font-medium"
+                            title="Show verification QR code"
+                          >
+                            <FiQrCode className="w-4 h-4" /> Verify
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -731,12 +738,10 @@ export default function OwnerDashboard() {
               <p className="text-gray-600 mb-6">Scan this QR code to view the document</p>
 
               <div className="bg-gray-50 p-4 rounded-lg inline-block mb-6">
-                <QRCode
-                  value={shareLink}
-                  size={256}
-                  level="H"
-                  includeMargin={true}
-                  renderAs="canvas"
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(shareLink)}`}
+                  alt="QR Code"
+                  className="w-64 h-64"
                 />
               </div>
 
@@ -765,14 +770,11 @@ export default function OwnerDashboard() {
 
                 <button
                   onClick={() => {
-                    const qrElement = document.querySelector('canvas');
-                    if (qrElement) {
-                      const link = document.createElement('a');
-                      link.href = qrElement.toDataURL();
-                      link.download = `document-qr-${Date.now()}.png`;
-                      link.click();
-                      toast.success('QR code downloaded!');
-                    }
+                    const link = document.createElement('a');
+                    link.href = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(shareLink)}`;
+                    link.download = `document-qr-${Date.now()}.png`;
+                    link.click();
+                    toast.success('QR code downloaded!');
                   }}
                   className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
                 >
@@ -793,6 +795,12 @@ export default function OwnerDashboard() {
           </div>
         </div>
       )}
+
+      {/* Document QR Modal */}
+      <DocumentQRModal
+        document={showDocQRModal}
+        onClose={() => setShowDocQRModal(null)}
+      />
     </div>
   );
 }
