@@ -803,10 +803,8 @@ async function updateDocumentRequest(req, res) {
           id: uuidv4(),
           document_id: issuedDoc.id,
           owner_id: ownerId,
-          recipient_email: updated.owner_email,
           share_token: crypto.randomBytes(32).toString('hex'),
           permissions: ['view', 'print', 'share'],
-          require_otp: false,
           expires_at: expiresAt.toISOString(),
         };
 
