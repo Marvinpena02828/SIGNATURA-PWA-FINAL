@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -73,7 +74,6 @@ async function handleGet(req, res) {
         .from('document_shares')
         .select('*')
         .eq('owner_id', ownerId)
-        .eq('is_approved', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -193,10 +193,40 @@ async function handleGet(req, res) {
 
         console.log(`✅ Found ${requests?.length || 0} requests`);
         
-        // Return with items (simplified - no enrichment)
+        // Enrich with document items
+        let enrichedRequests = [];
+        if (requests && requests.length > 0) {
+          enrichedRequests = await Promise.all(
+            requests.map(async (req) => {
+              try {
+                // Fetch items and related documents
+                const { data: items } = await supabase
+                  .from('document_request_items')
+                  .select(`
+                    id,
+                    document_id,
+                    document:documents(id, title, document_type)
+                  `)
+                  .eq('document_request_id', req.id);
+
+                return {
+                  ...req,
+                  items: items || [],
+                };
+              } catch (err) {
+                console.error('⚠️ Error fetching items:', err);
+                return {
+                  ...req,
+                  items: [],
+                };
+              }
+            })
+          );
+        }
+        
         return res.status(200).json({
           success: true,
-          data: requests || [],
+          data: enrichedRequests || [],
         });
       } catch (err) {
         console.error('❌ Document requests error:', err);
@@ -546,6 +576,7 @@ async function updateDocumentRequest(req, res) {
   const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName, fileSize, ownerId, issuerId } = req.body;
 
   console.log('📝 Updating document request:', id);
+  console.log('🔍 Params:', { status, ownerId, issuerId, fileName });
 
   try {
     if (!id || !status) {
@@ -579,12 +610,16 @@ async function updateDocumentRequest(req, res) {
 
     // If approved with file, create issued document
     if (status === 'approved' && fileBase64 && fileName) {
-      console.log('📄 Creating issued document with file...');
+      console.log('📄 Creating issued document...');
+      console.log('📤 File:', fileName, 'Size:', fileSize);
       
       try {
         // Upload file to Supabase Storage using SERVICE_ROLE_KEY
         const filePath = `documents/${issuerId}/${id}/${fileName}`;
         const fileBuffer = Buffer.from(fileBase64, 'base64');
+
+        console.log('📤 Uploading to:', filePath);
+        console.log('👤 Owner ID:', ownerId, 'Issuer ID:', issuerId);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('issued-documents')
@@ -636,18 +671,28 @@ async function updateDocumentRequest(req, res) {
         console.log('✅ Issued document created:', issuedDoc.id);
 
         // Create automatic share with owner (view + print, NO download)
+        console.log('📤 Creating document_shares...');
+        
+        // Set expiry to 90 days from now
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        const shareData = {
+          id: uuidv4(),
+          document_id: issuedDoc.id,
+          owner_id: ownerId,
+          recipient_email: updated.owner_email,
+          share_token: crypto.randomBytes(32).toString('hex'),
+          permissions: ['view', 'print', 'share'],
+          require_otp: false,
+          expires_at: expiresAt.toISOString(),
+        };
+
+        console.log('📋 Share data:', shareData);
+
         const { error: shareError } = await supabase
           .from('document_shares')
-          .insert({
-            id: uuidv4(),
-            document_id: issuedDoc.id,
-            owner_id: ownerId,  // The person receiving the document
-            recipient_email: updated.owner_email,  // Owner's email
-            permissions: ['view', 'print', 'share'],  // Can view, print, share - NOT download
-            is_approved: true,
-            approval_date: new Date().toISOString(),
-            approved_by: issuerId,
-          });
+          .insert(shareData);
 
         if (shareError) {
           console.error('⚠️ Share creation error:', shareError);
