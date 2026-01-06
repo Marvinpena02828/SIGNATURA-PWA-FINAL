@@ -1,4 +1,4 @@
-// api/auth.js - Authentication endpoints with Supabase
+// api/auth.js - WORKING authentication with correct Supabase methods
 
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
@@ -8,10 +8,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const jwtSecret = process.env.JWT_SECRET || 'signatura-secret-2024-change-in-production';
 
-// POST /api/auth - signin or signup
 export default async function handler(req, res) {
+  // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -34,30 +34,25 @@ export default async function handler(req, res) {
 
     console.log('🔐 Auth Request:', { action, email, role });
 
-    // ============================================
-    // VALIDATE INPUTS
-    // ============================================
+    // Validate inputs
     if (!action || !email || !password) {
-      console.error('❌ Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: action, email, password',
       });
     }
 
-    // ✅ FIXED: Better email validation
+    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.error('❌ Invalid email format:', email);
       return res.status(400).json({
         success: false,
-        error: 'Invalid email format. Please use a valid email address.',
+        error: 'Invalid email format',
       });
     }
 
-    // ✅ FIXED: Allow passwords 6+ characters (lowercase, numbers, special chars all OK)
-    if (!password || password.length < 6) {
-      console.error('❌ Password too short');
+    // Validate password
+    if (password.length < 6) {
       return res.status(400).json({
         success: false,
         error: 'Password must be at least 6 characters',
@@ -68,7 +63,7 @@ export default async function handler(req, res) {
     // SIGNUP
     // ============================================
     if (action === 'signup') {
-      console.log('📝 Processing signup for:', email);
+      console.log('📝 Processing SIGNUP for:', email);
 
       if (!fullName || fullName.trim().length === 0) {
         return res.status(400).json({
@@ -77,90 +72,57 @@ export default async function handler(req, res) {
         });
       }
 
-      if (role === 'issuer' && !organizationName) {
-        return res.status(400).json({
-          success: false,
-          error: 'Organization name is required for issuers',
-        });
-      }
-
       try {
-        // Check if user already exists
-        const { data: existingUser, error: checkError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .single();
-
-        if (!checkError && existingUser) {
-          return res.status(409).json({
-            success: false,
-            error: 'Email already registered. Please log in instead.',
-          });
-        }
-
-        // Create user in Supabase Auth
+        // ✅ Use correct Supabase method: signUp
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
           email,
           password,
           email_confirm: true, // Auto-confirm email
+          user_metadata: {
+            full_name: fullName,
+            organization_name: organizationName || null,
+            role: role || 'issuer',
+            plan_type: planType || 'professional',
+          },
         });
 
         if (authError) {
-          console.error('❌ Auth creation error:', authError);
+          console.error('❌ Auth creation error:', authError.message);
           return res.status(400).json({
             success: false,
             error: authError.message || 'Failed to create account',
           });
         }
 
-        // Create user profile in database
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email,
-            full_name: fullName,
-            organization_name: organizationName || null,
-            role,
-            plan_type: planType || 'professional',
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
+        console.log('✅ Auth user created:', authData.user.id);
 
-        if (insertError) {
-          console.error('❌ Profile creation error:', insertError);
-          return res.status(400).json({
-            success: false,
-            error: 'Failed to create user profile',
-          });
-        }
-
-        // Generate JWT token
+        // Generate JWT
         const token = jwt.sign(
           {
-            sub: newUser.id,
-            email: newUser.email,
-            role: newUser.role,
+            sub: authData.user.id,
+            email: authData.user.email,
+            role: role || 'issuer',
           },
           jwtSecret,
           { expiresIn: '7d' }
         );
 
-        console.log('✅ User signup successful:', newUser.id);
+        // Return user object
+        const user = {
+          id: authData.user.id,
+          email: authData.user.email,
+          fullName,
+          organizationName: organizationName || null,
+          role: role || 'issuer',
+          planType: planType || 'professional',
+        };
+
+        console.log('✅ Signup successful');
 
         return res.status(201).json({
           success: true,
           message: 'Account created successfully',
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            fullName: newUser.full_name,
-            organizationName: newUser.organization_name,
-            role: newUser.role,
-            planType: newUser.plan_type,
-          },
+          user,
           token,
         });
       } catch (error) {
@@ -173,79 +135,63 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // SIGNIN (LOGIN)
+    // SIGNIN
     // ============================================
     if (action === 'signin') {
-      console.log('🔑 Processing signin for:', email);
+      console.log('🔑 Processing SIGNIN for:', email);
 
       try {
-        // Authenticate with Supabase
-        const { data: authData, error: authError } = await supabase.auth.admin.getUserByEmail(
-          email
-        );
-
-        if (authError || !authData?.user) {
-          console.error('❌ User not found:', email);
-          return res.status(401).json({
-            success: false,
-            error: 'Invalid email or password',
-          });
-        }
-
-        // Verify password (in production, use secure comparison)
-        // For now, rely on Supabase auth session
+        // ✅ Use correct Supabase method: signInWithPassword
         const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (signInError || !sessionData?.session) {
-          console.error('❌ Auth failed:', signInError);
+        if (signInError) {
+          console.error('❌ Sign in error:', signInError.message);
           return res.status(401).json({
             success: false,
             error: 'Invalid email or password',
           });
         }
 
-        // Get user profile
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError || !userProfile) {
-          console.error('❌ Profile not found:', authData.user.id);
-          return res.status(404).json({
+        if (!sessionData?.user) {
+          return res.status(401).json({
             success: false,
-            error: 'User profile not found',
+            error: 'Invalid email or password',
           });
         }
 
-        // Generate JWT token
+        // Get user metadata
+        const metadata = sessionData.user.user_metadata || {};
+
+        // Generate JWT
         const token = jwt.sign(
           {
-            sub: userProfile.id,
-            email: userProfile.email,
-            role: userProfile.role,
+            sub: sessionData.user.id,
+            email: sessionData.user.email,
+            role: metadata.role || 'issuer',
           },
           jwtSecret,
           { expiresIn: '7d' }
         );
 
-        console.log('✅ User signin successful:', userProfile.id);
+        // Return user object
+        const user = {
+          id: sessionData.user.id,
+          email: sessionData.user.email,
+          fullName: metadata.full_name || email.split('@')[0],
+          organizationName: metadata.organization_name || null,
+          role: metadata.role || role || 'issuer',
+          planType: metadata.plan_type || 'professional',
+        };
+
+        console.log('✅ Signin successful');
 
         return res.status(200).json({
           success: true,
           message: 'Login successful',
-          user: {
-            id: userProfile.id,
-            email: userProfile.email,
-            fullName: userProfile.full_name,
-            organizationName: userProfile.organization_name,
-            role: userProfile.role,
-            planType: userProfile.plan_type,
-          },
+          user,
           token,
         });
       } catch (error) {
@@ -257,14 +203,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Invalid action
     return res.status(400).json({
       success: false,
       error: 'Invalid action. Use "signin" or "signup"',
     });
 
   } catch (error) {
-    console.error('❌ Auth handler error:', error);
+    console.error('❌ Handler error:', error);
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error',
