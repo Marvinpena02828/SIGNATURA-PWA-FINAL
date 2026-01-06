@@ -6,6 +6,7 @@ import {
   FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, 
   FiArrowLeft, FiAlertCircle 
 } from 'react-icons/fi';
+import logo from '../assets/logo31.png';
 
 export default function AllLoginPages() {
   const { role: urlRole } = useParams();
@@ -67,29 +68,38 @@ export default function AllLoginPages() {
       case 'blue':
         return {
           gradient: 'from-blue-600 to-blue-400',
+          gradientBg: 'bg-gradient-to-br from-blue-600 to-blue-400',
           bg: 'bg-blue-100',
           text: 'text-blue-600',
           button: 'bg-blue-600 hover:bg-blue-700',
           tab: 'text-blue-600 border-blue-600',
           dark: 'bg-blue-900',
+          border: 'border-blue-200',
+          lightBg: 'bg-blue-50',
         };
       case 'purple':
         return {
           gradient: 'from-purple-600 to-purple-400',
+          gradientBg: 'bg-gradient-to-br from-purple-600 to-purple-400',
           bg: 'bg-purple-100',
           text: 'text-purple-600',
           button: 'bg-purple-600 hover:bg-purple-700',
           tab: 'text-purple-600 border-purple-600',
           dark: 'bg-purple-900',
+          border: 'border-purple-200',
+          lightBg: 'bg-purple-50',
         };
       default: // red
         return {
           gradient: 'from-red-600 to-red-400',
+          gradientBg: 'bg-gradient-to-br from-red-600 to-red-400',
           bg: 'bg-red-100',
           text: 'text-red-600',
           button: 'bg-red-600 hover:bg-red-700',
           tab: 'text-red-600 border-red-600',
           dark: 'bg-red-900',
+          border: 'border-red-200',
+          lightBg: 'bg-red-50',
         };
     }
   };
@@ -206,7 +216,22 @@ export default function AllLoginPages() {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center px-4 py-12`}>
+    <div className={`min-h-screen ${colors.gradientBg} flex flex-col items-center justify-center px-4 py-12`}>
+      {/* Logo at Top */}
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center justify-center hover:opacity-80 transition transform hover:scale-105"
+        >
+          <img 
+            src={logo} 
+            alt="Signatura Logo" 
+            height="50" 
+            className="drop-shadow-lg"
+          />
+        </button>
+      </div>
+
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button
@@ -220,12 +245,12 @@ export default function AllLoginPages() {
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className={`bg-gradient-to-r ${colors.gradient} p-6 text-white text-center`}>
-            <div className={`inline-block ${colors.bg} p-3 rounded-full mb-3`}>
-              <Icon className={`${colors.text} text-3xl`} />
+          <div className={`bg-gradient-to-r ${colors.gradient} p-8 text-white text-center`}>
+            <div className={`inline-block ${colors.bg} p-4 rounded-full mb-4`}>
+              <Icon className={`${colors.text} text-4xl`} />
             </div>
-            <h1 className="text-2xl font-bold">{config.title}</h1>
-            <p className="text-white text-sm opacity-90 mt-1">{config.subtitle}</p>
+            <h1 className="text-3xl font-bold">{config.title}</h1>
+            <p className="text-white text-sm opacity-90 mt-2">{config.subtitle}</p>
           </div>
 
           {/* Role Tabs */}
@@ -234,15 +259,20 @@ export default function AllLoginPages() {
               <button
                 key={role}
                 onClick={() => handleRoleChange(role)}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition ${
+                className={`flex-1 py-4 px-4 text-sm font-medium transition ${
                   selectedRole === role
-                    ? `${colors.tab} border-b-2`
+                    ? `${colors.tab} border-b-2 font-bold`
                     : 'text-gray-600 border-b-2 border-transparent hover:text-gray-900'
                 }`}
               >
-                {role === 'issuer' && '🏢 Issuer'}
-                {role === 'owner' && '👤 Owner'}
-                {role === 'admin' && '🛡️ Admin'}
+                {role === 'issuer' && '🏢'}
+                {role === 'owner' && '👤'}
+                {role === 'admin' && '🛡️'}
+                <span className="ml-2 hidden sm:inline">
+                  {role === 'issuer' && 'Issuer'}
+                  {role === 'owner' && 'Owner'}
+                  {role === 'admin' && 'Admin'}
+                </span>
               </button>
             ))}
           </div>
@@ -251,29 +281,31 @@ export default function AllLoginPages() {
           <div className="p-8">
             {/* Payment Success Banner */}
             {preFilledEmail && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
-                <FiAlertCircle className="text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex gap-2">
+                <div className="text-green-600 flex-shrink-0 mt-0.5">
+                  <FiAlertCircle size={20} />
+                </div>
                 <div className="text-sm text-green-700">
-                  <p className="font-medium">✓ Payment successful!</p>
-                  <p className="text-xs mt-1">Log in with your credentials</p>
+                  <p className="font-semibold">✓ Payment successful!</p>
+                  <p className="text-xs mt-1">Log in with your credentials to access your account</p>
                 </div>
               </div>
             )}
 
             {/* Form Title */}
-            <p className="text-center text-gray-600 text-sm mb-6">
-              {isLogin ? `Sign in to ${config.title}` : `Create your ${selectedRole} account`}
+            <p className="text-center text-gray-600 text-sm mb-6 font-medium">
+              {isLogin ? `Sign in to your ${selectedRole} account` : `Create your ${selectedRole} account`}
             </p>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Email Address
                 </label>
                 <div className="relative">
-                  <FiMail className="absolute left-3 top-3 text-gray-400" />
+                  <FiMail className="absolute left-3 top-3 text-gray-400" size={20} />
                   <input
                     type="email"
                     name="email"
@@ -281,18 +313,18 @@ export default function AllLoginPages() {
                     onChange={handleInputChange}
                     placeholder="your@email.com"
                     disabled={preFilledEmail && isLogin}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    } ${preFilledEmail && isLogin ? 'bg-gray-50' : ''}`}
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                      errors.email ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
+                    } ${preFilledEmail && isLogin ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
               </div>
 
               {/* Full Name (Signup) */}
               {!isLogin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Full Name
                   </label>
                   <input
@@ -301,12 +333,12 @@ export default function AllLoginPages() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     placeholder="John Doe"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
-                      errors.fullName ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                      errors.fullName ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
                     }`}
                   />
                   {errors.fullName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.fullName}</p>
                   )}
                 </div>
               )}
@@ -314,7 +346,7 @@ export default function AllLoginPages() {
               {/* Organization Name (Issuer Signup) */}
               {!isLogin && selectedRole === 'issuer' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Organization Name
                   </label>
                   <input
@@ -323,65 +355,65 @@ export default function AllLoginPages() {
                     value={formData.organizationName}
                     onChange={handleInputChange}
                     placeholder="Your University / Company"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
-                      errors.organizationName ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                      errors.organizationName ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
                     }`}
                   />
                   {errors.organizationName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.organizationName}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.organizationName}</p>
                   )}
                 </div>
               )}
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <FiLock className="absolute left-3 top-3 text-gray-400" />
+                  <FiLock className="absolute left-3 top-3 text-gray-400" size={20} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                      errors.password ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition"
                   >
-                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                    {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
                 </div>
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {errors.password && <p className="text-red-500 text-xs mt-1 font-medium">{errors.password}</p>}
               </div>
 
               {/* Confirm Password (Signup) */}
               {!isLogin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <FiLock className="absolute left-3 top-3 text-gray-400" />
+                    <FiLock className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="••••••••"
-                      className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
-                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                        errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
                       }`}
                     />
                   </div>
                   {errors.confirmPassword && (
-                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.confirmPassword}</p>
                   )}
                 </div>
               )}
@@ -390,9 +422,14 @@ export default function AllLoginPages() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full ${colors.button} text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed mt-6`}
+                className={`w-full ${colors.button} text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed mt-8`}
               >
-                {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Continue to Payment'}
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <span className="inline-block animate-spin mr-2">⏳</span>
+                    Processing...
+                  </span>
+                ) : isLogin ? 'Sign In' : 'Continue to Payment'}
               </button>
             </form>
 
@@ -403,8 +440,14 @@ export default function AllLoginPages() {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setErrors({});
+                  setFormData(prev => ({
+                    ...prev,
+                    organizationName: '',
+                    fullName: '',
+                    confirmPassword: '',
+                  }));
                 }}
-                className={`${colors.text} font-medium hover:underline`}
+                className={`${colors.text} font-semibold hover:underline transition`}
               >
                 {isLogin ? 'Sign Up' : 'Sign In'}
               </button>
@@ -412,21 +455,32 @@ export default function AllLoginPages() {
 
             {/* Signup Info */}
             {!isLogin && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700">
-                  💳 Click "Continue to Payment" to proceed with account creation. Choose your plan and complete payment.
+              <div className={`mt-5 p-4 ${colors.lightBg} border ${colors.border} rounded-lg`}>
+                <p className="text-xs text-gray-700">
+                  💳 Click <span className="font-semibold">"Continue to Payment"</span> to proceed with account creation. Choose your plan and complete payment.
                 </p>
               </div>
             )}
           </div>
 
           {/* Demo Credentials */}
-          <div className={`${colors.dark} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 m-4 text-white text-sm`}>
-            <p className="font-medium mb-2">📝 Demo Credentials:</p>
-            <p className="text-xs">Email: <code>{config.demoEmail}</code></p>
-            <p className="text-xs">Password: <code>{config.demoPass}</code></p>
+          <div className={`${colors.dark} bg-opacity-60 backdrop-blur-sm rounded-lg p-5 m-4 text-white text-sm border-l-4 ${colors.border}`}>
+            <p className="font-bold mb-3 text-base">📝 Demo Credentials</p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-100">
+                <span className="font-semibold">Email:</span> <code className="bg-black bg-opacity-30 px-2 py-1 rounded">{config.demoEmail}</code>
+              </p>
+              <p className="text-xs text-gray-100">
+                <span className="font-semibold">Password:</span> <code className="bg-black bg-opacity-30 px-2 py-1 rounded">{config.demoPass}</code>
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Footer Info */}
+        <p className="text-center text-white text-xs mt-6 opacity-80">
+          Secure authentication • No data sharing • GDPR compliant
+        </p>
       </div>
     </div>
   );
