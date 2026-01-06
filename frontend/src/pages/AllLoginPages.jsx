@@ -217,8 +217,8 @@ export default function AllLoginPages() {
 
   return (
     <div className={`min-h-screen ${colors.gradientBg} flex flex-col items-center justify-center px-4 py-12`}>
-      {/* Logo at Top */}
-      <div className="mb-8">
+      {/* Logo at Top with White Background */}
+      <div className="mb-8 bg-white rounded-full p-4 shadow-lg">
         <button
           onClick={() => navigate('/')}
           className="inline-flex items-center justify-center hover:opacity-80 transition transform hover:scale-105"
@@ -226,8 +226,8 @@ export default function AllLoginPages() {
           <img 
             src={logo} 
             alt="Signatura Logo" 
-            height="50" 
-            className="drop-shadow-lg"
+            height="60" 
+            className="drop-shadow-md"
           />
         </button>
       </div>
