@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
+import { 
+  FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, 
+  FiArrowLeft, FiAlertCircle 
+} from 'react-icons/fi';
 
 export default function AllLoginPages() {
-  const location = useLocation();
+  const { role: urlRole } = useParams();
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
   const setRole = useAuthStore((state) => state.setRole);
 
-  // Get role from URL params or use default
-  const params = new URLSearchParams(location.search);
-  const role = params.get('role') || 'issuer';
-
+  // State
+  const [selectedRole, setSelectedRole] = useState(urlRole || 'issuer');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,75 +28,83 @@ export default function AllLoginPages() {
   const [errors, setErrors] = useState({});
   const [preFilledEmail, setPreFilledEmail] = useState('');
 
-  // Check if user is coming from successful payment
-  useEffect(() => {
-    const emailFromLocation = location.state?.email;
-    if (emailFromLocation) {
-      setPreFilledEmail(emailFromLocation);
-      setFormData(prev => ({
-        ...prev,
-        email: emailFromLocation,
-      }));
-      toast.success(location.state?.message || 'Payment confirmed! Please log in.');
-    }
-  }, [location]);
-
+  // Role configurations
   const roleConfig = {
     issuer: {
-      title: 'Issuer Portal',
-      subtitle: 'Issue and manage credentials',
+      title: '🏢 Issuer Portal',
+      subtitle: 'Issue and manage digital credentials',
       icon: FiBriefcase,
       color: 'red',
       demoEmail: 'issuer@demo.com',
       demoPass: 'Demo@1234',
+      features: ['Issue Credentials', 'Manage Requests', 'View Statistics'],
     },
     owner: {
-      title: 'Owner Portal',
-      subtitle: 'Manage your documents',
+      title: '👤 Owner Wallet',
+      subtitle: 'Store and share your credentials',
       icon: FiUser,
-      color: 'red',
+      color: 'blue',
       demoEmail: 'owner@demo.com',
       demoPass: 'Demo@1234',
+      features: ['Digital Wallet', 'Verify Credentials', 'Control Sharing'],
     },
     admin: {
-      title: 'Admin Portal',
+      title: '🛡️ Admin Portal',
       subtitle: 'System administration',
       icon: FiShield,
-      color: 'red',
+      color: 'purple',
       demoEmail: 'admin@signatura.com',
       demoPass: 'Admin@1234',
+      features: ['User Management', 'Analytics', 'System Settings'],
     },
   };
 
-  const config = roleConfig[role] || roleConfig.issuer;
+  const config = roleConfig[selectedRole] || roleConfig.issuer;
   const Icon = config.icon;
 
   const getColorClasses = () => {
-    switch(config.color) {
-      case 'red':
+    switch (config.color) {
+      case 'blue':
         return {
-          gradient: 'from-signatura-red to-signatura-accent',
-          bg: 'bg-red-100',
-          text: 'text-signatura-red',
-          button: 'bg-signatura-red hover:bg-signatura-accent',
-          buttonText: 'text-signatura-red',
-          link: 'text-signatura-red',
-          dark: 'bg-red-900',
+          gradient: 'from-blue-600 to-blue-400',
+          bg: 'bg-blue-100',
+          text: 'text-blue-600',
+          button: 'bg-blue-600 hover:bg-blue-700',
+          tab: 'text-blue-600 border-blue-600',
+          dark: 'bg-blue-900',
         };
-      default:
+      case 'purple':
         return {
-          gradient: 'from-signatura-red to-signatura-accent',
+          gradient: 'from-purple-600 to-purple-400',
+          bg: 'bg-purple-100',
+          text: 'text-purple-600',
+          button: 'bg-purple-600 hover:bg-purple-700',
+          tab: 'text-purple-600 border-purple-600',
+          dark: 'bg-purple-900',
+        };
+      default: // red
+        return {
+          gradient: 'from-red-600 to-red-400',
           bg: 'bg-red-100',
-          text: 'text-signatura-red',
-          button: 'bg-signatura-red hover:bg-signatura-accent',
-          buttonText: 'text-signatura-red',
-          link: 'text-signatura-red',
+          text: 'text-red-600',
+          button: 'bg-red-600 hover:bg-red-700',
+          tab: 'text-red-600 border-red-600',
           dark: 'bg-red-900',
         };
     }
   };
 
   const colors = getColorClasses();
+
+  // Check for payment success
+  useEffect(() => {
+    const emailFromLocation = new URLSearchParams(window.location.search).get('email');
+    if (emailFromLocation) {
+      setPreFilledEmail(emailFromLocation);
+      setFormData(prev => ({ ...prev, email: emailFromLocation }));
+      toast.success('Payment confirmed! Please log in.');
+    }
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -104,12 +113,12 @@ export default function AllLoginPages() {
       newErrors.email = 'Valid email is required';
     }
 
-    if (!formData.password || formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    if (!formData.password || formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     if (!isLogin) {
-      if (role === 'issuer' && !formData.organizationName?.trim()) {
+      if (selectedRole === 'issuer' && !formData.organizationName?.trim()) {
         newErrors.organizationName = 'Organization name is required';
       }
       if (!formData.fullName?.trim()) {
@@ -126,10 +135,23 @@ export default function AllLoginPages() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleRoleChange = (role) => {
+    setSelectedRole(role);
+    setIsLogin(true);
+    setFormData({
+      email: preFilledEmail || '',
+      password: '',
+      organizationName: '',
+      fullName: '',
+      confirmPassword: '',
+    });
+    setErrors({});
   };
 
   const handleSubmit = async (e) => {
@@ -141,17 +163,15 @@ export default function AllLoginPages() {
 
     try {
       if (isLogin) {
-        // ===== LOGIN FLOW =====
+        // LOGIN
         const response = await fetch('/api/auth', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'signin',
             email: formData.email,
             password: formData.password,
-            role: role,
+            role: selectedRole,
           }),
         });
 
@@ -162,18 +182,15 @@ export default function AllLoginPages() {
         }
 
         setUser(data.user);
-        setRole(role);
-
-        toast.success('Welcome back!');
-        navigate(`/${role}`);
+        setRole(selectedRole);
+        toast.success(`Welcome back, ${selectedRole}!`);
+        navigate(`/${selectedRole}`);
       } else {
-        // ===== SIGNUP FLOW =====
-        // Redirect to payment checkout instead of direct signup
-        // Payment checkout page will handle account creation after payment
+        // SIGNUP - Redirect to Payment
         navigate('/payment', {
           state: {
-            role: role,
-            planType: 'professional', // Default to professional plan
+            role: selectedRole,
+            planType: 'professional',
             email: formData.email,
             fullName: formData.fullName,
             organizationName: formData.organizationName,
@@ -188,195 +205,227 @@ export default function AllLoginPages() {
     }
   };
 
-  const handleSignUpClick = () => {
-    // Navigate to payment checkout with form data
-    navigate('/payment', {
-      state: {
-        role: role,
-        planType: 'professional',
-      },
-    });
-  };
-
   return (
     <div className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center px-4 py-12`}>
       <div className="w-full max-w-md">
-        <Link
-          to="/"
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/')}
           className="inline-flex items-center text-white mb-8 hover:opacity-80 transition"
         >
           <FiArrowLeft className="mr-2" />
           Back to Home
-        </Link>
+        </button>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <div className={`inline-block ${colors.bg} p-3 rounded-full mb-4`}>
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className={`bg-gradient-to-r ${colors.gradient} p-6 text-white text-center`}>
+            <div className={`inline-block ${colors.bg} p-3 rounded-full mb-3`}>
               <Icon className={`${colors.text} text-3xl`} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{config.title}</h1>
-            <p className="text-gray-600 mt-2">
-              {isLogin ? `Sign in to ${config.title}` : `Create your ${role} account`}
-            </p>
+            <h1 className="text-2xl font-bold">{config.title}</h1>
+            <p className="text-white text-sm opacity-90 mt-1">{config.subtitle}</p>
           </div>
 
-          {/* Info banner if coming from payment */}
-          {preFilledEmail && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
-              <FiAlertCircle className="text-green-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-green-700">
-                <p className="font-medium">Payment successful!</p>
-                <p className="text-xs mt-1">Please log in with your credentials</p>
-              </div>
-            </div>
-          )}
+          {/* Role Tabs */}
+          <div className="flex border-b border-gray-200">
+            {Object.entries(roleConfig).map(([role, cfg]) => (
+              <button
+                key={role}
+                onClick={() => handleRoleChange(role)}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition ${
+                  selectedRole === role
+                    ? `${colors.tab} border-b-2`
+                    : 'text-gray-600 border-b-2 border-transparent hover:text-gray-900'
+                }`}
+              >
+                {role === 'issuer' && '🏢 Issuer'}
+                {role === 'owner' && '👤 Owner'}
+                {role === 'admin' && '🛡️ Admin'}
+              </button>
+            ))}
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-              <div className="relative">
-                <FiMail className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="your@email.com"
-                  disabled={preFilledEmail && isLogin}
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  } ${preFilledEmail && isLogin ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                />
-              </div>
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-            </div>
-
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  placeholder="John Doe"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                    errors.fullName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+          {/* Content */}
+          <div className="p-8">
+            {/* Payment Success Banner */}
+            {preFilledEmail && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
+                <FiAlertCircle className="text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-green-700">
+                  <p className="font-medium">✓ Payment successful!</p>
+                  <p className="text-xs mt-1">Log in with your credentials</p>
+                </div>
               </div>
             )}
 
-            {!isLogin && role === 'issuer' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-                <input
-                  type="text"
-                  name="organizationName"
-                  value={formData.organizationName}
-                  onChange={handleInputChange}
-                  placeholder="Your University / Company"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                    errors.organizationName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.organizationName && <p className="text-red-500 text-sm mt-1">{errors.organizationName}</p>}
-              </div>
-            )}
+            {/* Form Title */}
+            <p className="text-center text-gray-600 text-sm mb-6">
+              {isLogin ? `Sign in to ${config.title}` : `Create your ${selectedRole} account`}
+            </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="••••••••"
-                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
-              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-            </div>
-
-            {!isLogin && (
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <FiMail className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="your@email.com"
+                    disabled={preFilledEmail && isLogin}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                      errors.email ? 'border-red-500' : 'border-gray-300'
+                    } ${preFilledEmail && isLogin ? 'bg-gray-50' : ''}`}
+                  />
+                </div>
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              </div>
+
+              {/* Full Name (Signup) */}
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
+                      errors.fullName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.fullName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Organization Name (Issuer Signup) */}
+              {!isLogin && selectedRole === 'issuer' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Organization Name
+                  </label>
+                  <input
+                    type="text"
+                    name="organizationName"
+                    value={formData.organizationName}
+                    onChange={handleInputChange}
+                    placeholder="Your University / Company"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
+                      errors.organizationName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.organizationName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.organizationName}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
                 <div className="relative">
                   <FiLock className="absolute left-3 top-3 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
+                    name="password"
+                    value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
+                      errors.password ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
                 </div>
-                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+              </div>
+
+              {/* Confirm Password (Signup) */}
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <FiLock className="absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="••••••••"
+                      className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none ${
+                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full ${colors.button} text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed mt-6`}
+              >
+                {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Continue to Payment'}
+              </button>
+            </form>
+
+            {/* Toggle Login/Signup */}
+            <p className="text-center text-gray-600 mt-6 text-sm">
+              {isLogin ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setErrors({});
+                }}
+                className={`${colors.text} font-medium hover:underline`}
+              >
+                {isLogin ? 'Sign Up' : 'Sign In'}
+              </button>
+            </p>
+
+            {/* Signup Info */}
+            {!isLogin && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  💳 Click "Continue to Payment" to proceed with account creation. Choose your plan and complete payment.
+                </p>
               </div>
             )}
+          </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full ${colors.button} text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed mt-6`}
-            >
-              {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          {/* Sign Up / Sign In Toggle */}
-          <p className="text-center text-gray-600 mt-6">
-            {isLogin ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-                if (!isLogin) {
-                  // Moving from signup to login
-                  setFormData({ 
-                    email: formData.email, // Keep email
-                    password: '',
-                    organizationName: '',
-                    fullName: '',
-                    confirmPassword: '' 
-                  });
-                }
-              }}
-              className={`${colors.link} font-medium hover:underline`}
-            >
-              {isLogin ? 'Sign Up' : 'Sign In'}
-            </button>
-          </p>
-
-          {/* Direct signup button info (when on signup tab) */}
-          {!isLogin && (
-            <div className={`mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg`}>
-              <p className="text-xs text-blue-700">
-                💳 Click "Create Account" to proceed to payment. Choose your plan and complete your purchase.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className={`mt-8 ${colors.dark} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 text-white text-sm`}>
-          <p className="font-medium mb-2">Demo Credentials:</p>
-          <p>Email: {config.demoEmail}</p>
-          <p>Password: {config.demoPass}</p>
+          {/* Demo Credentials */}
+          <div className={`${colors.dark} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 m-4 text-white text-sm`}>
+            <p className="font-medium mb-2">📝 Demo Credentials:</p>
+            <p className="text-xs">Email: <code>{config.demoEmail}</code></p>
+            <p className="text-xs">Password: <code>{config.demoPass}</code></p>
+          </div>
         </div>
       </div>
     </div>
