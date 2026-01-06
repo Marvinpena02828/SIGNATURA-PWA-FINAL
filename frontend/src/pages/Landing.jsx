@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, FiZap, FiMail } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo31.png';
+import './Landing.css';
 
 // Ripple Effect Component
 const RippleButton = ({ children, onClick, className, to, variant = 'primary', disabled = false }) => {
@@ -24,14 +25,14 @@ const RippleButton = ({ children, onClick, className, to, variant = 'primary', d
   };
 
   const buttonClasses = {
-    primary: 'bg-signatura-red text-white hover:bg-signatura-accent',
-    secondary: 'bg-gray-100 text-signatura-dark hover:bg-gray-200',
-    outline: 'border-2 border-gray-300 text-signatura-dark hover:border-gray-400',
-    outlineRed: 'border-2 border-signatura-red text-signatura-red hover:bg-red-50',
-    ghost: 'bg-white text-signatura-red hover:bg-red-50',
+    primary: 'btn-ripple btn-primary-custom',
+    secondary: 'btn-ripple btn-secondary-custom',
+    outline: 'btn-ripple btn-outline-custom',
+    outlineRed: 'btn-ripple btn-outline-red-custom',
+    ghost: 'btn-ripple btn-ghost-custom',
   };
 
-  const baseClasses = `relative overflow-hidden px-8 py-4 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses[variant]} ${className || ''}`;
+  const baseClasses = `btn btn-lg position-relative overflow-hidden ${buttonClasses[variant]} ${className || ''}`;
 
   const ButtonComponent = to ? Link : 'button';
   const props = to ? { to } : { onClick: handleClick, disabled };
@@ -42,7 +43,7 @@ const RippleButton = ({ children, onClick, className, to, variant = 'primary', d
         {ripples.map(ripple => (
           <motion.span
             key={ripple.id}
-            className="absolute bg-white rounded-full pointer-events-none"
+            className="ripple-effect"
             initial={{ opacity: 0.6, scale: 0 }}
             animate={{ opacity: 0, scale: 2 }}
             transition={{ duration: 0.6 }}
@@ -55,7 +56,7 @@ const RippleButton = ({ children, onClick, className, to, variant = 'primary', d
           />
         ))}
       </AnimatePresence>
-      <span className="relative flex items-center justify-center gap-2">{children}</span>
+      <span className="d-flex align-items-center justify-content-center gap-2 position-relative">{children}</span>
     </ButtonComponent>
   );
 };
@@ -71,11 +72,11 @@ const FloatingParticles = () => {
   }));
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="floating-particles">
       {particles.map(particle => (
         <motion.div
           key={particle.id}
-          className="absolute bg-red-200 rounded-full opacity-20"
+          className="particle"
           style={{
             width: particle.size,
             height: particle.size,
@@ -96,29 +97,6 @@ const FloatingParticles = () => {
       ))}
     </div>
   );
-};
-
-// Animated Counter
-const Counter = ({ end, duration = 2 }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const increment = end / (duration * 60);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 1000 / 60);
-
-    return () => clearInterval(timer);
-  }, [end, duration]);
-
-  return <span>{count}</span>;
 };
 
 export default function Landing() {
@@ -155,7 +133,6 @@ export default function Landing() {
     if (!email) return;
 
     setIsSubscribing(true);
-    // Simulate API call
     setTimeout(() => {
       setIsSubscribing(false);
       setSubscribeSuccess(true);
@@ -170,55 +147,63 @@ export default function Landing() {
   };
 
   return (
-    <div className="bg-white overflow-hidden">
+    <div className="landing-page">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="navbar sticky-top navbar-expand-md navbar-light bg-white border-bottom">
+        <div className="container-xl">
           <motion.div
-            className="flex justify-between items-center h-16"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="w-100 d-flex justify-content-between align-items-center"
           >
-            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
+            <Link to="/" className="navbar-brand">
               <motion.img
                 src={logo}
                 alt="Signatura Logo"
-                className="h-10 w-auto object-contain"
+                height="40"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               />
             </Link>
 
-            <div className="hidden md:flex space-x-8">
-              {[
-                { label: 'Features', id: 'features' },
-                { label: 'How It Works', id: 'how-it-works' },
-                { label: 'Security', id: 'security' },
-              ].map((item) => (
-                <motion.button
-                  key={item.id}
-                  onClick={() => handleNavigate(item.id)}
-                  className="text-gray-600 hover:text-signatura-red font-medium transition relative group"
-                  whileHover={{ y: -2 }}
-                >
-                  {item.label}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-signatura-red group-hover:w-full transition-all duration-300" />
-                </motion.button>
-              ))}
+            <button
+              className="navbar-toggler"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarNav"
+            >
+              <span className="navbar-toggler-icon"></span>
+            </button>
+
+            <div className="collapse navbar-collapse" id="navbarNav">
+              <ul className="navbar-nav ms-auto">
+                {[
+                  { label: 'Features', id: 'features' },
+                  { label: 'How It Works', id: 'how-it-works' },
+                  { label: 'Security', id: 'security' },
+                ].map((item) => (
+                  <li className="nav-item" key={item.id}>
+                    <motion.button
+                      onClick={() => handleNavigate(item.id)}
+                      className="nav-link text-decoration-none"
+                      whileHover={{ y: -2 }}
+                    >
+                      {item.label}
+                    </motion.button>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="d-flex align-items-center gap-3 ms-3">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link
-                  to="/login/issuer"
-                  className="text-gray-600 hover:text-signatura-red font-medium transition"
-                >
+                <Link to="/login/issuer" className="text-decoration-none text-dark">
                   Sign In
                 </Link>
               </motion.div>
               <RippleButton to="/login/issuer" variant="primary">
-                Get Started <FiArrowRight className="group-hover:translate-x-1 transition" />
+                Get Started <FiArrowRight />
               </RippleButton>
             </div>
           </motion.div>
@@ -226,22 +211,22 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 sm:py-32 bg-gradient-to-br from-white via-red-50/30 to-white">
+      <section className="hero-section py-5 position-relative">
         <FloatingParticles />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-red-200 to-red-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-gradient-to-br from-red-100 to-pink-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container-xl position-relative">
           <motion.div className="text-center" {...fadeInUp}>
             <motion.h1
-              className="text-5xl sm:text-6xl md:text-7xl font-bold text-signatura-dark mb-6 leading-tight"
+              className="display-4 fw-bold mb-4 hero-title"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             >
               Verify Credentials with
               <motion.span
-                className="block text-transparent bg-clip-text bg-gradient-to-r from-signatura-red via-pink-500 to-signatura-accent"
+                className="d-block gradient-text"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
@@ -251,7 +236,8 @@ export default function Landing() {
             </motion.h1>
 
             <motion.p
-              className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
+              className="lead text-muted mb-5 mx-auto"
+              style={{ maxWidth: '600px' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -261,7 +247,7 @@ export default function Landing() {
 
             {/* CTA Buttons */}
             <motion.div
-              className="flex flex-col sm:flex-row justify-center gap-4 mb-12"
+              className="d-flex flex-column flex-sm-row justify-content-center gap-3 mb-5"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -280,7 +266,8 @@ export default function Landing() {
 
             {/* Animated Stats */}
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto"
+              className="row mx-auto mb-5"
+              style={{ maxWidth: '700px' }}
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
@@ -291,14 +278,14 @@ export default function Landing() {
                 { label: 'Encryption', value: '256-bit' },
                 { label: 'Verification', value: 'Instant' },
               ].map((stat, idx) => (
-                <motion.div key={idx} variants={itemVariants} className="group">
+                <motion.div key={idx} variants={itemVariants} className="col-md-4 mb-3">
                   <motion.div
-                    className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-signatura-red to-signatura-accent mb-2"
+                    className="stat-value"
                     whileHover={{ scale: 1.1 }}
                   >
                     {stat.value}
                   </motion.div>
-                  <p className="text-gray-600 group-hover:text-signatura-dark transition">{stat.label}</p>
+                  <p className="text-muted small">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -306,22 +293,24 @@ export default function Landing() {
 
           {/* Hero Visual */}
           <motion.div
-            className="mt-16 relative"
+            className="mt-5 position-relative"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-signatura-red/20 to-pink-500/20 rounded-3xl blur-3xl" />
-            <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-1 shadow-2xl">
-              <div className="bg-gray-900 rounded-2xl p-8 grid grid-cols-3 gap-4">
+            <div className="hero-visual-bg"></div>
+            <div className="hero-visual">
+              <div className="row g-3">
                 {[FiLock, FiShield, FiUsers].map((Icon, idx) => (
                   <motion.div
                     key={idx}
-                    className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-4 h-32 flex items-center justify-center text-gray-400 hover:text-signatura-red transition cursor-pointer group"
+                    className="col-4"
                     whileHover={{ scale: 1.05, y: -5 }}
                   >
-                    <Icon className="text-4xl group-hover:scale-125 transition-transform duration-300" />
+                    <div className="hero-visual-card">
+                      <Icon className="h-100 w-100" size={48} />
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -331,21 +320,17 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 sm:py-32 bg-gray-50/50 relative overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-200/20 rounded-full blur-3xl" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <motion.div className="text-center mb-16" {...fadeInUp}>
-            <h2 className="text-4xl sm:text-5xl font-bold text-signatura-dark mb-4">
-              Powerful Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+      <section id="features" className="features-section py-5 position-relative">
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-5 fw-bold mb-3">Powerful Features</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
               Everything you need to issue, manage, and verify digital credentials securely.
             </p>
           </motion.div>
 
           <motion.div
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="row g-4"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -362,29 +347,28 @@ export default function Landing() {
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                className="relative group"
+                className="col-md-6 col-lg-4"
                 onMouseEnter={() => setHoveredFeature(idx)}
                 onMouseLeave={() => setHoveredFeature(null)}
               >
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-signatura-red/0 to-pink-500/0 rounded-xl blur-xl transition-all duration-300 group-hover:opacity-100"
+                  className="feature-card"
                   animate={{
-                    opacity: hoveredFeature === idx ? 0.2 : 0,
+                    boxShadow: hoveredFeature === idx
+                      ? '0 20px 40px rgba(255, 45, 85, 0.15)'
+                      : '0 10px 20px rgba(0, 0, 0, 0.05)',
                   }}
-                />
-                <motion.div
-                  className="relative bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 h-full border border-gray-100/50"
                   whileHover={{ y: -8 }}
                 >
                   <motion.div
-                    className="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-lg flex items-center justify-center mb-4"
+                    className="feature-icon"
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <feature.icon className="text-2xl text-signatura-red" />
+                    <feature.icon size={32} />
                   </motion.div>
-                  <h3 className="text-lg font-bold text-signatura-dark mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{feature.desc}</p>
+                  <h3 className="h5 fw-bold mb-2">{feature.title}</h3>
+                  <p className="text-muted small">{feature.desc}</p>
                 </motion.div>
               </motion.div>
             ))}
@@ -393,20 +377,18 @@ export default function Landing() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 sm:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div className="text-center mb-16" {...fadeInUp}>
-            <h2 className="text-4xl sm:text-5xl font-bold text-signatura-dark mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+      <section id="how-it-works" className="how-it-works-section py-5">
+        <div className="container-xl">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-5 fw-bold mb-3">How It Works</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
               Simple workflow for issuance, management, and verification.
             </p>
           </motion.div>
 
           {/* Main Steps */}
           <motion.div
-            className="grid md:grid-cols-3 gap-8 mb-16"
+            className="row g-4 mb-5"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -417,55 +399,44 @@ export default function Landing() {
               { num: 2, title: 'Request', desc: 'Verifiers request permission to access a document. The owner receives and reviews the request.' },
               { num: 3, title: 'Verification', desc: 'Owner grants access with fine-grained control. Verifier gets instant cryptographic proof.' },
             ].map((step, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="relative">
-                <motion.div
-                  className="bg-gradient-to-br from-signatura-red to-pink-500 text-white w-14 h-14 rounded-full flex items-center justify-center font-bold mb-4 shadow-lg"
-                  whileHover={{ scale: 1.2, rotate: 10 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  {step.num}
-                </motion.div>
-                {idx < 2 && (
+              <motion.div key={idx} variants={itemVariants} className="col-md-4">
+                <div className="step-card position-relative">
                   <motion.div
-                    className="hidden md:block absolute top-7 left-full w-8 h-0.5 bg-gradient-to-r from-signatura-red to-transparent"
-                    initial={{ scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                    viewport={{ once: true }}
-                  />
-                )}
-                <h3 className="text-xl font-bold text-signatura-dark mb-3">{step.title}</h3>
-                <p className="text-gray-600 mb-4">{step.desc}</p>
+                    className="step-number"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  >
+                    {step.num}
+                  </motion.div>
+                  <h3 className="h5 fw-bold mb-3">{step.title}</h3>
+                  <p className="text-muted small">{step.desc}</p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
 
           {/* Detailed Steps */}
           <motion.div
-            className="bg-gradient-to-r from-gray-50 to-red-50 rounded-2xl p-8 md:p-12 border border-gray-200/30"
+            className="how-it-works-detail p-4 p-md-5 rounded-3"
             {...fadeInUp}
           >
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="row g-4">
               {[
                 { title: 'Digital Signing', desc: 'Documents are signed with issuer\'s private key using industry-standard algorithms.' },
                 { title: 'Consent-Based Access', desc: 'Owners explicitly approve each verification request with granular permission controls.' },
                 { title: 'Offline Verification', desc: 'Verifiers can validate credentials offline using the issuer\'s public key.' },
               ].map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  whileHover={{ y: -4 }}
-                  className="group"
-                >
-                  <div className="flex items-center mb-3">
+                <motion.div key={idx} className="col-md-4" whileHover={{ y: -4 }}>
+                  <div className="d-flex gap-2 mb-3">
                     <motion.span
-                      className="bg-gradient-to-br from-signatura-red to-pink-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold shadow-lg"
+                      className="step-checkmark"
                       whileHover={{ scale: 1.3 }}
                     >
                       ✓
                     </motion.span>
-                    <h4 className="font-bold text-signatura-dark group-hover:text-signatura-red transition">{item.title}</h4>
+                    <h4 className="fw-bold">{item.title}</h4>
                   </div>
-                  <p className="text-gray-600 text-sm ml-11 group-hover:text-gray-700 transition">{item.desc}</p>
+                  <p className="text-muted small ps-5">{item.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -474,22 +445,20 @@ export default function Landing() {
       </section>
 
       {/* Security Section */}
-      <section id="security" className="py-20 sm:py-32 bg-gradient-to-br from-signatura-dark via-gray-900 to-black text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-signatura-red/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 left-20 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
+      <section id="security" className="security-section py-5 text-white position-relative">
+        <div className="security-blob-1"></div>
+        <div className="security-blob-2"></div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <motion.div className="text-center mb-16" {...fadeInUp}>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Enterprise Security
-            </h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-5 fw-bold mb-3">Enterprise Security</h2>
+            <p className="lead opacity-75 mx-auto" style={{ maxWidth: '600px' }}>
               Built with security best practices from day one.
             </p>
           </motion.div>
 
           <motion.div
-            className="grid md:grid-cols-2 gap-12"
+            className="row g-5"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -515,23 +484,23 @@ export default function Landing() {
                 ],
               },
             ].map((section, idx) => (
-              <motion.div key={idx} variants={itemVariants}>
-                <h3 className="text-2xl font-bold mb-6">{section.title}</h3>
-                <ul className="space-y-4">
+              <motion.div key={idx} variants={itemVariants} className="col-md-6">
+                <h3 className="h4 fw-bold mb-4">{section.title}</h3>
+                <ul className="list-unstyled">
                   {section.items.map((item, itemIdx) => (
                     <motion.li
                       key={itemIdx}
-                      className="flex items-start gap-3 group"
+                      className="d-flex align-items-start gap-3 mb-3"
                       whileHover={{ x: 8 }}
                     >
                       <motion.div
-                        className="w-6 h-6 rounded-full bg-gradient-to-br from-signatura-red to-pink-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg"
+                        className="security-checkmark"
                         whileHover={{ scale: 1.2, rotate: 360 }}
                         transition={{ duration: 0.5 }}
                       >
-                        <span className="text-sm">✓</span>
+                        ✓
                       </motion.div>
-                      <span className="text-gray-300 group-hover:text-white transition">{item}</span>
+                      <span className="opacity-75">{item}</span>
                     </motion.li>
                   ))}
                 </ul>
@@ -542,21 +511,17 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 sm:py-32 bg-gray-50 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-red-100/20 rounded-full blur-3xl" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <motion.div className="text-center mb-16" {...fadeInUp}>
-            <h2 className="text-4xl sm:text-5xl font-bold text-signatura-dark mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+      <section className="pricing-section py-5 position-relative">
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-5 fw-bold mb-3">Simple, Transparent Pricing</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
               No hidden fees. Pay only for what you use.
             </p>
           </motion.div>
 
           <motion.div
-            className="grid md:grid-cols-3 gap-8"
+            className="row g-4"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -590,54 +555,50 @@ export default function Landing() {
               <motion.div
                 key={idx}
                 variants={itemVariants}
+                className="col-md-4"
                 whileHover={{ scale: 1.02, y: -8 }}
-                className={`relative rounded-xl p-8 border transition-all duration-300 ${
-                  plan.popular
-                    ? 'border-signatura-red bg-gradient-to-br from-red-50 to-pink-50 shadow-2xl'
-                    : 'border-gray-200 bg-white shadow-lg hover:shadow-xl'
-                }`}
               >
-                {plan.popular && (
-                  <motion.div
-                    className="absolute -top-4 left-1/2 transform -translate-x-1/2"
-                    initial={{ y: -20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                  >
-                    <span className="bg-gradient-to-r from-signatura-red to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
-                      POPULAR
-                    </span>
-                  </motion.div>
-                )}
-
-                <h3 className="text-2xl font-bold text-signatura-dark mb-2">{plan.name}</h3>
-                <p className="text-gray-600 mb-4 text-sm">{plan.desc}</p>
-
-                <div className="mb-6">
-                  <p className="text-4xl font-bold text-signatura-dark">{plan.price}</p>
-                  {plan.period && <p className="text-gray-600 text-sm">{plan.period}</p>}
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, featureIdx) => (
-                    <motion.li
-                      key={featureIdx}
-                      className="flex items-center text-gray-700 text-sm"
-                      whileHover={{ x: 4 }}
+                <div className={`pricing-card ${plan.popular ? 'pricing-card-popular' : ''}`}>
+                  {plan.popular && (
+                    <motion.div
+                      className="pricing-badge"
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
                     >
-                      <FiCheckCircle className="mr-3 text-green-600 flex-shrink-0" />
-                      {feature}
-                    </motion.li>
-                  ))}
-                </ul>
+                      POPULAR
+                    </motion.div>
+                  )}
 
-                <RippleButton
-                  to={plan.popular ? '/login/issuer' : undefined}
-                  onClick={!plan.popular ? () => alert(`${plan.name} plan selected`) : undefined}
-                  variant={plan.variant}
-                  className="w-full"
-                >
-                  {plan.popular ? 'Start Free Trial' : plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
-                </RippleButton>
+                  <h3 className="h4 fw-bold">{plan.name}</h3>
+                  <p className="text-muted small mb-3">{plan.desc}</p>
+
+                  <div className="mb-4">
+                    <p className="display-6 fw-bold">{plan.price}</p>
+                    {plan.period && <p className="text-muted small">{plan.period}</p>}
+                  </div>
+
+                  <ul className="list-unstyled mb-4">
+                    {plan.features.map((feature, featureIdx) => (
+                      <motion.li
+                        key={featureIdx}
+                        className="d-flex align-items-center gap-2 mb-3 text-muted small"
+                        whileHover={{ x: 4 }}
+                      >
+                        <FiCheckCircle className="text-success flex-shrink-0" />
+                        {feature}
+                      </motion.li>
+                    ))}
+                  </ul>
+
+                  <RippleButton
+                    to={plan.popular ? '/login/issuer' : undefined}
+                    onClick={!plan.popular ? () => alert(`${plan.name} plan selected`) : undefined}
+                    variant={plan.variant}
+                    className="w-100"
+                  >
+                    {plan.popular ? 'Start Free Trial' : plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
+                  </RippleButton>
+                </div>
               </motion.div>
             ))}
           </motion.div>
@@ -645,23 +606,21 @@ export default function Landing() {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 sm:py-20 bg-gradient-to-r from-signatura-red via-pink-500 to-signatura-accent text-white relative overflow-hidden">
-        <div className="absolute inset-0">
-          <motion.div
-            className="absolute top-0 left-0 w-72 h-72 bg-white/10 rounded-full mix-blend-multiply filter blur-3xl"
-            animate={{ x: [0, 50, 0], y: [0, 50, 0] }}
-            transition={{ duration: 8, repeat: Infinity }}
-          />
-          <motion.div
-            className="absolute bottom-0 right-0 w-72 h-72 bg-white/10 rounded-full mix-blend-multiply filter blur-3xl"
-            animate={{ x: [0, -50, 0], y: [0, -50, 0] }}
-            transition={{ duration: 8, repeat: Infinity }}
-          />
-        </div>
+      <section className="newsletter-section py-5 text-white position-relative">
+        <motion.div
+          className="newsletter-blob-1"
+          animate={{ x: [0, 50, 0], y: [0, 50, 0] }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+        <motion.div
+          className="newsletter-blob-2"
+          animate={{ x: [0, -50, 0], y: [0, -50, 0] }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
 
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
+        <div className="container-lg position-relative" style={{ maxWidth: '600px' }}>
           <motion.h2
-            className="text-3xl sm:text-4xl font-bold mb-4"
+            className="h3 fw-bold text-center mb-3"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -669,7 +628,7 @@ export default function Landing() {
             Stay Updated
           </motion.h2>
           <motion.p
-            className="text-white/80 mb-8"
+            className="text-center opacity-75 mb-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -680,7 +639,7 @@ export default function Landing() {
 
           <motion.form
             onSubmit={handleNewsletterSubmit}
-            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+            className="d-flex flex-column flex-sm-row gap-3"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -691,14 +650,14 @@ export default function Landing() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-6 py-3 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white transition"
+              className="form-control form-control-lg newsletter-input"
               disabled={isSubscribing}
             />
             <RippleButton
               variant="ghost"
               onClick={handleNewsletterSubmit}
               disabled={isSubscribing}
-              className="px-6 py-3"
+              className="newsletter-btn"
             >
               {isSubscribing ? (
                 <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }}>
@@ -714,7 +673,7 @@ export default function Landing() {
 
           {subscribeSuccess && (
             <motion.div
-              className="mt-4 text-green-100 font-medium"
+              className="text-center mt-3 text-success"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -726,12 +685,12 @@ export default function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 sm:py-32 bg-white relative overflow-hidden">
-        <div className="absolute -top-96 right-0 w-96 h-96 bg-red-100/30 rounded-full blur-3xl" />
+      <section className="final-cta-section py-5 position-relative">
+        <div className="cta-blob"></div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+        <div className="container-lg text-center position-relative" style={{ maxWidth: '900px' }}>
           <motion.h2
-            className="text-4xl sm:text-5xl font-bold text-signatura-dark mb-6"
+            className="display-5 fw-bold mb-4"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -739,7 +698,7 @@ export default function Landing() {
             Ready to Get Started?
           </motion.h2>
           <motion.p
-            className="text-xl text-gray-600 mb-8"
+            className="lead text-muted mb-4"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -749,7 +708,7 @@ export default function Landing() {
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row justify-center gap-4"
+            className="d-flex flex-column flex-sm-row justify-content-center gap-3"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -771,9 +730,9 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-signatura-dark text-gray-400 py-12 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+      <footer className="footer py-4 border-top">
+        <div className="container-xl">
+          <div className="row g-4 mb-4">
             {[
               {
                 title: 'Product',
@@ -808,14 +767,14 @@ export default function Landing() {
                 ],
               },
             ].map((section, idx) => (
-              <motion.div key={idx} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-                <h4 className="text-white font-bold mb-4">{section.title}</h4>
-                <ul className="space-y-2 text-sm">
+              <motion.div key={idx} className="col-md-3" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+                <h6 className="fw-bold mb-3">{section.title}</h6>
+                <ul className="list-unstyled">
                   {section.links.map((link, linkIdx) => (
-                    <motion.li key={linkIdx} whileHover={{ x: 4 }}>
+                    <motion.li key={linkIdx} whileHover={{ x: 4 }} className="mb-2">
                       <button
                         onClick={link.action}
-                        className="hover:text-white transition cursor-pointer"
+                        className="btn btn-link p-0 text-decoration-none text-muted text-start"
                       >
                         {link.label}
                       </button>
@@ -827,15 +786,15 @@ export default function Landing() {
           </div>
 
           <motion.div
-            className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center"
+            className="border-top pt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <Link to="/" className="flex items-center space-x-2 mb-4 sm:mb-0 hover:opacity-80 transition">
-              <img src={logo} alt="Signatura Logo" className="h-8 w-auto object-contain" />
+            <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none mb-3 mb-sm-0">
+              <img src={logo} alt="Signatura Logo" height="32" />
             </Link>
-            <p className="text-sm">&copy; 2025 Signatura. All rights reserved.</p>
+            <p className="text-muted small mb-0">&copy; 2025 Signatura. All rights reserved.</p>
           </motion.div>
         </div>
       </footer>
