@@ -1,51 +1,61 @@
 import { create } from 'zustand';
 
-export const useAuthStore = create((set) => ({
-  user: null,
-  role: null,
-  token: null,
+export const useAuthStore = create((set, get) => {
+  console.log('✅ authStore initialized');
 
-  setUser: (user) => {
-    set({ user });
-    localStorage.setItem('auth_user', JSON.stringify(user));
-  },
+  return {
+    // State
+    user: null,
+    role: null,
+    isAuthenticated: false,
+    loading: false,
 
-  setRole: (role) => {
-    set({ role });
-    localStorage.setItem('auth_role', role);
-  },
-
-  setToken: (token) => {
-    set({ token });
-    localStorage.setItem('auth_token', token);
-  },
-
-  clearAuth: () => {
-    // Clear all storage
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('auth_role');
-    localStorage.removeItem('auth_token');
-    sessionStorage.clear();
-    
-    // Clear state
-    set({ 
-      user: null, 
-      role: null, 
-      token: null 
-    });
-  },
-
-  loadFromStorage: () => {
-    const user = localStorage.getItem('auth_user');
-    const role = localStorage.getItem('auth_role');
-    const token = localStorage.getItem('auth_token');
-
-    if (user && role) {
+    // Actions
+    setUser: (user) => {
+      console.log('👤 setUser called:', user?.email);
       set({ 
-        user: JSON.parse(user), 
-        role, 
-        token 
+        user, 
+        isAuthenticated: !!user 
       });
-    }
-  },
-}));
+    },
+
+    setRole: (role) => {
+      console.log('🎯 setRole called:', role);
+      set({ role });
+    },
+
+    setLoading: (loading) => set({ loading }),
+
+    login: (user, role) => {
+      console.log('🔑 login called:', user?.email, role);
+      set({
+        user,
+        role,
+        isAuthenticated: true,
+      });
+    },
+
+    logout: () => {
+      console.log('🚪 logout called');
+      set({
+        user: null,
+        role: null,
+        isAuthenticated: false,
+      });
+    },
+
+    clearAuth: () => {
+      console.log('🧹 clearAuth called');
+      set({
+        user: null,
+        role: null,
+        isAuthenticated: false,
+      });
+    },
+
+    // Getters
+    getUser: () => get().user,
+    getRole: () => get().role,
+    isLoggedIn: () => get().isAuthenticated,
+  };
+});
