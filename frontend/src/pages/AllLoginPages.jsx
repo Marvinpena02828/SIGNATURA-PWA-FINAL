@@ -11,10 +11,11 @@ import logo from '../assets/logo31.png';
 export default function AllLoginPages() {
   const { role: urlRole } = useParams();
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
-  const setRole = useAuthStore((state) => state.setRole);
+  
+  // ✅ PROPER way to use authStore
+  const { login, signup } = useAuthStore();
 
-  // State
+  // Local state
   const [selectedRole, setSelectedRole] = useState(urlRole || 'issuer');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +39,6 @@ export default function AllLoginPages() {
       color: 'red',
       demoEmail: 'issuer@demo.com',
       demoPass: 'Demo@1234',
-      features: ['Issue Credentials', 'Manage Requests', 'View Statistics'],
     },
     owner: {
       title: '👤 Owner Wallet',
@@ -47,7 +47,6 @@ export default function AllLoginPages() {
       color: 'blue',
       demoEmail: 'owner@demo.com',
       demoPass: 'Demo@1234',
-      features: ['Digital Wallet', 'Verify Credentials', 'Control Sharing'],
     },
     admin: {
       title: '🛡️ Admin Portal',
@@ -56,7 +55,6 @@ export default function AllLoginPages() {
       color: 'purple',
       demoEmail: 'admin@signatura.com',
       demoPass: 'Admin@1234',
-      features: ['User Management', 'Analytics', 'System Settings'],
     },
   };
 
@@ -67,27 +65,27 @@ export default function AllLoginPages() {
     switch (config.color) {
       case 'blue':
         return {
-          gradient: 'from-red-600 to-red-400',
-          gradientBg: 'bg-gradient-to-br from-red-600 to-red-400',
-          bg: 'bg-red-100',
-          text: 'text-red-600',
-          button: 'bg-red-600 hover:bg-red-700',
-          tab: 'text-red-600 border-red-600',
-          dark: 'bg-red-900',
-          border: 'border-red-200',
-          lightBg: 'bg-red-50',
+          gradient: 'from-blue-600 to-blue-400',
+          gradientBg: 'bg-gradient-to-br from-blue-600 to-blue-400',
+          bg: 'bg-blue-100',
+          text: 'text-blue-600',
+          button: 'bg-blue-600 hover:bg-blue-700',
+          tab: 'text-blue-600 border-blue-600',
+          dark: 'bg-blue-900',
+          border: 'border-blue-200',
+          lightBg: 'bg-blue-50',
         };
       case 'purple':
         return {
-            gradient: 'from-red-600 to-red-400',
-          gradientBg: 'bg-gradient-to-br from-red-600 to-red-400',
-          bg: 'bg-red-100',
-          text: 'text-red-600',
-          button: 'bg-red-600 hover:bg-red-700',
-          tab: 'text-red-600 border-red-600',
-          dark: 'bg-red-900',
-          border: 'border-red-200',
-          lightBg: 'bg-red-50',
+          gradient: 'from-purple-600 to-purple-400',
+          gradientBg: 'bg-gradient-to-br from-purple-600 to-purple-400',
+          bg: 'bg-purple-100',
+          text: 'text-purple-600',
+          button: 'bg-purple-600 hover:bg-purple-700',
+          tab: 'text-purple-600 border-purple-600',
+          dark: 'bg-purple-900',
+          border: 'border-purple-200',
+          lightBg: 'bg-purple-50',
         };
       default: // red
         return {
@@ -173,7 +171,8 @@ export default function AllLoginPages() {
 
     try {
       if (isLogin) {
-        // LOGIN
+        // ✅ LOGIN
+        console.log('🔑 Attempting login...');
         const response = await fetch('/api/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -186,17 +185,20 @@ export default function AllLoginPages() {
         });
 
         const data = await response.json();
+        console.log('✅ Login response:', data);
 
         if (!response.ok) {
           throw new Error(data.error || 'Login failed');
         }
 
-        setUser(data.user);
-        setRole(selectedRole);
+        // ✅ USE AUTHSTORE PROPERLY
+        login(data.user, selectedRole, data.token);
+        
         toast.success(`Welcome back, ${selectedRole}!`);
         navigate(`/${selectedRole}`);
       } else {
-        // SIGNUP - Redirect to Payment
+        // ✅ SIGNUP - Redirect to Payment
+        console.log('📝 Redirecting to payment...');
         navigate('/payment', {
           state: {
             role: selectedRole,
@@ -209,6 +211,7 @@ export default function AllLoginPages() {
         });
       }
     } catch (error) {
+      console.error('❌ Error:', error);
       toast.error(error.message || 'An error occurred');
     } finally {
       setIsLoading(false);
@@ -287,7 +290,7 @@ export default function AllLoginPages() {
                 </div>
                 <div className="text-sm text-green-700">
                   <p className="font-semibold">✓ Payment successful!</p>
-                  <p className="text-xs mt-1">Log in with your credentials to access your account</p>
+                  <p className="text-xs mt-1">Log in with your credentials</p>
                 </div>
               </div>
             )}
@@ -314,11 +317,11 @@ export default function AllLoginPages() {
                     placeholder="your@email.com"
                     disabled={preFilledEmail && isLogin}
                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.email ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
-                    } ${preFilledEmail && isLogin ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      errors.email ? 'border-red-500 focus:ring-red-500' : `border-gray-300 focus:ring-red-500`
+                    }`}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </div>
 
               {/* Full Name (Signup) */}
@@ -334,11 +337,11 @@ export default function AllLoginPages() {
                     onChange={handleInputChange}
                     placeholder="John Doe"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.fullName ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
+                      errors.fullName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-red-500'
                     }`}
                   />
                   {errors.fullName && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.fullName}</p>
+                    <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
                   )}
                 </div>
               )}
@@ -356,11 +359,11 @@ export default function AllLoginPages() {
                     onChange={handleInputChange}
                     placeholder="Your University / Company"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.organizationName ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
+                      errors.organizationName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-red-500'
                     }`}
                   />
                   {errors.organizationName && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.organizationName}</p>
+                    <p className="text-red-500 text-xs mt-1">{errors.organizationName}</p>
                   )}
                 </div>
               )}
@@ -379,18 +382,18 @@ export default function AllLoginPages() {
                     onChange={handleInputChange}
                     placeholder="••••••••"
                     className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                      errors.password ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
+                      errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-red-500'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition"
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
                 </div>
-                {errors.password && <p className="text-red-500 text-xs mt-1 font-medium">{errors.password}</p>}
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
               </div>
 
               {/* Confirm Password (Signup) */}
@@ -408,12 +411,12 @@ export default function AllLoginPages() {
                       onChange={handleInputChange}
                       placeholder="••••••••"
                       className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
-                        errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : `border-gray-300 ${colors.text.replace('text-', 'focus:ring-')}`
+                        errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-red-500'
                       }`}
                     />
                   </div>
                   {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.confirmPassword}</p>
+                    <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
                   )}
                 </div>
               )}
@@ -440,14 +443,8 @@ export default function AllLoginPages() {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setErrors({});
-                  setFormData(prev => ({
-                    ...prev,
-                    organizationName: '',
-                    fullName: '',
-                    confirmPassword: '',
-                  }));
                 }}
-                className={`${colors.text} font-semibold hover:underline transition`}
+                className={`${colors.text} font-semibold hover:underline`}
               >
                 {isLogin ? 'Sign Up' : 'Sign In'}
               </button>
@@ -457,30 +454,19 @@ export default function AllLoginPages() {
             {!isLogin && (
               <div className={`mt-5 p-4 ${colors.lightBg} border ${colors.border} rounded-lg`}>
                 <p className="text-xs text-gray-700">
-                  💳 Click <span className="font-semibold">"Continue to Payment"</span> to proceed with account creation. Choose your plan and complete payment.
+                  💳 Click <span className="font-semibold">"Continue to Payment"</span> to proceed
                 </p>
               </div>
             )}
           </div>
 
           {/* Demo Credentials */}
-          <div className={`${colors.dark} bg-opacity-60 backdrop-blur-sm rounded-lg p-5 m-4 text-white text-sm border-l-4 ${colors.border}`}>
-            <p className="font-bold mb-3 text-base">📝 Demo Credentials</p>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-100">
-                <span className="font-semibold">Email:</span> <code className="bg-black bg-opacity-30 px-2 py-1 rounded">{config.demoEmail}</code>
-              </p>
-              <p className="text-xs text-gray-100">
-                <span className="font-semibold">Password:</span> <code className="bg-black bg-opacity-30 px-2 py-1 rounded">{config.demoPass}</code>
-              </p>
-            </div>
+          <div className={`${colors.dark} bg-opacity-60 p-5 m-4 text-white text-sm rounded-lg border-l-4`}>
+            <p className="font-bold mb-2">📝 Demo Account</p>
+            <p className="text-xs">Email: <code>{config.demoEmail}</code></p>
+            <p className="text-xs">Pass: <code>{config.demoPass}</code></p>
           </div>
         </div>
-
-        {/* Footer Info */}
-        <p className="text-center text-white text-xs mt-6 opacity-80">
-          Secure authentication • No data sharing • GDPR compliant
-        </p>
       </div>
     </div>
   );
