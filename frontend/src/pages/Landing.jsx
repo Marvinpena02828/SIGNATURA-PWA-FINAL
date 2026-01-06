@@ -149,7 +149,7 @@ export default function Landing() {
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className="navbar sticky-top navbar-expand-md navbar-light bg-white border-bottom">
+      <nav className="navbar sticky-top navbar-expand-md navbar-light bg-white border-bottom border-red">
         <div className="container-xl">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -186,8 +186,8 @@ export default function Landing() {
                   <li className="nav-item" key={item.id}>
                     <motion.button
                       onClick={() => handleNavigate(item.id)}
-                      className="nav-link text-decoration-none"
-                      whileHover={{ y: -2 }}
+                      className="nav-link text-decoration-none text-dark"
+                      whileHover={{ y: -2, color: '#DC2626' }}
                     >
                       {item.label}
                     </motion.button>
@@ -198,7 +198,7 @@ export default function Landing() {
 
             <div className="d-flex align-items-center gap-3 ms-3">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/login/issuer" className="text-decoration-none text-dark">
+                <Link to="/login/issuer" className="text-decoration-none text-red fw-500">
                   Sign In
                 </Link>
               </motion.div>
@@ -226,7 +226,7 @@ export default function Landing() {
             >
               Verify Credentials with
               <motion.span
-                className="d-block gradient-text"
+                className="d-block gradient-text-red"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
@@ -280,7 +280,7 @@ export default function Landing() {
               ].map((stat, idx) => (
                 <motion.div key={idx} variants={itemVariants} className="col-md-4 mb-3">
                   <motion.div
-                    className="stat-value"
+                    className="stat-value text-red"
                     whileHover={{ scale: 1.1 }}
                   >
                     {stat.value}
@@ -308,7 +308,7 @@ export default function Landing() {
                     className="col-4"
                     whileHover={{ scale: 1.05, y: -5 }}
                   >
-                    <div className="hero-visual-card">
+                    <div className="hero-visual-card text-red">
                       <Icon className="h-100 w-100" size={48} />
                     </div>
                   </motion.div>
@@ -355,13 +355,13 @@ export default function Landing() {
                   className="feature-card"
                   animate={{
                     boxShadow: hoveredFeature === idx
-                      ? '0 20px 40px rgba(255, 45, 85, 0.15)'
+                      ? '0 20px 40px rgba(220, 38, 38, 0.15)'
                       : '0 10px 20px rgba(0, 0, 0, 0.05)',
                   }}
                   whileHover={{ y: -8 }}
                 >
                   <motion.div
-                    className="feature-icon"
+                    className="feature-icon text-red"
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.5 }}
                   >
@@ -402,7 +402,7 @@ export default function Landing() {
               <motion.div key={idx} variants={itemVariants} className="col-md-4">
                 <div className="step-card position-relative">
                   <motion.div
-                    className="step-number"
+                    className="step-number text-red"
                     whileHover={{ scale: 1.2, rotate: 10 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                   >
@@ -429,7 +429,7 @@ export default function Landing() {
                 <motion.div key={idx} className="col-md-4" whileHover={{ y: -4 }}>
                   <div className="d-flex gap-2 mb-3">
                     <motion.span
-                      className="step-checkmark"
+                      className="step-checkmark text-red"
                       whileHover={{ scale: 1.3 }}
                     >
                       ✓
@@ -445,7 +445,7 @@ export default function Landing() {
       </section>
 
       {/* Security Section */}
-      <section id="security" className="security-section py-5 text-white position-relative">
+      <section id="security" className="security-section py-5 text-white position-relative bg-red">
         <div className="security-blob-1"></div>
         <div className="security-blob-2"></div>
 
@@ -561,7 +561,7 @@ export default function Landing() {
                 <div className={`pricing-card ${plan.popular ? 'pricing-card-popular' : ''}`}>
                   {plan.popular && (
                     <motion.div
-                      className="pricing-badge"
+                      className="pricing-badge bg-red"
                       initial={{ y: -20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                     >
@@ -573,7 +573,7 @@ export default function Landing() {
                   <p className="text-muted small mb-3">{plan.desc}</p>
 
                   <div className="mb-4">
-                    <p className="display-6 fw-bold">{plan.price}</p>
+                    <p className="display-6 fw-bold text-red">{plan.price}</p>
                     {plan.period && <p className="text-muted small">{plan.period}</p>}
                   </div>
 
@@ -584,7 +584,7 @@ export default function Landing() {
                         className="d-flex align-items-center gap-2 mb-3 text-muted small"
                         whileHover={{ x: 4 }}
                       >
-                        <FiCheckCircle className="text-success flex-shrink-0" />
+                        <FiCheckCircle className="text-red flex-shrink-0" />
                         {feature}
                       </motion.li>
                     ))}
@@ -606,7 +606,7 @@ export default function Landing() {
       </section>
 
       {/* Newsletter Section */}
-      <section className="newsletter-section py-5 text-white position-relative">
+      <section className="newsletter-section py-5 text-white position-relative bg-red">
         <motion.div
           className="newsletter-blob-1"
           animate={{ x: [0, 50, 0], y: [0, 50, 0] }}
@@ -673,7 +673,7 @@ export default function Landing() {
 
           {subscribeSuccess && (
             <motion.div
-              className="text-center mt-3 text-success"
+              className="text-center mt-3 text-white"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -730,7 +730,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="footer py-4 border-top">
+      <footer className="footer py-4 border-top border-red">
         <div className="container-xl">
           <div className="row g-4 mb-4">
             {[
@@ -786,7 +786,7 @@ export default function Landing() {
           </div>
 
           <motion.div
-            className="border-top pt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center"
+            className="border-top border-red pt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
