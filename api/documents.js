@@ -7,6 +7,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+console.log('✅ Supabase API initialized');
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,6 +21,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log(`\n📍 [${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+
     // Route based on method
     switch (req.method) {
       case 'GET':
@@ -50,7 +54,7 @@ export default async function handler(req, res) {
 async function handleGet(req, res) {
   const { role, endpoint, ownerId, issuerId, shareToken, userId } = req.query;
 
-  console.log('📥 GET Request:', { role, endpoint, ownerId, issuerId });
+  console.log('📥 GET Request:', { endpoint, ownerId, issuerId });
 
   try {
     // Check Document Access
@@ -80,119 +84,171 @@ async function handleGet(req, res) {
       });
     }
 
-    // Get Document Shares (documents shared WITH this owner)
+    // ===== CRITICAL: Get Document Shares (documents shared WITH this owner) =====
     if (endpoint === 'document-shares') {
-      console.log('📋 Fetching document shares for owner:', ownerId);
+      console.log('📋 [CRITICAL] Fetching document shares for owner:', ownerId);
       
       if (!ownerId) {
+        console.error('❌ ownerId missing');
         return res.status(400).json({
           success: false,
           error: 'Must provide ownerId',
         });
       }
 
-      // Get all shares where this user is the owner (recipient)
-      const { data: shares, error } = await supabase
-        .from('document_shares')
-        .select('*')
-        .eq('owner_id', ownerId)
-        .order('created_at', { ascending: false });
+      try {
+        // Step 1: Get all shares where this user is the owner (recipient)
+        console.log('📍 Step 1: Fetching document_shares...');
+        
+        const { data: shares, error } = await supabase
+          .from('document_shares')
+          .select('*')
+          .eq('owner_id', ownerId)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Supabase Error:', error);
-        throw error;
-      }
+        if (error) {
+          console.error('❌ Supabase Error:', error);
+          throw error;
+        }
 
-      // Enrich with document details
-      let enrichedShares = [];
-      if (shares && shares.length > 0) {
-        enrichedShares = await Promise.all(
-          shares.map(async (share) => {
-            try {
-              console.log(`📍 Processing share ${share.id}:`, { document_id: share.document_id });
-              
-              // Get the issued document by matching document_id
-              const { data: doc, error: docError } = await supabase
-                .from('issued_documents')
-                .select('*')
-                .eq('document_id', share.document_id)
-                .single();
+        console.log(`✅ Found ${shares?.length || 0} shares`);
 
-              console.log(`  ✅ Issued document found:`, { 
-                id: doc?.id,
-                file_name: doc?.file_name,
-                file_url: doc?.file_url,
-                document_id: doc?.document_id
+        if (!shares || shares.length === 0) {
+          console.log('⚠️ No shares found');
+          return res.status(200).json({
+            success: true,
+            data: [],
+          });
+        }
+
+        // Step 2: Enrich each share with document data
+        console.log('📍 Step 2: Enriching shares with document data...');
+        
+        let enrichedShares = [];
+        
+        for (const share of shares) {
+          try {
+            console.log(`  📄 Processing share ${share.id}:`, {
+              document_id: share.document_id,
+            });
+
+            // FIRST: Try to get from issued_documents (has file_url)
+            const { data: issuedDoc, error: issuedError } = await supabase
+              .from('issued_documents')
+              .select('*')
+              .eq('document_id', share.document_id)
+              .single();
+
+            if (issuedDoc && !issuedError) {
+              console.log(`  ✅ Found in issued_documents:`, {
+                file_name: issuedDoc.file_name,
+                file_url: issuedDoc.file_url?.substring(0, 50) + '...',
               });
-
-              if (!doc) {
-                console.warn(`  ⚠️ No issued_document found for document_id: ${share.document_id}`);
-              }
 
               // Get issuer info
               const { data: issuer } = await supabase
                 .from('users')
                 .select('id, email, organization_name')
-                .eq('id', doc?.issuer_id)
+                .eq('id', issuedDoc.issuer_id)
                 .single();
 
-              console.log(`  👤 Issuer:`, issuer?.organization_name);
-
-              return {
-                ...share,
-                file_name: doc?.file_name,
-                file_url: doc?.file_url,
-                file_size: doc?.file_size,
-                document_type: doc?.document_type,
-                issuer_organization: issuer?.organization_name,
-                created_at: doc?.created_at,
-                // Parse permissions
-                can_view: share.permissions?.includes('view'),
-                can_print: share.permissions?.includes('print'),
-                can_download: share.permissions?.includes('download'),
-                can_share: share.permissions?.includes('share'),
-              };
-            } catch (err) {
-              console.error('⚠️ Error enriching share:', err);
-              return share;
+              enrichedShares.push({
+                id: share.id,
+                document_id: share.document_id,
+                owner_id: share.owner_id,
+                file_name: issuedDoc.file_name || 'Document',
+                file_url: issuedDoc.file_url, // ✅ CRITICAL: File URL from issued_documents
+                file_size: issuedDoc.file_size || 0,
+                document_type: issuedDoc.document_type || 'document',
+                issuer_organization: issuer?.organization_name || 'Unknown',
+                created_at: issuedDoc.created_at || share.created_at,
+                status: 'approved',
+                can_view: share.permissions?.includes('view') || true,
+                can_print: share.permissions?.includes('print') || true,
+                can_download: share.permissions?.includes('download') || false,
+                can_share: share.permissions?.includes('share') || true,
+              });
+              continue;
             }
-          })
-        );
-      }
 
-      console.log(`✅ Found ${enrichedShares?.length || 0} shares`);
-      console.log('📋 Enriched data:', enrichedShares);
-      return res.status(200).json({
-        success: true,
-        data: enrichedShares || [],
-      });
+            // FALLBACK: Try documents table
+            console.log(`  🔍 Not in issued_documents, checking documents table...`);
+            
+            const { data: doc, error: docError } = await supabase
+              .from('documents')
+              .select('*')
+              .eq('id', share.document_id)
+              .single();
+
+            if (doc && !docError) {
+              console.log(`  ✅ Found in documents:`, {
+                title: doc.title,
+                file_url: doc.file_url?.substring(0, 50) + '...',
+              });
+
+              const { data: issuer } = await supabase
+                .from('users')
+                .select('organization_name')
+                .eq('id', doc.issuer_id)
+                .single();
+
+              enrichedShares.push({
+                id: share.id,
+                document_id: share.document_id,
+                owner_id: share.owner_id,
+                file_name: doc.title || 'Document',
+                file_url: doc.file_url, // ✅ File URL from documents
+                file_size: doc.file_size || 0,
+                document_type: doc.document_type || 'document',
+                issuer_organization: issuer?.organization_name || 'Unknown',
+                created_at: doc.created_at || share.created_at,
+                status: 'approved',
+                can_view: share.permissions?.includes('view') || true,
+                can_print: share.permissions?.includes('print') || true,
+                can_download: share.permissions?.includes('download') || false,
+                can_share: share.permissions?.includes('share') || true,
+              });
+              continue;
+            }
+
+            // Neither found
+            console.warn(`  ⚠️ Document not found in any table`);
+            enrichedShares.push({
+              ...share,
+              file_name: 'Missing Document',
+              file_url: null,
+              file_size: 0,
+              document_type: 'unknown',
+            });
+
+          } catch (err) {
+            console.error(`  ⚠️ Error enriching share:`, err);
+            // Continue with next share
+          }
+        }
+
+        console.log(`✅ Enriched ${enrichedShares.length} shares`);
+        if (enrichedShares.length > 0) {
+          console.log('📋 Sample data:', JSON.stringify(enrichedShares[0], null, 2));
+        }
+
+        return res.status(200).json({
+          success: true,
+          data: enrichedShares,
+        });
+
+      } catch (err) {
+        console.error('❌ Document shares error:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
     }
 
     // Get Access Requests
     if (endpoint === 'access-requests') {
       return await getAccessRequests(req, res);
-    }
-
-    // Get Issuers
-    if (role === 'issuer') {
-      console.log('🔍 Fetching issuers from users table...');
-      
-      const { data: issuers, error } = await supabase
-        .from('users')
-        .select('id, email, organization_name, created_at')
-        .eq('role', 'issuer')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Supabase Error:', error);
-        throw error;
-      }
-
-      console.log(`✅ Found ${issuers?.length || 0} issuers`);
-      return res.status(200).json({
-        success: true,
-        data: issuers || [],
-      });
     }
 
     // Get Document Requests
@@ -231,40 +287,9 @@ async function handleGet(req, res) {
 
         console.log(`✅ Found ${requests?.length || 0} requests`);
         
-        // Enrich with document items
-        let enrichedRequests = [];
-        if (requests && requests.length > 0) {
-          enrichedRequests = await Promise.all(
-            requests.map(async (req) => {
-              try {
-                // Fetch items and related documents
-                const { data: items } = await supabase
-                  .from('document_request_items')
-                  .select(`
-                    id,
-                    document_id,
-                    document:documents(id, title, document_type)
-                  `)
-                  .eq('document_request_id', req.id);
-
-                return {
-                  ...req,
-                  items: items || [],
-                };
-              } catch (err) {
-                console.error('⚠️ Error fetching items:', err);
-                return {
-                  ...req,
-                  items: [],
-                };
-              }
-            })
-          );
-        }
-        
         return res.status(200).json({
           success: true,
-          data: enrichedRequests || [],
+          data: requests || [],
         });
       } catch (err) {
         console.error('❌ Document requests error:', err);
@@ -340,6 +365,7 @@ async function handleGet(req, res) {
       success: true,
       data: documents || [],
     });
+
   } catch (error) {
     console.error('❌ GET Error:', error);
     return res.status(500).json({
@@ -478,6 +504,7 @@ async function handlePost(req, res) {
 
     // Create Document (default)
     return await createDocument(req, res);
+
   } catch (error) {
     console.error('❌ POST Error:', error);
     return res.status(500).json({
@@ -513,6 +540,7 @@ async function handlePut(req, res) {
 
     // Update Document Request (default)
     return await updateDocumentRequest(req, res);
+
   } catch (error) {
     console.error('❌ PUT Error:', error);
     return res.status(500).json({
@@ -569,6 +597,7 @@ async function handleDelete(req, res) {
       success: true,
       message: 'Deleted successfully',
     });
+
   } catch (error) {
     console.error('❌ DELETE Error:', error);
     return res.status(500).json({
@@ -582,9 +611,8 @@ async function handleDelete(req, res) {
 // HELPER FUNCTIONS
 // ============================================
 
-// Create Document Request
 async function createDocumentRequest(req, res) {
-  const { ownerId, ownerEmail, ownerName, issuerId, issuerEmail, documentIds, message } = req.body;
+  const { ownerId, ownerEmail, ownerName, issuerId, issuerEmail, issuerOrganization, documentIds, message } = req.body;
 
   console.log('📋 Creating document request...');
   
@@ -648,37 +676,15 @@ async function createDocumentRequest(req, res) {
 
     console.log('✅ Request created:', requestId);
 
-    // Don't create items if documentIds are just types
-    // Just store the types in the message
-    if (documentIds && documentIds.length > 0 && documentIds[0].match(/^[a-f0-9-]{36}$/)) {
-      // If it's a UUID, create items
-      const items = documentIds.map((docId) => ({
-        id: uuidv4(),
-        document_request_id: requestId,
-        document_id: docId,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('document_request_items')
-        .insert(items);
-
-      if (itemsError) {
-        console.error('❌ Items Error:', itemsError);
-        // Don't rollback, continue anyway
-      }
-    }
-
-    console.log('✅ Request items created');
-
     return res.status(201).json({
       success: true,
       data: {
         id: requestId,
         status: 'pending',
-        document_types: documentIds,
         issuer_organization: issuer.organization_name,
       },
     });
+
   } catch (error) {
     console.error('❌ Create Request Error:', error);
     return res.status(500).json({
@@ -688,7 +694,6 @@ async function createDocumentRequest(req, res) {
   }
 }
 
-// Create Document
 async function createDocument(req, res) {
   const { issuerId, title, documentType } = req.body;
 
@@ -721,6 +726,7 @@ async function createDocument(req, res) {
       success: true,
       data: newDoc,
     });
+
   } catch (error) {
     console.error('❌ Create Document Error:', error);
     return res.status(500).json({
@@ -730,12 +736,11 @@ async function createDocument(req, res) {
   }
 }
 
-// Update Document Request
 async function updateDocumentRequest(req, res) {
-  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName, fileSize, ownerId, issuerId } = req.body;
+  const { id, status, issuerMessage, signatureId, documentId, processedBy, approvedBy, fileBase64, fileName, fileSize, ownerId, issuerId, issuerOrganization } = req.body;
 
   console.log('📝 Updating document request:', id);
-  console.log('🔍 Params:', { status, ownerId, issuerId, fileName });
+  console.log('   Status:', status, 'File:', fileName);
 
   try {
     if (!id || !status) {
@@ -770,49 +775,44 @@ async function updateDocumentRequest(req, res) {
     // If approved with file, create issued document
     if (status === 'approved' && fileBase64 && fileName) {
       console.log('📄 Creating issued document...');
-      console.log('📤 File:', fileName, 'Size:', fileSize);
+      console.log('   File:', fileName, 'Size:', fileSize);
       
       try {
-        // Sanitize filename - remove special characters
+        // Sanitize filename
         const sanitizedFileName = fileName
-          .replace(/[^\w\s.-]/g, '_') // Replace special chars with underscore
-          .replace(/\s+/g, '_') // Replace spaces with underscore
-          .substring(0, 100); // Limit length
+          .replace(/[^\w\s.-]/g, '_')
+          .replace(/\s+/g, '_')
+          .substring(0, 100);
 
-        console.log('🔧 Original filename:', fileName);
-        console.log('🔧 Sanitized filename:', sanitizedFileName);
+        console.log('   Sanitized:', sanitizedFileName);
 
         // Upload file to Supabase Storage using SERVICE_ROLE_KEY
         const filePath = `documents/${issuerId}/${id}/${sanitizedFileName}`;
         const fileBuffer = Buffer.from(fileBase64, 'base64');
 
-        console.log('📤 Uploading to:', filePath);
-        console.log('👤 Owner ID:', ownerId, 'Issuer ID:', issuerId);
-        console.log('📦 File buffer size:', fileBuffer.length);
+        console.log('   Uploading to:', filePath);
+        console.log('   Buffer size:', fileBuffer.length);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('issued-documents')
           .upload(filePath, fileBuffer, {
-            contentType: 'application/octet-stream', // Use generic type
+            contentType: 'application/octet-stream',
             upsert: false,
           });
 
         if (uploadError) {
           console.error('❌ Upload Error:', uploadError);
-          console.error('Error details:', JSON.stringify(uploadError));
-          console.error('Status:', uploadError.statusCode);
-          throw new Error(`Upload failed: ${uploadError.message}`);
+          throw uploadError;
         }
 
         console.log('✅ File uploaded successfully');
-        console.log('📦 Upload data:', uploadData);
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('issued-documents')
           .getPublicUrl(filePath);
 
-        console.log('✅ Public URL:', publicUrl);
+        console.log('✅ Public URL:', publicUrl.substring(0, 50) + '...');
 
         // Create a document record for this issued document
         const { data: newDocument, error: newDocError } = await supabase
@@ -822,8 +822,10 @@ async function updateDocumentRequest(req, res) {
             issuer_id: issuerId,
             owner_id: ownerId,
             title: fileName || 'Issued Document',
-            document_type: 'certificate', // Use valid type
+            document_type: 'certificate',
             status: 'active',
+            file_url: publicUrl, // ✅ STORE PUBLIC URL
+            file_size: fileSize || 0,
             document_hash: `hash-${Date.now()}`,
             issuance_date: new Date().toISOString(),
           })
@@ -846,9 +848,9 @@ async function updateDocumentRequest(req, res) {
             owner_id: ownerId,
             issuer_id: issuerId,
             signatura_id: signatureId || null,
-            document_id: newDocument.id, // Reference the created document
+            document_id: newDocument.id,
             document_type: 'issued_document',
-            file_url: publicUrl,
+            file_url: publicUrl, // ✅ STORE PUBLIC URL HERE TOO
             file_name: sanitizedFileName,
             file_size: fileSize || 0,
             processed_by: processedBy || null,
@@ -866,46 +868,43 @@ async function updateDocumentRequest(req, res) {
         console.log('✅ Issued document created:', issuedDoc.id);
 
         // Create automatic share with owner (view + print, NO download)
-        console.log('📤 Creating document_shares...');
+        console.log('   Creating document_shares...');
         
         // Set expiry to 90 days from now
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 90);
 
-        const shareData = {
-          id: uuidv4(),
-          document_id: newDocument.id, // Reference the created document
-          owner_id: ownerId,
-          recipient_email: updated.owner_email || 'unknown@example.com',
-          share_token: crypto.randomBytes(32).toString('hex'),
-          permissions: ['view', 'print', 'share'], // text array
-          expires_at: expiresAt.toISOString(),
-        };
-
-        console.log('📋 Share INSERT data:', shareData);
-
         const { data: createdShare, error: shareError } = await supabase
           .from('document_shares')
-          .insert(shareData)
+          .insert({
+            id: uuidv4(),
+            document_id: newDocument.id, // ✅ Reference the created document
+            owner_id: ownerId,
+            recipient_email: updated.owner_email || 'unknown@example.com',
+            share_token: crypto.randomBytes(32).toString('hex'),
+            permissions: ['view', 'print', 'share'], // NO download for security
+            expires_at: expiresAt.toISOString(),
+          })
           .select()
           .single();
 
         if (shareError) {
-          console.error('❌ SHARE ERROR:', shareError);
-          console.error('Error code:', shareError.code);
-          console.error('Error message:', shareError.message);
+          console.error('❌ Share ERROR:', shareError);
           throw shareError;
         }
 
-        console.log('✅ Document shared successfully:', createdShare);
+        console.log('✅ Document shared with owner');
 
         return res.status(200).json({
           success: true,
           data: {
             request: updated,
             issuedDocument: issuedDoc,
+            document: newDocument,
+            share: createdShare,
           },
         });
+
       } catch (err) {
         console.error('⚠️ Document creation error:', err);
         // Still return success for request approval
@@ -921,6 +920,7 @@ async function updateDocumentRequest(req, res) {
       success: true,
       data: updated,
     });
+
   } catch (error) {
     console.error('❌ Update Request Error:', error);
     return res.status(500).json({
@@ -983,6 +983,7 @@ async function shareDocument(req, res) {
         permissions: { view: canView, print: canPrint, download: canDownload, share: canShare },
       },
     });
+
   } catch (error) {
     console.error('❌ Share error:', error);
     return res.status(500).json({
@@ -1054,44 +1055,9 @@ async function checkDocumentAccess(req, res) {
         expiresAt: share.expires_at,
       },
     });
+
   } catch (error) {
     console.error('❌ Access check error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-async function getDocumentShares(req, res) {
-  const { ownerId } = req.query;
-
-  console.log('📋 Getting shares for owner:', ownerId);
-
-  try {
-    if (!ownerId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing ownerId',
-      });
-    }
-
-    const { data: shares, error } = await supabase
-      .from('document_shares')
-      .select('*')
-      .eq('owner_id', ownerId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    console.log(`✅ Found ${shares?.length || 0} shares`);
-
-    return res.status(200).json({
-      success: true,
-      data: shares || [],
-    });
-  } catch (error) {
-    console.error('❌ Error getting shares:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -1131,6 +1097,7 @@ async function revokeShare(req, res) {
       success: true,
       message: 'Share revoked successfully',
     });
+
   } catch (error) {
     console.error('❌ Revoke error:', error);
     return res.status(500).json({
@@ -1181,6 +1148,7 @@ async function requestDocumentAccess(req, res) {
         message: 'Access request sent to document owner',
       },
     });
+
   } catch (error) {
     console.error('❌ Request error:', error);
     return res.status(500).json({
@@ -1193,7 +1161,16 @@ async function requestDocumentAccess(req, res) {
 async function getAccessRequests(req, res) {
   const { ownerId } = req.query;
 
+  console.log('📋 Getting access requests for owner:', ownerId);
+
   try {
+    if (!ownerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing ownerId',
+      });
+    }
+
     const { data: requests, error } = await supabase
       .from('document_access_requests')
       .select('*')
@@ -1203,10 +1180,13 @@ async function getAccessRequests(req, res) {
 
     if (error) throw error;
 
+    console.log(`✅ Found ${requests?.length || 0} access requests`);
+
     return res.status(200).json({
       success: true,
       data: requests || [],
     });
+
   } catch (error) {
     console.error('❌ Error getting requests:', error);
     return res.status(500).json({
@@ -1277,6 +1257,7 @@ async function approveAccessRequest(req, res) {
         shareLink: `/shared/${share.share_token}`,
       },
     });
+
   } catch (error) {
     console.error('❌ Approval error:', error);
     return res.status(500).json({
@@ -1288,6 +1269,8 @@ async function approveAccessRequest(req, res) {
 
 async function rejectAccessRequest(req, res) {
   const { requestId, ownerId } = req.body;
+
+  console.log('❌ Rejecting access request:', requestId);
 
   try {
     const { data: request } = await supabase
@@ -1312,11 +1295,15 @@ async function rejectAccessRequest(req, res) {
       })
       .eq('id', requestId);
 
+    console.log('✅ Access rejected');
+
     return res.status(200).json({
       success: true,
       message: 'Access request rejected',
     });
+
   } catch (error) {
+    console.error('❌ Rejection error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
