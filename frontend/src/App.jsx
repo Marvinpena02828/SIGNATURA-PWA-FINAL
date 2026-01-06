@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './utils/supabase';
 import './styles/Landing.css';
-
+import PaymentPage from './pages/PaymentPage';
 
 
 // Pages
@@ -145,7 +145,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+<Route path="/payment" element={<PaymentPage />} />
         {/* Protected Routes - Admin */}
         <Route
           path="/admin/*"
