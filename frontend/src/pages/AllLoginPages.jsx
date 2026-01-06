@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
+import { FiMail, FiLock, FiBriefcase, FiUser, FiShield, FiEye, FiEyeOff, FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
 
 export default function AllLoginPages() {
-  const { role = 'issuer' } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
   const setRole = useAuthStore((state) => state.setRole);
+
+  // Get role from URL params or use default
+  const params = new URLSearchParams(location.search);
+  const role = params.get('role') || 'issuer';
 
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +25,20 @@ export default function AllLoginPages() {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState({});
+  const [preFilledEmail, setPreFilledEmail] = useState('');
+
+  // Check if user is coming from successful payment
+  useEffect(() => {
+    const emailFromLocation = location.state?.email;
+    if (emailFromLocation) {
+      setPreFilledEmail(emailFromLocation);
+      setFormData(prev => ({
+        ...prev,
+        email: emailFromLocation,
+      }));
+      toast.success(location.state?.message || 'Payment confirmed! Please log in.');
+    }
+  }, [location]);
 
   const roleConfig = {
     issuer: {
@@ -123,7 +141,7 @@ export default function AllLoginPages() {
 
     try {
       if (isLogin) {
-        // Call your /api/auth endpoint
+        // ===== LOGIN FLOW =====
         const response = await fetch('/api/auth', {
           method: 'POST',
           headers: {
@@ -149,39 +167,35 @@ export default function AllLoginPages() {
         toast.success('Welcome back!');
         navigate(`/${role}`);
       } else {
-        // Call signup endpoint
-        const response = await fetch('/api/auth', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'signup',
-            email: formData.email,
-            password: formData.password,
+        // ===== SIGNUP FLOW =====
+        // Redirect to payment checkout instead of direct signup
+        // Payment checkout page will handle account creation after payment
+        navigate('/payment', {
+          state: {
             role: role,
-            organizationName: formData.organizationName || null,
+            planType: 'professional', // Default to professional plan
+            email: formData.email,
             fullName: formData.fullName,
-          }),
+            organizationName: formData.organizationName,
+            password: formData.password,
+          },
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Signup failed');
-        }
-
-        setUser(data.user);
-        setRole(role);
-
-        toast.success('Account created! Welcome to Signatura.');
-        navigate(`/${role}`);
       }
     } catch (error) {
       toast.error(error.message || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSignUpClick = () => {
+    // Navigate to payment checkout with form data
+    navigate('/payment', {
+      state: {
+        role: role,
+        planType: 'professional',
+      },
+    });
   };
 
   return (
@@ -206,6 +220,17 @@ export default function AllLoginPages() {
             </p>
           </div>
 
+          {/* Info banner if coming from payment */}
+          {preFilledEmail && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
+              <FiAlertCircle className="text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-green-700">
+                <p className="font-medium">Payment successful!</p>
+                <p className="text-xs mt-1">Please log in with your credentials</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
@@ -217,9 +242,10 @@ export default function AllLoginPages() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="your@email.com"
+                  disabled={preFilledEmail && isLogin}
                   className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${preFilledEmail && isLogin ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 />
               </div>
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
@@ -313,19 +339,38 @@ export default function AllLoginPages() {
             </button>
           </form>
 
+          {/* Sign Up / Sign In Toggle */}
           <p className="text-center text-gray-600 mt-6">
             {isLogin ? "Don't have an account? " : 'Already have an account? '}
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
                 setErrors({});
-                setFormData({ email: '', password: '', organizationName: '', fullName: '', confirmPassword: '' });
+                if (!isLogin) {
+                  // Moving from signup to login
+                  setFormData({ 
+                    email: formData.email, // Keep email
+                    password: '',
+                    organizationName: '',
+                    fullName: '',
+                    confirmPassword: '' 
+                  });
+                }
               }}
               className={`${colors.link} font-medium hover:underline`}
             >
               {isLogin ? 'Sign Up' : 'Sign In'}
             </button>
           </p>
+
+          {/* Direct signup button info (when on signup tab) */}
+          {!isLogin && (
+            <div className={`mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg`}>
+              <p className="text-xs text-blue-700">
+                💳 Click "Create Account" to proceed to payment. Choose your plan and complete your purchase.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className={`mt-8 ${colors.dark} bg-opacity-50 backdrop-blur-sm rounded-lg p-4 text-white text-sm`}>
