@@ -1,8 +1,13 @@
+// src/pages/IssuerDashboard.jsx
+// Enhanced with Cryptographic Signature Engine + Existing Workflow
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiTrash2, FiKey, FiEye, FiEyeOff, FiCopy, FiDownload, FiFileText, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { generateKeyPair, signDocument, createSignedDocument } from '../services/signatureEngine';
+import { issueCredential, batchIssueCredentials } from '../services/issuerService';
 
 export default function IssuerDashboard() {
   const navigate = useNavigate();
@@ -10,14 +15,28 @@ export default function IssuerDashboard() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
+  // State
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [issuedCredentials, setIssuedCredentials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [showKeysModal, setShowKeysModal] = useState(false);
+  const [showCredentialModal, setShowCredentialModal] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPublicKey, setShowPublicKey] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
+  // Issuer Keys (Cryptographic)
+  const [issuerKeys, setIssuerKeys] = useState(() => {
+    const stored = localStorage.getItem(`issuer_keys_${user?.id}`);
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // Forms
   const [approvalForm, setApprovalForm] = useState({
     dateRequested: '',
     signatureId: '',
@@ -34,6 +53,28 @@ export default function IssuerDashboard() {
     document_type: 'diploma',
   });
 
+  const [credentialForm, setCredentialForm] = useState({
+    recipientEmail: '',
+    recipientName: '',
+    credentialType: 'diploma',
+    credentialData: '',
+    expiresAt: '',
+  });
+
+  const [batchForm, setBatchForm] = useState({
+    uploadedFile: null,
+    credentialType: 'diploma',
+  });
+
+  // Stats
+  const [stats, setStats] = useState({
+    pendingRequests: 0,
+    approvedRequests: 0,
+    totalRequests: 0,
+    totalIssued: 0,
+  });
+
+  // Lifecycle
   useEffect(() => {
     if (role !== 'issuer') {
       navigate('/');
@@ -42,11 +83,18 @@ export default function IssuerDashboard() {
     fetchData();
   }, [role, navigate, user?.id]);
 
+  // Auto-generate keys on first login
+  useEffect(() => {
+    if (!issuerKeys && user?.id) {
+      handleGenerateKeys();
+    }
+  }, [user?.id, issuerKeys]);
+
+  // Fetch all data
   const fetchData = async () => {
     try {
       setLoading(true);
       await fetchRequests();
-      // Skip document fetch for now - will fetch on demand
       setDocuments([]);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -62,22 +110,16 @@ export default function IssuerDashboard() {
         `/api/documents?endpoint=document-requests&issuerId=${user?.id}`
       );
 
-      console.log('Response status:', res.status);
-
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ API Error:', res.status, errorText);
         setIncomingRequests([]);
         return;
       }
 
       const data = await res.json();
-      console.log('✅ Requests data:', data);
-      
       if (data && data.success && Array.isArray(data.data)) {
         setIncomingRequests(data.data);
+        updateStats(data.data);
       } else {
-        console.warn('⚠️ Invalid response format:', data);
         setIncomingRequests([]);
       }
     } catch (err) {
@@ -86,10 +128,57 @@ export default function IssuerDashboard() {
     }
   };
 
-  const fetchDocuments = async () => {
-    // Skip for now - documents will be fetched after create
-    setDocuments([]);
+  const updateStats = (requests = incomingRequests) => {
+    const pending = requests.filter(r => r.status === 'pending').length;
+    const approved = requests.filter(r => r.status === 'approved').length;
+
+    setStats({
+      pendingRequests: pending,
+      approvedRequests: approved,
+      totalRequests: requests.length,
+      totalIssued: issuedCredentials.length,
+    });
   };
+
+  // ===== CRYPTOGRAPHIC KEY MANAGEMENT =====
+
+  const handleGenerateKeys = () => {
+    try {
+      const newKeys = generateKeyPair();
+      setIssuerKeys(newKeys);
+      localStorage.setItem(`issuer_keys_${user?.id}`, JSON.stringify(newKeys));
+      toast.success('🔐 Cryptographic keys generated!');
+    } catch (err) {
+      console.error('Key generation error:', err);
+      toast.error('Failed to generate keys');
+    }
+  };
+
+  const handleDownloadPublicKey = () => {
+    if (!issuerKeys) return;
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(issuerKeys.publicKey));
+    element.setAttribute('download', `issuer-public-key-${user?.id}.txt`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success('Public key downloaded');
+  };
+
+  const handleCopyPublicKey = () => {
+    if (!issuerKeys) return;
+    navigator.clipboard.writeText(issuerKeys.publicKey);
+    toast.success('Public key copied');
+  };
+
+  const handleCopySecretKey = () => {
+    if (!issuerKeys) return;
+    navigator.clipboard.writeText(issuerKeys.secretKey);
+    toast.success('Secret key copied (keep safe!)');
+  };
+
+  // ===== DOCUMENT MANAGEMENT (Existing) =====
 
   const handleAddDocument = async (e) => {
     e.preventDefault();
@@ -115,11 +204,9 @@ export default function IssuerDashboard() {
       });
 
       const data = await res.json();
-      console.log('Response:', data);
 
       if (data.success) {
         toast.success('✅ Document created!');
-        // Add to local state
         setDocuments((prev) => [data.data, ...prev]);
         setShowDocumentModal(false);
         setDocForm({ title: '', document_type: 'diploma' });
@@ -138,8 +225,6 @@ export default function IssuerDashboard() {
     if (!window.confirm('Delete this document?')) return;
 
     try {
-      console.log('🗑️ Deleting document:', docId);
-
       const res = await fetch('/api/documents', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +238,6 @@ export default function IssuerDashboard() {
 
       if (data.success) {
         toast.success('✅ Document deleted!');
-        // Remove from local state
         setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
       } else {
         toast.error(data.error || 'Failed to delete');
@@ -164,12 +248,121 @@ export default function IssuerDashboard() {
     }
   };
 
+  // ===== CREDENTIAL ISSUANCE (New) =====
+
+  const handleIssueCredential = async (e) => {
+    e.preventDefault();
+
+    if (!credentialForm.recipientEmail || !credentialForm.recipientName) {
+      toast.error('Please fill required fields');
+      return;
+    }
+
+    if (!issuerKeys) {
+      toast.error('Issuer keys not generated');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const result = await issueCredential(
+        {
+          recipientEmail: credentialForm.recipientEmail,
+          recipientName: credentialForm.recipientName,
+          credentialType: credentialForm.credentialType,
+          data: JSON.parse(credentialForm.credentialData || '{}'),
+          expiresAt: credentialForm.expiresAt || null,
+        },
+        issuerKeys.secretKey,
+        issuerKeys.publicKey
+      );
+
+      if (result.success) {
+        toast.success('✓ Credential issued and signed!');
+        setIssuedCredentials(prev => [result.credential, ...prev]);
+        setShowCredentialModal(false);
+        setCredentialForm({
+          recipientEmail: '',
+          recipientName: '',
+          credentialType: 'diploma',
+          credentialData: '',
+          expiresAt: '',
+        });
+        updateStats();
+      } else {
+        toast.error(result.error || 'Failed to issue credential');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error issuing credential');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBatchIssuance = async (e) => {
+    e.preventDefault();
+
+    if (!batchForm.uploadedFile) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+
+    if (!issuerKeys) {
+      toast.error('Issuer keys not generated');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const text = await batchForm.uploadedFile.text();
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',');
+
+      const credentials = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((header, idx) => {
+          obj[header.trim()] = values[idx]?.trim();
+        });
+        return {
+          recipientEmail: obj.email,
+          recipientName: obj.name,
+          credentialType: batchForm.credentialType,
+          data: obj,
+        };
+      });
+
+      const result = await batchIssueCredentials(
+        credentials,
+        issuerKeys.secretKey,
+        issuerKeys.publicKey
+      );
+
+      if (result.success) {
+        toast.success(`✓ Issued ${result.summary.successful} credentials!`);
+        setIssuedCredentials(prev => [...result.issued, ...prev]);
+        setShowBatchModal(false);
+        setBatchForm({ uploadedFile: null, credentialType: 'diploma' });
+        updateStats();
+      } else {
+        toast.error(`${result.summary.failed} failed`);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error processing batch');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ===== REQUEST APPROVAL (Existing) =====
+
   const handleOpenApprovalModal = (request) => {
-    // Try to get document type from items first, then from message
     let docType = request.items?.[0]?.document?.document_type || '';
-    
     if (!docType && request.message) {
-      // Extract from message like "Requesting diploma, certificate documents"
       const match = request.message.match(/Requesting (.+?) documents/);
       if (match) {
         docType = match[1].split(',')[0].trim();
@@ -194,38 +387,22 @@ export default function IssuerDashboard() {
     const { name, value, files } = e.target;
     if (files) {
       const file = files[0];
-
       const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(
-          `File too large! Max 10MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`
-        );
+        toast.error(`File too large! Max 10MB`);
         return;
       }
 
-      const ALLOWED_TYPES = [
-        'application/pdf',
-        'image/jpeg',
-        'image/jpg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-      ];
-
+      const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (!ALLOWED_TYPES.includes(file.type)) {
         toast.error('Only PDF and image files allowed');
         return;
       }
 
-      setApprovalForm((prev) => ({
-        ...prev,
-        uploadedFile: file,
-      }));
+      setApprovalForm((prev) => ({ ...prev, uploadedFile: file }));
     } else {
-      setApprovalForm((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setApprovalForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -245,19 +422,12 @@ export default function IssuerDashboard() {
     setSubmitting(true);
 
     try {
-      console.log('📤 Approving request:', selectedRequest.id);
-
       const base64String = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result.split(',')[1];
-          resolve(result);
-        };
+        reader.onload = () => resolve(reader.result.split(',')[1]);
         reader.onerror = reject;
         reader.readAsDataURL(approvalForm.uploadedFile);
       });
-
-      console.log('✅ File converted to base64');
 
       const updateRes = await fetch('/api/documents', {
         method: 'PUT',
@@ -278,16 +448,11 @@ export default function IssuerDashboard() {
         }),
       });
 
-      console.log('📤 Request sent to API');
-
       if (!updateRes.ok) {
-        const errorData = await updateRes.text();
-        console.error('❌ API Error:', updateRes.status, errorData);
         throw new Error(`API Error ${updateRes.status}`);
       }
 
       const updateData = await updateRes.json();
-      console.log('✅ Approval response:', updateData);
 
       if (updateData.success) {
         toast.success('✅ Request approved!');
@@ -309,7 +474,7 @@ export default function IssuerDashboard() {
         toast.error(updateData.error || 'Failed to approve');
       }
     } catch (err) {
-      console.error('❌ Error:', err);
+      console.error('Error:', err);
       toast.error(err.message || 'Error approving request');
     } finally {
       setSubmitting(false);
@@ -320,8 +485,6 @@ export default function IssuerDashboard() {
     if (!window.confirm('Reject this request?')) return;
 
     try {
-      console.log('🚫 Rejecting request:', requestId);
-
       const res = await fetch('/api/documents', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -365,29 +528,50 @@ export default function IssuerDashboard() {
     );
   }
 
-  const pendingRequests = incomingRequests.filter((r) => r.status === 'pending');
-  const approvedRequests = incomingRequests.filter((r) => r.status === 'approved');
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-signatura-dark">Issuer Dashboard</h1>
             <p className="text-gray-600 text-sm">{user?.organization_name || user?.email}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setShowKeysModal(true)}
+              className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm"
+              title="Cryptographic key management"
+            >
+              <FiKey className="mr-2" size={16} />
+              Keys
+            </button>
+            <button
+              onClick={() => setShowCredentialModal(true)}
+              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+              title="Issue signed credentials"
+            >
+              <FiCheck className="mr-2" size={16} />
+              Issue
+            </button>
+            <button
+              onClick={() => setShowBatchModal(true)}
+              className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+              title="Batch issue from CSV"
+            >
+              <FiFileText className="mr-2" size={16} />
+              Batch
+            </button>
             <button
               onClick={() => setShowDocumentModal(true)}
-              className="flex items-center bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition"
+              className="flex items-center bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-signatura-accent transition text-sm"
             >
               <FiPlus className="mr-2" />
-              New Document
+              New Doc
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm"
             >
               <FiLogOut className="mr-2" />
               Logout
@@ -398,20 +582,65 @@ export default function IssuerDashboard() {
 
       {/* Stats */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-yellow-500">
-            <h3 className="text-gray-600 text-sm font-medium">Pending Requests</h3>
-            <p className="text-3xl font-bold text-yellow-600 mt-2">{pendingRequests.length}</p>
+            <h3 className="text-gray-600 text-sm font-medium">Pending</h3>
+            <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pendingRequests}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-green-500">
             <h3 className="text-gray-600 text-sm font-medium">Approved</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">{approvedRequests.length}</p>
+            <p className="text-3xl font-bold text-green-600 mt-2">{stats.approvedRequests}</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500">
+            <h3 className="text-gray-600 text-sm font-medium">Credentials Issued</h3>
+            <p className="text-3xl font-bold text-blue-600 mt-2">{stats.totalIssued}</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-purple-500">
             <h3 className="text-gray-600 text-sm font-medium">Total Requests</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{incomingRequests.length}</p>
+            <p className="text-3xl font-bold text-purple-600 mt-2">{stats.totalRequests}</p>
           </div>
         </div>
+
+        {/* Issued Credentials */}
+        {issuedCredentials.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-signatura-dark">🎓 Issued Credentials</h2>
+              <p className="text-sm text-gray-500 mt-1">Cryptographically signed digital credentials</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left font-medium text-gray-700">Recipient</th>
+                    <th className="px-6 py-3 text-left font-medium text-gray-700">Type</th>
+                    <th className="px-6 py-3 text-left font-medium text-gray-700">Issued</th>
+                    <th className="px-6 py-3 text-left font-medium text-gray-700">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {issuedCredentials.slice(0, 5).map((cred) => (
+                    <tr key={cred.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-900">{cred.recipientName}</p>
+                        <p className="text-xs text-gray-500">{cred.recipientEmail}</p>
+                      </td>
+                      <td className="px-6 py-4 capitalize">{cred.credentialType}</td>
+                      <td className="px-6 py-4 text-xs text-gray-500">
+                        {new Date(cred.signedAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                          <FiCheck size={16} /> Valid
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Documents Created */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
@@ -476,21 +705,11 @@ export default function IssuerDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    Owner
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    Requested
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -554,7 +773,245 @@ export default function IssuerDashboard() {
         </div>
       </main>
 
-      {/* Document Creation Modal */}
+      {/* ===== MODALS ===== */}
+
+      {/* Keys Modal */}
+      {showKeysModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-signatura-dark">🔐 Cryptographic Keys</h2>
+              <p className="text-sm text-gray-600 mt-2">Manage your Ed25519 signing keys for credential authentication</p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {!issuerKeys ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                  <p className="text-yellow-800 font-medium">No keys generated yet</p>
+                  <p className="text-yellow-700 text-sm mt-1">Generate keys to start issuing credentials</p>
+                </div>
+              ) : (
+                <>
+                  {/* Public Key */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Public Key (Share with verifiers) 📤
+                    </label>
+                    <div className="relative bg-gray-50 border border-gray-300 rounded p-3">
+                      <code className="text-xs break-all block pr-10">
+                        {showPublicKey ? issuerKeys.publicKey : issuerKeys.publicKey.substring(0, 50) + '...'}
+                      </code>
+                      <button
+                        onClick={() => setShowPublicKey(!showPublicKey)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPublicKey ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                      </button>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={handleCopyPublicKey}
+                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      >
+                        <FiCopy size={14} /> Copy
+                      </button>
+                      <button
+                        onClick={handleDownloadPublicKey}
+                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      >
+                        <FiDownload size={14} /> Download
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Secret Key */}
+                  <div className="border-t pt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Secret Key (Keep this secure!) 🔒
+                    </label>
+                    <div className="relative bg-gray-50 border border-gray-300 rounded p-3">
+                      <code className="text-xs break-all block pr-10">
+                        {showSecretKey ? issuerKeys.secretKey : issuerKeys.secretKey.substring(0, 50) + '...'}
+                      </code>
+                      <button
+                        onClick={() => setShowSecretKey(!showSecretKey)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showSecretKey ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-red-600 mt-2">⚠️ Never share your secret key. It's used to sign all your credentials.</p>
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-2 pt-6 border-t">
+                <button
+                  onClick={() => setShowKeysModal(false)}
+                  className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-signatura-accent font-medium"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issue Credential Modal */}
+      {showCredentialModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-signatura-dark">🎓 Issue Credential</h2>
+              <p className="text-sm text-gray-600 mt-2">Create a signed digital credential</p>
+            </div>
+
+            <form onSubmit={handleIssueCredential} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Email *</label>
+                <input
+                  type="email"
+                  value={credentialForm.recipientEmail}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, recipientEmail: e.target.value })}
+                  placeholder="student@university.edu"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Name *</label>
+                <input
+                  type="text"
+                  value={credentialForm.recipientName}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, recipientName: e.target.value })}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <select
+                  value={credentialForm.credentialType}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, credentialType: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                >
+                  <option value="diploma">Diploma</option>
+                  <option value="certificate">Certificate</option>
+                  <option value="license">License</option>
+                  <option value="badge">Badge</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data (JSON)</label>
+                <textarea
+                  value={credentialForm.credentialData}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, credentialData: e.target.value })}
+                  placeholder='{"program": "CS", "date": "2024-01-15"}'
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none text-sm h-20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Expires (Optional)</label>
+                <input
+                  type="date"
+                  value={credentialForm.expiresAt}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, expiresAt: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-signatura-red outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCredentialModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                >
+                  {submitting ? 'Issuing...' : 'Issue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-signatura-dark">📊 Batch Issue</h2>
+              <p className="text-sm text-gray-600 mt-2">Upload CSV to issue multiple credentials</p>
+            </div>
+
+            <form onSubmit={handleBatchIssuance} className="p-6 space-y-4">
+              <div className="bg-gray-50 p-3 rounded text-xs">
+                <p className="font-medium mb-2">CSV Format:</p>
+                <code>name,email,data1,data2</code>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <select
+                  value={batchForm.credentialType}
+                  onChange={(e) => setBatchForm({ ...batchForm, credentialType: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="diploma">Diploma</option>
+                  <option value="certificate">Certificate</option>
+                  <option value="license">License</option>
+                  <option value="badge">Badge</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setBatchForm({ ...batchForm, uploadedFile: e.target.files?.[0] || null })}
+                  className="w-full"
+                  required
+                />
+                {batchForm.uploadedFile && (
+                  <p className="text-xs text-green-600 mt-2">✓ {batchForm.uploadedFile.name}</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowBatchModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !batchForm.uploadedFile}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+                >
+                  {submitting ? 'Processing...' : 'Issue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Document Modal (Existing) */}
       {showDocumentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
@@ -579,7 +1036,7 @@ export default function IssuerDashboard() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Document Type *
+                  Type *
                 </label>
                 <select
                   value={docForm.document_type}
@@ -614,7 +1071,7 @@ export default function IssuerDashboard() {
         </div>
       )}
 
-      {/* Approval Modal */}
+      {/* Approval Modal (Existing) */}
       {showApprovalModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -638,7 +1095,7 @@ export default function IssuerDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Signatura ID *
+                    Signature ID *
                   </label>
                   <input
                     type="text"
