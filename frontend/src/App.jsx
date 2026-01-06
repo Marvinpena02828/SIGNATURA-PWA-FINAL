@@ -3,7 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './utils/supabase';
-import './styles/Landing.css';  // or wherever you put it
+import '../styles/Landing.css';
+
+// If you put it in src/
+import '../Landing.css';
 
 // Pages
 import Landing from './pages/Landing';
