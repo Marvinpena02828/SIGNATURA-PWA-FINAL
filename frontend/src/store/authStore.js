@@ -1,61 +1,123 @@
+// src/store/authStore.js - Zustand store for authentication
+
 import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
 
-export const useAuthStore = create((set, get) => {
-  console.log('✅ authStore initialized');
+console.log('✅ authStore module loading...');
 
-  return {
-    // State
-    user: null,
-    role: null,
-    isAuthenticated: false,
-    loading: false,
+// Create the store with Zustand
+export const useAuthStore = create(
+  devtools(
+    persist(
+      (set, get) => {
+        console.log('✅ Zustand store initialized');
 
-    // Actions
-    setUser: (user) => {
-      console.log('👤 setUser called:', user?.email);
-      set({ 
-        user, 
-        isAuthenticated: !!user 
-      });
-    },
+        return {
+          // ============ STATE ============
+          user: null,
+          role: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
 
-    setRole: (role) => {
-      console.log('🎯 setRole called:', role);
-      set({ role });
-    },
+          // ============ SETTERS ============
+          setUser: (user) => {
+            console.log('👤 setUser called:', user?.email);
+            set({
+              user,
+              isAuthenticated: !!user,
+              error: null,
+            });
+          },
 
-    setLoading: (loading) => set({ loading }),
+          setRole: (role) => {
+            console.log('🎯 setRole called:', role);
+            set({ role });
+          },
 
-    login: (user, role) => {
-      console.log('🔑 login called:', user?.email, role);
-      set({
-        user,
-        role,
-        isAuthenticated: true,
-      });
-    },
+          setToken: (token) => {
+            console.log('🔐 setToken called');
+            set({ token });
+          },
 
-    logout: () => {
-      console.log('🚪 logout called');
-      set({
-        user: null,
-        role: null,
-        isAuthenticated: false,
-      });
-    },
+          setLoading: (isLoading) => {
+            set({ isLoading });
+          },
 
-    clearAuth: () => {
-      console.log('🧹 clearAuth called');
-      set({
-        user: null,
-        role: null,
-        isAuthenticated: false,
-      });
-    },
+          setError: (error) => {
+            console.log('❌ setError:', error);
+            set({ error });
+          },
 
-    // Getters
-    getUser: () => get().user,
-    getRole: () => get().role,
-    isLoggedIn: () => get().isAuthenticated,
-  };
-});
+          // ============ ACTIONS ============
+          login: (user, role, token) => {
+            console.log('🔑 login action:', user?.email, role);
+            set({
+              user,
+              role,
+              token,
+              isAuthenticated: true,
+              error: null,
+            });
+          },
+
+          signup: (user, role, token) => {
+            console.log('📝 signup action:', user?.email, role);
+            set({
+              user,
+              role,
+              token,
+              isAuthenticated: true,
+              error: null,
+            });
+          },
+
+          logout: () => {
+            console.log('🚪 logout action');
+            set({
+              user: null,
+              role: null,
+              token: null,
+              isAuthenticated: false,
+              error: null,
+            });
+          },
+
+          clearAuth: () => {
+            console.log('🧹 clearAuth action');
+            set({
+              user: null,
+              role: null,
+              token: null,
+              isAuthenticated: false,
+              error: null,
+            });
+          },
+
+          // ============ GETTERS ============
+          getUser: () => get().user,
+          getRole: () => get().role,
+          getToken: () => get().token,
+          isLoggedIn: () => get().isAuthenticated,
+        };
+      },
+      {
+        name: 'auth-store', // localStorage key
+        partialize: (state) => ({
+          // Only persist these fields to localStorage
+          user: state.user,
+          role: state.role,
+          token: state.token,
+          isAuthenticated: state.isAuthenticated,
+        }),
+      }
+    ),
+    {
+      name: 'AuthStore',
+      enabled: process.env.NODE_ENV === 'development',
+    }
+  )
+);
+
+console.log('✅ authStore exported successfully');
