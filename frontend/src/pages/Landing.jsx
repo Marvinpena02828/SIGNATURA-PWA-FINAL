@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, FiZap } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import logo from '../assets/logo31.png'; // Place logo31.png in src/assets/ and rename to logo.png
 
 export default function Landing() {
   const [email, setEmail] = useState('');
@@ -19,12 +20,14 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 backdrop-blur-md bg-opacity-90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-signatura-red to-signatura-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">S</span>
-              </div>
-              <span className="text-xl font-bold text-signatura-dark">Signatura</span>
-            </div>
+            {/* Logo - Updated to use actual image */}
+            <Link to="/" className="flex items-center space-x-2">
+              <img 
+                src={logo} 
+                alt="Signatura Logo" 
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
 
             <div className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-signatura-dark transition">Features</a>
@@ -509,12 +512,14 @@ export default function Landing() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-              <div className="w-6 h-6 bg-signatura-red rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">S</span>
-              </div>
-              <span className="text-white font-bold">Signatura</span>
-            </div>
+            {/* Footer Logo - Updated to use actual image */}
+            <Link to="/" className="flex items-center space-x-2 mb-4 sm:mb-0">
+              <img 
+                src={logo} 
+                alt="Signatura Logo" 
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
             <p className="text-sm">&copy; 2025 Signatura. All rights reserved.</p>
           </div>
         </div>
