@@ -67,27 +67,27 @@ export default function AllLoginPages() {
     switch (config.color) {
       case 'blue':
         return {
-          gradient: 'from-blue-600 to-blue-400',
-          gradientBg: 'bg-gradient-to-br from-blue-600 to-blue-400',
-          bg: 'bg-blue-100',
-          text: 'text-blue-600',
-          button: 'bg-blue-600 hover:bg-blue-700',
-          tab: 'text-blue-600 border-blue-600',
-          dark: 'bg-blue-900',
-          border: 'border-blue-200',
-          lightBg: 'bg-blue-50',
+          gradient: 'from-red-600 to-red-400',
+          gradientBg: 'bg-gradient-to-br from-red-600 to-red-400',
+          bg: 'bg-red-100',
+          text: 'text-red-600',
+          button: 'bg-red-600 hover:bg-red-700',
+          tab: 'text-red-600 border-red-600',
+          dark: 'bg-red-900',
+          border: 'border-red-200',
+          lightBg: 'bg-red-50',
         };
       case 'purple':
         return {
-          gradient: 'from-purple-600 to-purple-400',
-          gradientBg: 'bg-gradient-to-br from-purple-600 to-purple-400',
-          bg: 'bg-purple-100',
-          text: 'text-purple-600',
-          button: 'bg-purple-600 hover:bg-purple-700',
-          tab: 'text-purple-600 border-purple-600',
-          dark: 'bg-purple-900',
-          border: 'border-purple-200',
-          lightBg: 'bg-purple-50',
+            gradient: 'from-red-600 to-red-400',
+          gradientBg: 'bg-gradient-to-br from-red-600 to-red-400',
+          bg: 'bg-red-100',
+          text: 'text-red-600',
+          button: 'bg-red-600 hover:bg-red-700',
+          tab: 'text-red-600 border-red-600',
+          dark: 'bg-red-900',
+          border: 'border-red-200',
+          lightBg: 'bg-red-50',
         };
       default: // red
         return {
