@@ -1,69 +1,84 @@
-// src/services/consentService.js
-// Consent Flow Management - Control who sees your credentials
+// services/consentService.js
+// Consent and sharing management for credentials
 
-import { createVerificationToken, verifyToken } from './signatureEngine';
+const SHARES_KEY = 'signatura_shares';
+const SHARE_REQUESTS_KEY = 'signatura_share_requests';
 
 /**
- * Create a share/consent request
+ * Create a share request for a credential
  */
-export const createShareRequest = async (credentialId, ownerPublicKey, verifierEmail, permissions = {}) => {
+export const createShareRequest = async (
+  credentialId,
+  issuerPublicKey,
+  verifierEmail,
+  permissions
+) => {
   try {
+    // Generate unique share token
+    const shareToken = generateShareToken();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Default 7 days
+
     const shareRequest = {
-      id: generateId(),
+      id: `share_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       credentialId,
-      ownerPublicKey,
       verifierEmail,
-      status: 'pending', // 'pending', 'approved', 'denied', 'revoked'
-      permissions: {
-        canView: permissions.canView !== false,
-        canPrint: permissions.canPrint || false,
-        canShare: permissions.canShare || false,
-        canDownload: permissions.canDownload || false,
-      },
+      shareToken,
+      permissions,
+      status: 'pending', // pending, approved, revoked
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days default
-      verificationToken: createVerificationToken(credentialId, ownerPublicKey, verifierEmail, 7),
-      accessLog: [],
+      expiresAt: expiresAt.toISOString(),
+      issuerPublicKey,
     };
 
-    // Store in localStorage
-    const shares = getShares();
+    // Save to local storage
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
     shares.push(shareRequest);
-    localStorage.setItem('credential_shares', JSON.stringify(shares));
+    localStorage.setItem(SHARES_KEY, JSON.stringify(shares));
+
+    // In production: send to backend/issuer for final approval
+    const shareLink = `${window.location.origin}/shared/${shareToken}`;
 
     return {
       success: true,
-      shareRequest,
-      shareLink: `${window.location.origin}/verify?token=${shareRequest.verificationToken.token}`,
+      share: shareRequest,
+      shareLink,
+      message: 'Share request created. Awaiting approval.',
     };
-  } catch (error) {
-    console.error('Create share error:', error);
+  } catch (err) {
+    console.error('Error creating share request:', err);
     return {
       success: false,
-      error: error.message,
+      error: 'Failed to create share request',
     };
   }
 };
 
 /**
- * Get all share requests
+ * Get shares for a specific credential
  */
-export const getShares = () => {
+export const getSharesByCredential = (credentialId) => {
   try {
-    const stored = localStorage.getItem('credential_shares');
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Get shares error:', error);
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    return shares.filter((s) => s.credentialId === credentialId);
+  } catch (err) {
+    console.error('Error getting shares:', err);
     return [];
   }
 };
 
 /**
- * Get share requests by credential
+ * Get all shares for an owner
  */
-export const getSharesByCredential = (credentialId) => {
-  const shares = getShares();
-  return shares.filter((s) => s.credentialId === credentialId);
+export const getAllShares = (ownerId) => {
+  try {
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    // In production, would filter by owner from backend
+    return shares;
+  } catch (err) {
+    console.error('Error getting shares:', err);
+    return [];
+  }
 };
 
 /**
@@ -71,251 +86,75 @@ export const getSharesByCredential = (credentialId) => {
  */
 export const approveShare = (shareId) => {
   try {
-    const shares = getShares();
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
     const share = shares.find((s) => s.id === shareId);
 
-    if (!share) {
-      return { success: false, error: 'Share request not found' };
+    if (share) {
+      share.status = 'approved';
+      share.approvedAt = new Date().toISOString();
+      localStorage.setItem(SHARES_KEY, JSON.stringify(shares));
+      return { success: true, share };
     }
 
-    share.status = 'approved';
-    share.approvedAt = new Date().toISOString();
-    share.accessLog.push({
-      action: 'approved',
-      timestamp: new Date().toISOString(),
-    });
-
-    localStorage.setItem('credential_shares', JSON.stringify(shares));
-
-    return {
-      success: true,
-      share,
-      message: `Share approved for ${share.verifierEmail}`,
-    };
-  } catch (error) {
-    console.error('Approve error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
+    return { success: false, error: 'Share not found' };
+  } catch (err) {
+    console.error('Error approving share:', err);
+    return { success: false, error: 'Failed to approve share' };
   }
 };
 
 /**
- * Deny a share request
+ * Revoke a share
  */
-export const denyShare = (shareId, reason = '') => {
+export const revokeShare = (shareId, reason = 'Revoked by owner') => {
   try {
-    const shares = getShares();
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
     const share = shares.find((s) => s.id === shareId);
 
-    if (!share) {
-      return { success: false, error: 'Share request not found' };
+    if (share) {
+      share.status = 'revoked';
+      share.revokedAt = new Date().toISOString();
+      share.revokeReason = reason;
+      localStorage.setItem(SHARES_KEY, JSON.stringify(shares));
+      return { success: true, share };
     }
 
-    share.status = 'denied';
-    share.deniedAt = new Date().toISOString();
-    share.denialReason = reason;
-    share.accessLog.push({
-      action: 'denied',
-      reason,
-      timestamp: new Date().toISOString(),
-    });
-
-    localStorage.setItem('credential_shares', JSON.stringify(shares));
-
-    return {
-      success: true,
-      share,
-      message: `Share denied for ${share.verifierEmail}`,
-    };
-  } catch (error) {
-    console.error('Deny error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
+    return { success: false, error: 'Share not found' };
+  } catch (err) {
+    console.error('Error revoking share:', err);
+    return { success: false, error: 'Failed to revoke share' };
   }
 };
 
 /**
- * Revoke a share/consent
+ * Check if verifier has permission to access credential
  */
-export const revokeShare = (shareId, reason = '') => {
+export const checkPermission = (shareToken, permission) => {
   try {
-    const shares = getShares();
-    const share = shares.find((s) => s.id === shareId);
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    const share = shares.find((s) => s.shareToken === shareToken);
 
     if (!share) {
-      return { success: false, error: 'Share request not found' };
+      return { granted: false, reason: 'Share not found' };
     }
 
-    share.status = 'revoked';
-    share.revokedAt = new Date().toISOString();
-    share.revocationReason = reason;
-    share.accessLog.push({
-      action: 'revoked',
-      reason,
-      timestamp: new Date().toISOString(),
-    });
-
-    localStorage.setItem('credential_shares', JSON.stringify(shares));
-
-    return {
-      success: true,
-      share,
-      message: `Access revoked for ${share.verifierEmail}`,
-    };
-  } catch (error) {
-    console.error('Revoke error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-};
-
-/**
- * Check if share is valid/active
- */
-export const isShareValid = (share) => {
-  if (share.status !== 'approved') {
-    return false;
-  }
-
-  const now = new Date();
-  const expiresAt = new Date(share.expiresAt);
-
-  if (now > expiresAt) {
-    return false;
-  }
-
-  const tokenValidity = verifyToken(share.verificationToken);
-  return tokenValidity.isValid;
-};
-
-/**
- * Log credential access
- */
-export const logCredentialAccess = (shareId, action = 'viewed') => {
-  try {
-    const shares = getShares();
-    const share = shares.find((s) => s.id === shareId);
-
-    if (!share) {
-      return { success: false, error: 'Share not found' };
+    if (share.status !== 'approved') {
+      return { granted: false, reason: 'Share not approved' };
     }
 
-    share.accessLog.push({
-      action,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-    });
-
-    // Keep log to 100 entries
-    if (share.accessLog.length > 100) {
-      share.accessLog = share.accessLog.slice(-100);
+    if (new Date(share.expiresAt) < new Date()) {
+      return { granted: false, reason: 'Share expired' };
     }
 
-    localStorage.setItem('credential_shares', JSON.stringify(shares));
+    const hasPermission = share.permissions[permission];
+    if (!hasPermission) {
+      return { granted: false, reason: `Permission "${permission}" not granted` };
+    }
 
-    return { success: true };
-  } catch (error) {
-    console.error('Log access error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get access logs for a share
- */
-export const getAccessLogs = (shareId) => {
-  const shares = getShares();
-  const share = shares.find((s) => s.id === shareId);
-  return share?.accessLog || [];
-};
-
-/**
- * Check verifier has permission for action
- */
-export const checkPermission = (share, action) => {
-  if (!isShareValid(share)) {
-    return false;
-  }
-
-  switch (action) {
-    case 'view':
-      return share.permissions.canView;
-    case 'print':
-      return share.permissions.canPrint;
-    case 'download':
-      return share.permissions.canDownload;
-    case 'share':
-      return share.permissions.canShare;
-    default:
-      return false;
-  }
-};
-
-/**
- * Get all pending shares (awaiting approval)
- */
-export const getPendingShares = () => {
-  const shares = getShares();
-  return shares.filter((s) => s.status === 'pending');
-};
-
-/**
- * Get active/approved shares
- */
-export const getActiveShares = () => {
-  const shares = getShares();
-  return shares.filter((s) => isShareValid(s));
-};
-
-/**
- * Get expired shares
- */
-export const getExpiredShares = () => {
-  const shares = getShares();
-  const now = new Date();
-  return shares.filter((s) => new Date(s.expiresAt) < now);
-};
-
-/**
- * Export consent audit trail
- */
-export const exportAuditTrail = (credentialId) => {
-  try {
-    const shares = getSharesByCredential(credentialId);
-    const auditData = {
-      credentialId,
-      exportedAt: new Date().toISOString(),
-      shares: shares.map((s) => ({
-        verifierEmail: s.verifierEmail,
-        status: s.status,
-        createdAt: s.createdAt,
-        approvedAt: s.approvedAt,
-        expiresAt: s.expiresAt,
-        permissions: s.permissions,
-        accessCount: s.accessLog.length,
-        lastAccess: s.accessLog[s.accessLog.length - 1]?.timestamp,
-      })),
-    };
-
-    const json = JSON.stringify(auditData, null, 2);
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(json));
-    element.setAttribute('download', `audit-trail-${credentialId}.json`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Export error:', error);
-    return { success: false, error: error.message };
+    return { granted: true, share };
+  } catch (err) {
+    console.error('Error checking permission:', err);
+    return { granted: false, reason: 'Error checking permission' };
   }
 };
 
@@ -323,41 +162,112 @@ export const exportAuditTrail = (credentialId) => {
  * Get share statistics
  */
 export const getShareStats = () => {
-  const shares = getShares();
-  const now = new Date();
+  try {
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    const now = new Date();
 
-  return {
-    total: shares.length,
-    pending: shares.filter((s) => s.status === 'pending').length,
-    approved: shares.filter((s) => s.status === 'approved').length,
-    denied: shares.filter((s) => s.status === 'denied').length,
-    revoked: shares.filter((s) => s.status === 'revoked').length,
-    expired: shares.filter((s) => new Date(s.expiresAt) < now).length,
-    active: shares.filter((s) => isShareValid(s)).length,
-  };
+    const active = shares.filter(
+      (s) => s.status === 'approved' && new Date(s.expiresAt) > now
+    ).length;
+
+    const pending = shares.filter((s) => s.status === 'pending').length;
+
+    const expired = shares.filter(
+      (s) => s.status === 'approved' && new Date(s.expiresAt) <= now
+    ).length;
+
+    const revoked = shares.filter((s) => s.status === 'revoked').length;
+
+    return {
+      total: shares.length,
+      active,
+      pending,
+      expired,
+      revoked,
+    };
+  } catch (err) {
+    console.error('Error getting stats:', err);
+    return { total: 0, active: 0, pending: 0, expired: 0, revoked: 0 };
+  }
 };
 
 /**
- * Helper: Generate unique ID
+ * Get credential by share token
  */
-const generateId = () => {
-  return `share-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+export const getCredentialByShareToken = (shareToken, ownerWallet) => {
+  try {
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    const share = shares.find((s) => s.shareToken === shareToken);
+
+    if (!share) {
+      return null;
+    }
+
+    const credential = ownerWallet.find((c) => c.credentialId === share.credentialId);
+    return credential;
+  } catch (err) {
+    console.error('Error getting credential:', err);
+    return null;
+  }
 };
 
-export default {
-  createShareRequest,
-  getShares,
-  getSharesByCredential,
-  approveShare,
-  denyShare,
-  revokeShare,
-  isShareValid,
-  logCredentialAccess,
-  getAccessLogs,
-  checkPermission,
-  getPendingShares,
-  getActiveShares,
-  getExpiredShares,
-  exportAuditTrail,
-  getShareStats,
+/**
+ * Generate unique share token
+ */
+const generateShareToken = () => {
+  return 'share_' + Math.random().toString(36).substr(2, 32) + Date.now().toString(36);
+};
+
+/**
+ * Update share expiry
+ */
+export const updateShareExpiry = (shareId, daysFromNow) => {
+  try {
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    const share = shares.find((s) => s.id === shareId);
+
+    if (share) {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + daysFromNow);
+      share.expiresAt = expiresAt.toISOString();
+      localStorage.setItem(SHARES_KEY, JSON.stringify(shares));
+      return { success: true, share };
+    }
+
+    return { success: false, error: 'Share not found' };
+  } catch (err) {
+    console.error('Error updating expiry:', err);
+    return { success: false, error: 'Failed to update expiry' };
+  }
+};
+
+/**
+ * Get share audit log
+ */
+export const getShareAuditLog = (shareId) => {
+  try {
+    const shares = JSON.parse(localStorage.getItem(SHARES_KEY) || '[]');
+    const share = shares.find((s) => s.id === shareId);
+
+    if (!share) {
+      return [];
+    }
+
+    const log = [
+      { event: 'created', timestamp: share.createdAt },
+    ];
+
+    if (share.approvedAt) {
+      log.push({ event: 'approved', timestamp: share.approvedAt });
+    }
+
+    if (share.revokedAt) {
+      log.push({ event: 'revoked', timestamp: share.revokedAt, reason: share.revokeReason });
+    }
+
+    return log;
+  } catch (err) {
+    console.error('Error getting audit log:', err);
+    return [];
+  }
 };
