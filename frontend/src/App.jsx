@@ -6,15 +6,17 @@ import { supabase } from './utils/supabase';
 import './styles/Landing.css';
 import PaymentPage from './pages/PaymentPage';
 
-
 // Pages
 import Landing from './pages/Landing';
 import AllLoginPages from './pages/AllLoginPages';
 import IssuerDashboard from './pages/IssuerDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import OwnerProfile from './pages/OwnerProfile';
+import NotificationCenter from './pages/NotificationCenter';
 import AdminDashboard from './pages/AdminDashboard';
 import SharedDocumentPage from './pages/SharedDocumentPage';
 import UserProfile from './pages/UserProfile';
+
 // NotFound component
 const NotFound = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -136,7 +138,38 @@ function App() {
           }
         />
 
-        {/* Protected Routes - Owner */}
+        {/* ===== Protected Routes - OWNER ===== */}
+        {/* Main Owner Dashboard */}
+        <Route
+          path="/owner"
+          element={
+            <ProtectedRoute requiredRole="owner">
+              <OwnerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Owner Profile Page */}
+        <Route
+          path="/owner/profile"
+          element={
+            <ProtectedRoute requiredRole="owner">
+              <OwnerProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Owner Notifications Page */}
+        <Route
+          path="/owner/notifications"
+          element={
+            <ProtectedRoute requiredRole="owner">
+              <NotificationCenter />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Owner Dashboard with wildcard for sub-routes */}
         <Route
           path="/owner/*"
           element={
@@ -145,7 +178,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-<Route path="/payment" element={<PaymentPage />} />
+
         {/* Protected Routes - Admin */}
         <Route
           path="/admin/*"
@@ -155,7 +188,13 @@ function App() {
             </ProtectedRoute>
           }
         />
-<Route path="/profile" element={<UserProfile />} />
+
+        {/* Payment Route */}
+        <Route path="/payment" element={<PaymentPage />} />
+
+        {/* User Profile Route */}
+        <Route path="/profile" element={<UserProfile />} />
+
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
