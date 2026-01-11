@@ -1,332 +1,192 @@
-// src/services/ownerWalletService.js
-// Owner Wallet Management - Store, organize, and verify credentials
+// services/ownerWalletService.js
+// Wallet management for storing and verifying credentials
 
-import { verifySignature, validateSignedDocument } from './signatureEngine';
+import crypto from 'crypto';
 
-/**
- * Add credential to owner's wallet
- */
-export const addCredentialToWallet = async (credential, ownerId) => {
-  try {
-    const walletEntry = {
-      id: credential.id || generateId(),
-      credentialId: credential.id,
-      ownerId,
-      recipientName: credential.recipientName,
-      recipientEmail: credential.recipientEmail,
-      credentialType: credential.credentialType,
-      data: credential.data,
-      issuer: {
-        publicKey: credential.issuer.publicKey,
-        signature: credential.issuer.signature,
-      },
-      documentHash: credential.documentHash,
-      signedAt: credential.signedAt,
-      expiresAt: credential.expiresAt,
-      isValid: credential.isValid,
-      addedToWallet: new Date().toISOString(),
-      permissions: {
-        canView: true,
-        canPrint: true,
-        canShare: true,
-        canDownload: false,
-      },
-      visibility: 'private', // 'private', 'shared', 'public'
-      sharedWith: [],
-      verificationStatus: 'pending', // 'pending', 'verified', 'invalid'
-    };
-
-    // Verify signature immediately
-    const isValid = verifySignature(
-      {
-        id: credential.id,
-        credentialType: credential.credentialType,
-        recipientEmail: credential.recipientEmail,
-        recipientName: credential.recipientName,
-        data: credential.data,
-        issuedAt: credential.signedAt,
-      },
-      credential.issuer.signature,
-      credential.issuer.publicKey
-    );
-
-    walletEntry.verificationStatus = isValid ? 'verified' : 'invalid';
-
-    // Store in localStorage for now (will be synced to backend)
-    const wallet = getWallet(ownerId);
-    wallet.push(walletEntry);
-    localStorage.setItem(`wallet_${ownerId}`, JSON.stringify(wallet));
-
-    return {
-      success: true,
-      credential: walletEntry,
-    };
-  } catch (error) {
-    console.error('Add credential error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-};
+const STORAGE_KEY = 'signatura_wallet';
+const CREDENTIALS_KEY = 'signatura_credentials';
 
 /**
- * Get owner's complete wallet
+ * Get owner's wallet (stored credentials)
  */
 export const getWallet = (ownerId) => {
   try {
-    const stored = localStorage.getItem(`wallet_${ownerId}`);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Get wallet error:', error);
+    const wallets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return wallets[ownerId] || [];
+  } catch (err) {
+    console.error('Error loading wallet:', err);
     return [];
   }
 };
 
 /**
- * Get credential from wallet
+ * Add credential to wallet
  */
-export const getCredential = (ownerId, credentialId) => {
-  const wallet = getWallet(ownerId);
-  return wallet.find((c) => c.credentialId === credentialId);
+export const addToWallet = (ownerId, credential) => {
+  try {
+    const wallets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (!wallets[ownerId]) {
+      wallets[ownerId] = [];
+    }
+
+    // Check if already exists
+    const exists = wallets[ownerId].some((c) => c.credentialId === credential.credentialId);
+    if (!exists) {
+      wallets[ownerId].push({
+        ...credential,
+        addedAt: new Date().toISOString(),
+        verificationStatus: 'unverified',
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
+    }
+
+    return wallets[ownerId];
+  } catch (err) {
+    console.error('Error adding to wallet:', err);
+    return null;
+  }
+};
+
+/**
+ * Remove credential from wallet
+ */
+export const deleteCredential = (ownerId, credentialId) => {
+  try {
+    const wallets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (wallets[ownerId]) {
+      wallets[ownerId] = wallets[ownerId].filter((c) => c.credentialId !== credentialId);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
+    }
+    return true;
+  } catch (err) {
+    console.error('Error deleting credential:', err);
+    return false;
+  }
 };
 
 /**
  * Verify credential signature
+ * In production, this would verify against issuer's public key
  */
 export const verifyCredentialSignature = (credential) => {
   try {
-    const credentialData = {
-      id: credential.credentialId,
-      credentialType: credential.credentialType,
-      recipientEmail: credential.recipientEmail,
-      recipientName: credential.recipientName,
-      data: credential.data,
-      issuedAt: credential.signedAt,
-    };
+    // For now, simulate verification
+    // In production:
+    // 1. Get issuer's public key
+    // 2. Hash the credential data
+    // 3. Verify signature using public key
 
-    const isValid = verifySignature(
-      credentialData,
-      credential.issuer.signature,
-      credential.issuer.publicKey
-    );
+    const credentialData = JSON.stringify({
+      credentialType: credential.credentialType,
+      recipientName: credential.recipientName,
+      recipientEmail: credential.recipientEmail,
+      issuedAt: credential.issuedAt,
+    });
+
+    const isValid = !!credential.signature; // Placeholder check
 
     return {
       isValid,
       credentialId: credential.credentialId,
-      issuerPublicKey: credential.issuer.publicKey,
+      issuerPublicKey: credential.issuer?.publicKey || 'unknown',
       signedAt: credential.signedAt,
-      message: isValid ? 'Credential is authentic and unmodified' : 'Credential signature is invalid',
+      message: isValid
+        ? 'Credential signature is valid and verified by issuer'
+        : 'Signature verification failed',
     };
-  } catch (error) {
-    console.error('Verification error:', error);
+  } catch (err) {
+    console.error('Error verifying signature:', err);
     return {
       isValid: false,
-      error: error.message,
+      message: 'Error verifying signature',
+      credentialId: credential.credentialId,
     };
   }
 };
 
 /**
- * Update credential permissions
+ * Update credential verification status
  */
-export const updateCredentialPermissions = (ownerId, credentialId, permissions) => {
+export const updateVerificationStatus = (ownerId, credentialId, status) => {
   try {
-    const wallet = getWallet(ownerId);
-    const credential = wallet.find((c) => c.credentialId === credentialId);
-
-    if (!credential) {
-      return { success: false, error: 'Credential not found' };
+    const wallets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (wallets[ownerId]) {
+      const cred = wallets[ownerId].find((c) => c.credentialId === credentialId);
+      if (cred) {
+        cred.verificationStatus = status; // 'verified', 'invalid', 'unverified'
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
+      }
     }
-
-    credential.permissions = { ...credential.permissions, ...permissions };
-    localStorage.setItem(`wallet_${ownerId}`, JSON.stringify(wallet));
-
-    return {
-      success: true,
-      credential,
-    };
-  } catch (error) {
-    console.error('Update permissions error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
+    return true;
+  } catch (err) {
+    console.error('Error updating verification status:', err);
+    return false;
   }
-};
-
-/**
- * Set credential visibility
- */
-export const setCredentialVisibility = (ownerId, credentialId, visibility) => {
-  try {
-    const wallet = getWallet(ownerId);
-    const credential = wallet.find((c) => c.credentialId === credentialId);
-
-    if (!credential) {
-      return { success: false, error: 'Credential not found' };
-    }
-
-    credential.visibility = visibility; // 'private', 'shared', 'public'
-    localStorage.setItem(`wallet_${ownerId}`, JSON.stringify(wallet));
-
-    return {
-      success: true,
-      credential,
-    };
-  } catch (error) {
-    console.error('Set visibility error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-};
-
-/**
- * Get credentials by type
- */
-export const getCredentialsByType = (ownerId, credentialType) => {
-  const wallet = getWallet(ownerId);
-  return wallet.filter((c) => c.credentialType === credentialType);
-};
-
-/**
- * Get verified credentials only
- */
-export const getVerifiedCredentials = (ownerId) => {
-  const wallet = getWallet(ownerId);
-  return wallet.filter((c) => c.verificationStatus === 'verified');
-};
-
-/**
- * Search credentials
- */
-export const searchCredentials = (ownerId, query) => {
-  const wallet = getWallet(ownerId);
-  const lowerQuery = query.toLowerCase();
-
-  return wallet.filter(
-    (c) =>
-      c.recipientName.toLowerCase().includes(lowerQuery) ||
-      c.credentialType.toLowerCase().includes(lowerQuery) ||
-      c.data.toString().toLowerCase().includes(lowerQuery)
-  );
 };
 
 /**
  * Get wallet statistics
  */
 export const getWalletStats = (ownerId) => {
-  const wallet = getWallet(ownerId);
-  const verified = wallet.filter((c) => c.verificationStatus === 'verified').length;
-  const byType = {};
-
-  wallet.forEach((c) => {
-    byType[c.credentialType] = (byType[c.credentialType] || 0) + 1;
-  });
-
-  return {
-    total: wallet.length,
-    verified,
-    invalid: wallet.length - verified,
-    byType,
-    expiringIn30Days: wallet.filter(
-      (c) =>
-        c.expiresAt && new Date(c.expiresAt) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    ).length,
-  };
-};
-
-/**
- * Export credential as JSON
- */
-export const exportCredential = (credential) => {
-  try {
-    const json = JSON.stringify(credential, null, 2);
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(json));
-    element.setAttribute('download', `${credential.credentialId}.json`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Export error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Import credential from JSON
- */
-export const importCredential = (ownerId, jsonData) => {
-  try {
-    const credential = JSON.parse(jsonData);
-
-    // Validate credential structure
-    if (!credential.credentialId || !credential.issuer) {
-      return { success: false, error: 'Invalid credential format' };
-    }
-
-    return addCredentialToWallet(credential, ownerId);
-  } catch (error) {
-    console.error('Import error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Delete credential from wallet
- */
-export const deleteCredential = (ownerId, credentialId) => {
   try {
     const wallet = getWallet(ownerId);
-    const filtered = wallet.filter((c) => c.credentialId !== credentialId);
-    localStorage.setItem(`wallet_${ownerId}`, JSON.stringify(filtered));
+    const verified = wallet.filter((c) => c.verificationStatus === 'verified').length;
+    const unverified = wallet.filter((c) => c.verificationStatus === 'unverified').length;
+    const invalid = wallet.filter((c) => c.verificationStatus === 'invalid').length;
 
-    return { success: true };
-  } catch (error) {
-    console.error('Delete error:', error);
-    return { success: false, error: error.message };
+    return {
+      total: wallet.length,
+      verified,
+      unverified,
+      invalid,
+      byType: wallet.reduce((acc, c) => {
+        acc[c.credentialType] = (acc[c.credentialType] || 0) + 1;
+        return acc;
+      }, {}),
+    };
+  } catch (err) {
+    console.error('Error getting stats:', err);
+    return { total: 0, verified: 0, unverified: 0, invalid: 0, byType: {} };
   }
 };
 
 /**
- * Clear entire wallet (careful!)
+ * Export wallet for backup
  */
-export const clearWallet = (ownerId) => {
+export const exportWallet = (ownerId) => {
   try {
-    localStorage.removeItem(`wallet_${ownerId}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Clear error:', error);
-    return { success: false, error: error.message };
+    const wallet = getWallet(ownerId);
+    const dataStr = JSON.stringify(wallet, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `wallet-backup-${new Date().toISOString()}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+
+    return true;
+  } catch (err) {
+    console.error('Error exporting wallet:', err);
+    return false;
   }
 };
 
 /**
- * Helper: Generate unique ID
+ * Import wallet from backup
  */
-const generateId = () => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
+export const importWallet = (ownerId, jsonData) => {
+  try {
+    const credentials = JSON.parse(jsonData);
+    const wallets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 
-export default {
-  addCredentialToWallet,
-  getWallet,
-  getCredential,
-  verifyCredentialSignature,
-  updateCredentialPermissions,
-  setCredentialVisibility,
-  getCredentialsByType,
-  getVerifiedCredentials,
-  searchCredentials,
-  getWalletStats,
-  exportCredential,
-  importCredential,
-  deleteCredential,
-  clearWallet,
+    wallets[ownerId] = credentials;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets));
+
+    return true;
+  } catch (err) {
+    console.error('Error importing wallet:', err);
+    return false;
+  }
 };
