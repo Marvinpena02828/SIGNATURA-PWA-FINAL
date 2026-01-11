@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
   FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX,
-  FiCheck, FiAlertCircle, FiLock, FiUnlock, FiTrash2, FiChevronDown, FiChevronUp, FiBell
+  FiCheck, FiAlertCircle, FiLock, FiTrash2, FiChevronDown, FiChevronUp, FiBell,
+  FiBook, FiBriefcase, FiShield, FiHome, FiUsers, FiTrendingUp
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { getWallet, verifyCredentialSignature, deleteCredential } from '../services/ownerWalletService';
 import { createShareRequest, getSharesByCredential, revokeShare, getShareStats } from '../services/consentService';
 
-const ORGANIZATION_TYPES = [
-  'Educational Institution',
-  'Professional Organizations',
-  'Religious Institution',
-  'Government Agencies',
-  'Local Government Unit',
-  'Private Organizations',
+const ORGANIZATION_CATEGORIES = [
+  { id: 'educational', name: 'Educational Institution', icon: '🎓', color: 'from-blue-500 to-blue-600' },
+  { id: 'professional', name: 'Professional Organizations', icon: '💼', color: 'from-purple-500 to-purple-600' },
+  { id: 'religious', name: 'Religious Institution', icon: '⛪', color: 'from-indigo-500 to-indigo-600' },
+  { id: 'government', name: 'Government Agencies', icon: '🏛️', color: 'from-green-500 to-green-600' },
+  { id: 'local', name: 'Local Government Unit', icon: '🏢', color: 'from-orange-500 to-orange-600' },
+  { id: 'private', name: 'Private Organizations', icon: '🏭', color: 'from-red-500 to-red-600' },
 ];
 
 const DOCUMENT_TYPES = ['Diploma', 'Certificate', 'License', 'Badge', 'Transcript', 'Transcript of Records'];
@@ -34,10 +35,9 @@ export default function OwnerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   
   // UI State
-  const [activeTab, setActiveTab] = useState('wallet');
-  const [expandedCredential, setExpandedCredential] = useState(null);
-  const [expandedRequest, setExpandedRequest] = useState(null);
-  const [showQRCode, setShowQRCode] = useState(null);
+  const [activeTab, setActiveTab] = useState('documents');
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   
   // Modals
   const [showShareModal, setShowShareModal] = useState(false);
@@ -91,7 +91,7 @@ export default function OwnerDashboard() {
         fetchIssuers(),
       ]);
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Error:', err);
       toast.error('Failed to load wallet');
     } finally {
       setLoading(false);
@@ -253,7 +253,7 @@ export default function OwnerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-signatura-red"></div>
           <p className="mt-4 text-gray-300">Loading wallet...</p>
@@ -267,389 +267,318 @@ export default function OwnerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-signatura-red text-white sticky top-0 z-40 shadow-md">
+      <header className="bg-signatura-red text-white sticky top-0 z-40 shadow-lg">
         <div className="px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-2xl font-bold">💼 Digital Wallet</h1>
+              <h1 className="text-2xl font-bold">🔐 Digital Wallet</h1>
               <p className="text-red-100 text-sm">{user?.email}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
+              className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
             >
-              <FiLogOut className="inline mr-1" />
+              <FiLogOut size={16} />
               Logout
             </button>
           </div>
 
-          {/* Stats Bar */}
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            <div className="bg-red-600 rounded p-3 text-center">
-              <p className="text-red-100">Credentials</p>
-              <p className="text-2xl font-bold">{stats.totalCredentials}</p>
-            </div>
-            <div className="bg-red-600 rounded p-3 text-center">
-              <p className="text-red-100">✓ Verified</p>
-              <p className="text-2xl font-bold">{stats.verifiedCredentials}</p>
-            </div>
-            <div className="bg-red-600 rounded p-3 text-center">
-              <p className="text-red-100">Active Shares</p>
-              <p className="text-2xl font-bold">{stats.activeShares}</p>
+          {/* Stats Card */}
+          <div className="bg-red-600 rounded-lg p-3 text-sm">
+            <div className="flex justify-around text-center">
+              <div>
+                <p className="text-red-100 text-xs font-medium">TOTAL DOCUMENTS</p>
+                <p className="text-2xl font-bold text-white">{stats.totalCredentials}</p>
+              </div>
+              <div className="border-l border-red-400"></div>
+              <div>
+                <p className="text-red-100 text-xs font-medium">✓ VERIFIED</p>
+                <p className="text-2xl font-bold text-white">{stats.verifiedCredentials}</p>
+              </div>
+              <div className="border-l border-red-400"></div>
+              <div>
+                <p className="text-red-100 text-xs font-medium">ACTIVE SHARES</p>
+                <p className="text-2xl font-bold text-white">{stats.activeShares}</p>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {/* Tabs */}
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <button
-            onClick={() => setActiveTab('wallet')}
+            onClick={() => setActiveTab('documents')}
             className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap text-sm transition ${
-              activeTab === 'wallet'
-                ? 'bg-signatura-red text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
+              activeTab === 'documents'
+                ? 'bg-signatura-red text-white shadow-md'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
             }`}
           >
-            🎓 Wallet ({wallet.length})
+            📋 Digital Documents ({wallet.length})
           </button>
           <button
             onClick={() => setActiveTab('requests')}
             className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap text-sm transition ${
               activeTab === 'requests'
-                ? 'bg-signatura-red text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
+                ? 'bg-signatura-red text-white shadow-md'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
             }`}
           >
-            📋 Requests ({myRequests.length})
+            📤 My Requests ({myRequests.length})
           </button>
           <button
             onClick={() => setActiveTab('request-new')}
             className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap text-sm transition ${
               activeTab === 'request-new'
-                ? 'bg-signatura-red text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
+                ? 'bg-signatura-red text-white shadow-md'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
             }`}
           >
-            ➕ Request New
-          </button>
-          <button
-            onClick={() => setActiveTab('sharing')}
-            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap text-sm transition ${
-              activeTab === 'sharing'
-                ? 'bg-signatura-red text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
-            }`}
-          >
-            🔗 Sharing
+            ➕ Request Documents
           </button>
         </div>
 
-        {/* Wallet Tab */}
-        {activeTab === 'wallet' && (
-          <div className="space-y-4">
+        {/* ===== DIGITAL DOCUMENTS TAB ===== */}
+        {activeTab === 'documents' && (
+          <div>
             {wallet.length === 0 ? (
-              <div className="bg-white rounded-lg p-12 text-center shadow-sm">
-                <p className="text-gray-500 text-lg">No credentials in wallet yet</p>
+              <div className="bg-white rounded-lg p-12 text-center shadow-sm border border-gray-200">
+                <p className="text-gray-500 text-lg">No documents in wallet yet</p>
               </div>
             ) : (
-              wallet.map((cred) => (
-                <div key={cred.credentialId} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-                  {/* Credential Header */}
+              <div className="space-y-3">
+                {wallet.map((cred) => (
                   <div
-                    className="bg-gradient-to-r from-signatura-red to-red-600 text-white p-4 cursor-pointer hover:opacity-90 transition"
-                    onClick={() =>
-                      setExpandedCredential(
-                        expandedCredential === cred.credentialId ? null : cred.credentialId
-                      )
-                    }
+                    key={cred.credentialId}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition"
                   >
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold capitalize">{cred.credentialType}</h3>
-                        <p className="text-red-100 text-sm">{cred.recipientName}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            cred.verificationStatus === 'verified'
-                              ? 'bg-green-500'
-                              : cred.verificationStatus === 'invalid'
-                              ? 'bg-red-500'
-                              : 'bg-yellow-500'
-                          }`}
-                        >
-                          {cred.verificationStatus}
-                        </span>
-                        {expandedCredential === cred.credentialId ? (
-                          <FiChevronUp size={20} />
-                        ) : (
-                          <FiChevronDown size={20} />
-                        )}
+                    {/* Card Header */}
+                    <div
+                      className={`bg-gradient-to-r ${
+                        cred.verificationStatus === 'verified'
+                          ? 'from-green-600 to-green-700'
+                          : cred.verificationStatus === 'invalid'
+                          ? 'from-red-600 to-red-700'
+                          : 'from-signatura-red to-red-700'
+                      } text-white p-4 cursor-pointer hover:opacity-90 transition`}
+                      onClick={() =>
+                        setExpandedCard(expandedCard === cred.credentialId ? null : cred.credentialId)
+                      }
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold capitalize">{cred.credentialType}</h3>
+                          <p className="text-sm opacity-90">{cred.recipientName}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-xs opacity-75">Status</div>
+                            <div className="text-sm font-bold">{cred.verificationStatus}</div>
+                          </div>
+                          {expandedCard === cred.credentialId ? (
+                            <FiChevronUp size={24} />
+                          ) : (
+                            <FiChevronDown size={24} />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Expanded Content */}
-                  {expandedCredential === cred.credentialId && (
-                    <div className="p-4 border-t border-gray-200 space-y-4">
-                      {/* Credential Details */}
-                      <div className="bg-gray-50 rounded p-4 space-y-3">
-                        <h4 className="font-bold text-gray-900">📋 Credential Details</h4>
-
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <label className="text-gray-600 font-medium">First Name</label>
-                            <p className="text-gray-900 font-semibold">
-                              {cred.recipientName?.split(' ')[0] || 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-gray-600 font-medium">Last Name</label>
-                            <p className="text-gray-900 font-semibold">
-                              {cred.recipientName?.split(' ').slice(-1)[0] || 'N/A'}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-gray-600 font-medium">Type</label>
-                            <p className="text-gray-900 font-semibold capitalize">{cred.credentialType}</p>
-                          </div>
-                          <div>
-                            <label className="text-gray-600 font-medium">Issuer</label>
-                            <p className="text-gray-900 font-semibold text-xs truncate">
-                              {cred.issuer?.name || 'Unknown'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <label className="text-gray-600 font-medium">Signed</label>
-                            <p className="text-gray-900 font-semibold">
-                              {new Date(cred.signedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-gray-600 font-medium">Expires</label>
-                            <p className="text-gray-900 font-semibold">
-                              {cred.expiresAt ? new Date(cred.expiresAt).toLocaleDateString() : '∞'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* QR Code Section */}
-                      <div className="border-t pt-4">
-                        <button
-                          onClick={() =>
-                            setShowQRCode(showQRCode === cred.credentialId ? null : cred.credentialId)
-                          }
-                          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm"
-                        >
-                          {showQRCode === cred.credentialId ? '🔒 Hide QR Code' : '📱 Show Digital ID'}
-                        </button>
-
-                        {showQRCode === cred.credentialId && (
-                          <div className="mt-4 p-4 bg-gray-50 rounded border-2 border-blue-200 text-center">
-                            <p className="text-sm text-gray-600 mb-3">Digital ID QR Code</p>
-                            <div className="w-48 h-48 mx-auto bg-white p-2 rounded border border-gray-300">
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                                  JSON.stringify({
-                                    credentialId: cred.credentialId,
-                                    type: cred.credentialType,
-                                    name: cred.recipientName,
-                                    issuer: cred.issuer?.name,
-                                    signedAt: cred.signedAt,
-                                  })
-                                )}`}
-                                alt="QR Code"
-                                className="w-full h-full"
-                              />
+                    {/* Expanded Details */}
+                    {expandedCard === cred.credentialId && (
+                      <div className="p-4 border-t border-gray-200 space-y-4">
+                        {/* Document Details Box */}
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h4 className="font-bold text-gray-900 mb-3 text-sm">📋 DOCUMENT DETAIL</h4>
+                          
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <label className="text-gray-600 text-xs font-medium">FirstName</label>
+                              <p className="text-gray-900 font-semibold">
+                                {cred.recipientName?.split(' ')[0] || 'N/A'}
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-500 mt-3">Scan to verify credential</p>
+                            <div>
+                              <label className="text-gray-600 text-xs font-medium">MiddleName</label>
+                              <p className="text-gray-900 font-semibold">-</p>
+                            </div>
+                            <div>
+                              <label className="text-gray-600 text-xs font-medium">LastName</label>
+                              <p className="text-gray-900 font-semibold">
+                                {cred.recipientName?.split(' ').slice(-1)[0] || 'N/A'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-gray-600 text-xs font-medium">Diploma</label>
+                              <p className="text-gray-900 font-semibold capitalize">{cred.credentialType}</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Actions */}
-                      <div className="border-t pt-4 grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => handleVerifyCredential(cred)}
-                          className="bg-green-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-green-700 transition text-xs"
-                        >
-                          ✓ Verify
-                        </button>
-                        <button
-                          onClick={() => handleOpenShareModal(cred)}
-                          className="bg-purple-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-purple-700 transition text-xs"
-                        >
-                          📤 Share
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCredential(cred.credentialId)}
-                          className="bg-red-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-red-700 transition text-xs"
-                        >
-                          🗑️ Delete
-                        </button>
+                          <div className="mt-4 pt-4 border-t border-gray-300">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <label className="text-gray-600 text-xs font-medium">Signed</label>
+                                <p className="text-gray-900 font-semibold">
+                                  {new Date(cred.signedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-gray-600 text-xs font-medium">Expires</label>
+                                <p className="text-gray-900 font-semibold">
+                                  {cred.expiresAt ? new Date(cred.expiresAt).toLocaleDateString() : '∞'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* QR Code Section */}
+                        <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                          <h4 className="font-bold text-blue-900 mb-3 text-sm">📱 DIGITAL DOCUMENTS</h4>
+                          <div className="bg-white p-3 rounded border border-blue-200 text-center">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                                JSON.stringify({
+                                  credentialId: cred.credentialId,
+                                  type: cred.credentialType,
+                                  name: cred.recipientName,
+                                })
+                              )}`}
+                              alt="QR"
+                              className="w-32 h-32 mx-auto"
+                            />
+                            <p className="text-xs text-gray-500 mt-2">Scan to verify</p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => handleVerifyCredential(cred)}
+                            className="bg-green-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-green-700 transition text-xs"
+                          >
+                            ✓ Verify
+                          </button>
+                          <button
+                            onClick={() => handleOpenShareModal(cred)}
+                            className="bg-purple-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-purple-700 transition text-xs"
+                          >
+                            📤 Share
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCredential(cred.credentialId)}
+                            className="bg-red-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-red-700 transition text-xs"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {/* Requests Tab */}
+        {/* ===== MY REQUESTS TAB ===== */}
         {activeTab === 'requests' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {myRequests.length === 0 ? (
-              <div className="bg-white rounded-lg p-12 text-center shadow-sm">
+              <div className="bg-white rounded-lg p-12 text-center shadow-sm border border-gray-200">
                 <p className="text-gray-500 text-lg">No requests sent yet</p>
               </div>
             ) : (
               myRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
-                >
-                  <div
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 cursor-pointer hover:opacity-90 transition"
-                    onClick={() => setExpandedRequest(expandedRequest === req.id ? null : req.id)}
-                  >
+                <div key={req.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className={`bg-gradient-to-r ${
+                    req.status === 'approved'
+                      ? 'from-green-600 to-green-700'
+                      : req.status === 'pending'
+                      ? 'from-yellow-600 to-yellow-700'
+                      : 'from-red-600 to-red-700'
+                  } text-white p-4`}>
                     <div className="flex justify-between items-center">
-                      <div className="flex-1">
+                      <div>
                         <h3 className="text-lg font-bold">{req.issuer_organization || 'Unknown'}</h3>
-                        <p className="text-blue-100 text-sm">
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </p>
+                        <p className="text-sm opacity-90">{new Date(req.created_at).toLocaleDateString()}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-3 py-1 rounded text-xs font-bold ${
-                            req.status === 'pending'
-                              ? 'bg-yellow-400 text-yellow-900'
-                              : req.status === 'approved'
-                              ? 'bg-green-400 text-green-900'
-                              : 'bg-red-400 text-red-900'
-                          }`}
-                        >
-                          {req.status?.toUpperCase()}
-                        </span>
-                        {expandedRequest === req.id ? (
-                          <FiChevronUp size={20} />
-                        ) : (
-                          <FiChevronDown size={20} />
-                        )}
-                      </div>
+                      <span className="px-3 py-1 bg-black bg-opacity-20 rounded text-xs font-bold">
+                        {req.status?.toUpperCase()}
+                      </span>
                     </div>
                   </div>
+                  <div className="p-4 text-sm text-gray-700">
+                    <p>
+                      <strong>Documents:</strong> {req.message?.split('Requesting ')[1]?.split(' documents')[0] || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
-                  {expandedRequest === req.id && (
-                    <div className="p-4 border-t border-gray-200">
-                      <div className="bg-gray-50 rounded p-3 text-sm space-y-2">
-                        <p>
-                          <strong>Documents Requested:</strong>{' '}
-                          {req.message?.split('Requesting ')[1]?.split(' documents')[0] || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Issuer Email:</strong> {req.issuer_email || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Status:</strong>{' '}
-                          <span className="font-semibold">{req.status?.toUpperCase()}</span>
-                        </p>
+        {/* ===== REQUEST NEW TAB ===== */}
+        {activeTab === 'request-new' && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Select Issuer Organization</h2>
+            
+            {/* Organization Categories Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {ORGANIZATION_CATEGORIES.map((category) => (
+                <div
+                  key={category.id}
+                  className="bg-white rounded-lg shadow-sm border-2 border-gray-300 overflow-hidden hover:shadow-md transition cursor-pointer"
+                  onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                >
+                  <div className={`bg-gradient-to-r ${category.color} text-white p-4 text-center`}>
+                    <div className="text-4xl mb-2">{category.icon}</div>
+                    <h3 className="font-bold text-sm">{category.name}</h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Issuers for Selected Category */}
+            {selectedCategory && (
+              <div className="mt-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  {ORGANIZATION_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+                </h3>
+                <div className="space-y-3">
+                  {issuers
+                    .filter((issuer) => {
+                      // Filter issuers by category (you can customize this logic)
+                      return issuer.id !== null; // For now, show all. Customize as needed
+                    })
+                    .map((issuer) => (
+                      <div key={issuer.id} className="bg-white rounded-lg p-4 border border-gray-300 shadow-sm hover:shadow-md transition">
+                        <h4 className="font-bold text-gray-900 mb-1">{issuer.organization_name}</h4>
+                        <p className="text-gray-600 text-sm mb-3">{issuer.email}</p>
+                        <button
+                          onClick={() => handleOpenRequestModal(issuer)}
+                          className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium text-sm transition"
+                        >
+                          Request Documents
+                        </button>
                       </div>
+                    ))}
+                  {issuers.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                      <p>No issuers available in this category</p>
                     </div>
                   )}
                 </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Request New Tab */}
-        {activeTab === 'request-new' && (
-          <div className="space-y-4">
-            <p className="text-gray-600 text-center mb-6">Select an issuer to request documents</p>
-            {issuers.length === 0 ? (
-              <div className="bg-white rounded-lg p-12 text-center shadow-sm">
-                <p className="text-gray-500">No issuers available</p>
               </div>
-            ) : (
-              issuers.map((issuer) => (
-                <div
-                  key={issuer.id}
-                  className="bg-white rounded-lg p-4 border border-gray-300 shadow-sm hover:shadow-md transition"
-                >
-                  <h3 className="font-bold text-gray-900 mb-1">{issuer.organization_name}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{issuer.email}</p>
-                  <button
-                    onClick={() => handleOpenRequestModal(issuer)}
-                    className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium text-sm transition"
-                  >
-                    Request Documents
-                  </button>
-                </div>
-              ))
             )}
-          </div>
-        )}
 
-        {/* Sharing Tab */}
-        {activeTab === 'sharing' && (
-          <div className="space-y-4">
-            {wallet.length === 0 ? (
-              <div className="bg-white rounded-lg p-12 text-center shadow-sm">
-                <p className="text-gray-500">No credentials to share</p>
+            {!selectedCategory && issuers.length > 0 && (
+              <div className="bg-white rounded-lg p-8 text-center border border-gray-300">
+                <p className="text-gray-500 text-lg">Select an organization category above to request documents</p>
               </div>
-            ) : (
-              wallet.map((cred) => {
-                const shares = getSharesByCredential(cred.credentialId);
-                return (
-                  <div key={cred.credentialId} className="bg-white rounded-lg p-4 border border-gray-300 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-gray-900">{cred.credentialType}</h3>
-                        <p className="text-gray-600 text-sm">{cred.recipientName}</p>
-                      </div>
-                      <button
-                        onClick={() => handleOpenShareModal(cred)}
-                        className="bg-purple-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-purple-700 transition"
-                      >
-                        + Share
-                      </button>
-                    </div>
-                    {shares.length === 0 ? (
-                      <p className="text-xs text-gray-500">Not shared yet</p>
-                    ) : (
-                      <div className="space-y-2 mt-3 border-t pt-3">
-                        {shares.map((share) => (
-                          <div
-                            key={share.id}
-                            className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm"
-                          >
-                            <div>
-                              <p className="font-medium text-gray-900">{share.verifierEmail}</p>
-                              <p className="text-xs text-gray-500">{share.status}</p>
-                            </div>
-                            {share.status === 'approved' && (
-                              <button
-                                onClick={() => revokeShare(share.id)}
-                                className="text-red-600 text-xs font-medium hover:underline"
-                              >
-                                Revoke
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
             )}
           </div>
         )}
@@ -673,7 +602,7 @@ export default function OwnerDashboard() {
                     : 'bg-red-50 border-red-300'
                 }`}
               >
-                <div className="text-3xl mb-2">
+                <div className="text-4xl mb-2">
                   {verificationResult.isValid ? '✓' : '✗'}
                 </div>
                 <h3 className="font-bold text-lg">
@@ -685,17 +614,6 @@ export default function OwnerDashboard() {
                   }`}
                 >
                   {verificationResult.message}
-                </p>
-              </div>
-
-              <div className="bg-gray-50 rounded p-4 text-sm space-y-2 max-h-48 overflow-y-auto">
-                <p>
-                  <strong>ID:</strong>
-                  <code className="text-xs block break-all">{verificationResult.credentialId}</code>
-                </p>
-                <p>
-                  <strong>Signed:</strong>
-                  <span>{new Date(verificationResult.signedAt).toLocaleString()}</span>
                 </p>
               </div>
 
@@ -715,7 +633,7 @@ export default function OwnerDashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
             <div className="p-6 border-b-4 border-signatura-red">
-              <h2 className="text-2xl font-bold text-signatura-dark">📤 Share Credential</h2>
+              <h2 className="text-2xl font-bold text-signatura-dark">📤 Share Document</h2>
               <p className="text-gray-600 text-sm mt-1">{selectedCredential.credentialType}</p>
             </div>
 
@@ -735,9 +653,7 @@ export default function OwnerDashboard() {
               </div>
 
               <div className="border-t pt-4">
-                <label className="block text-sm font-bold text-gray-700 mb-3">
-                  Permissions
-                </label>
+                <label className="block text-sm font-bold text-gray-700 mb-3">Permissions</label>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
