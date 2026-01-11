@@ -274,13 +274,27 @@ export default function OwnerDashboard() {
               <h1 className="text-2xl font-bold">🔐 Digital Wallet</h1>
               <p className="text-red-100 text-sm">{user?.email}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-            >
-              <FiLogOut size={16} />
-              Logout
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/notifications')}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                🔔 Notifications
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                👤 Profile
+              </button>
+              <button
+                onClick={handleLogout}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                <FiLogOut size={16} />
+                Logout
+              </button>
+            </div>
           </div>
 
           {/* Stats Card */}
