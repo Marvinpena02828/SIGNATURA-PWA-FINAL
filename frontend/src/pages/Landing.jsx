@@ -5,9 +5,7 @@ import {
   FiZap, FiMail, FiMenu, FiX, FiActivity, FiKey, FiGlobe
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import logo from '../assets/logo31.png';
-import Navigation from '../components/Navigation';
-import Footer from '../components/Footer';
+import '../css/Landing.css';
 
 // Enhanced Ripple Button
 const RippleButton = ({ children, onClick, className, to, variant = 'primary', disabled = false }) => {
@@ -89,7 +87,7 @@ const FloatingParticles = () => {
             top: '-10px',
           }}
           animate={{
-            y: window.innerHeight + 20,
+            y: typeof window !== 'undefined' ? window.innerHeight + 20 : 600,
             opacity: [0.1, 0.3, 0.1],
           }}
           transition={{
@@ -104,21 +102,207 @@ const FloatingParticles = () => {
   );
 };
 
-// Gradient Background
-const GradientBg = ({ children }) => (
-  <div className="gradient-bg-container">
-    <motion.div className="gradient-blur blur-1" animate={{ y: [0, 20, 0] }} transition={{ duration: 8, repeat: Infinity }} />
-    <motion.div className="gradient-blur blur-2" animate={{ y: [20, 0, 20] }} transition={{ duration: 10, repeat: Infinity }} />
-    <div className="gradient-content">{children}</div>
-  </div>
-);
+// Navigation Component (Embedded)
+const Navigation = ({ logo }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'About', path: '/about' },
+    { label: 'Solutions', path: '/solutions' },
+    { label: 'Contact', path: '/contact' },
+  ];
+
+  return (
+    <nav className={`navbar sticky-top navbar-expand-lg navbar-light transition-all ${
+      scrolled ? 'bg-white shadow-md border-bottom border-light' : 'bg-white bg-opacity-95'
+    }`}>
+      <div className="container-xl">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-100 d-flex justify-content-between align-items-center"
+        >
+          <Link to="/" className="navbar-brand me-auto">
+            <motion.img
+              src={logo}
+              alt="Signatura Logo"
+              height="45"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            />
+          </Link>
+
+          <div className="d-none d-lg-flex align-items-center gap-1">
+            {navItems.map((item) => (
+              <motion.div key={item.path}>
+                <Link
+                  to={item.path}
+                  className="btn btn-link nav-link text-decoration-none fw-500 position-relative text-dark"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {item.label}
+                  <motion.span
+                    className="position-absolute bottom-0 start-0 bg-red"
+                    style={{ height: '2px', width: '0%' }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="d-flex align-items-center gap-2 gap-lg-3 ms-auto ms-lg-0">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="d-none d-md-flex align-items-center gap-2">
+              <Link to="/" className="btn btn-sm btn-outline-secondary fw-500">
+                Login
+              </Link>
+            </motion.div>
+
+            <button
+              className="btn d-lg-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-100 mt-3"
+            >
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </nav>
+  );
+};
+
+// Footer Component (Embedded)
+const Footer = () => {
+  return (
+    <footer className="footer bg-dark text-white py-6">
+      <div className="container-xl">
+        <div className="row g-4 mb-6">
+          <motion.div
+            className="col-lg-3 col-md-6"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-muted small mb-4">
+              Digital identity, data security, and digital signature solutions for the modern world.
+            </p>
+            <div className="d-flex gap-3">
+              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                Facebook
+              </a>
+              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                LinkedIn
+              </a>
+            </div>
+          </motion.div>
+
+          {[
+            {
+              title: 'Product',
+              links: [
+                { label: 'Features', path: '/' },
+                { label: 'Security', path: '/' },
+              ],
+            },
+            {
+              title: 'Company',
+              links: [
+                { label: 'About', path: '/about' },
+                { label: 'Contact', path: '/contact' },
+              ],
+            },
+          ].map((section, idx) => (
+            <motion.div
+              key={idx}
+              className="col-lg-2 col-md-6"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <h6 className="fw-bold mb-4">{section.title}</h6>
+              <ul className="list-unstyled">
+                {section.links.map((link) => (
+                  <li key={link.path} className="mb-2">
+                    <Link
+                      to={link.path}
+                      className="text-muted text-decoration-none transition-all"
+                    >
+                      <small>{link.label}</small>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.hr
+          className="border-secondary opacity-25 my-4"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0.25 }}
+          viewport={{ once: true }}
+        />
+
+        <motion.div
+          className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <p className="text-muted small mb-0">
+            &copy; 2025 Signatura. All rights reserved. | Powered by 1Knight Solutions, Inc.
+          </p>
+        </motion.div>
+      </div>
+    </footer>
+  );
+};
+
+// Main Landing Component
 export default function Landing() {
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeSuccess, setSubscribeSuccess] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [activeTab, setActiveTab] = useState('identity');
+  const [logo] = useState('/logo31.png'); // Update path to your logo
 
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -158,11 +342,10 @@ export default function Landing() {
 
   return (
     <div className="landing-page">
-      <Navigation />
+      <Navigation logo={logo} />
 
       {/* Hero Section */}
       <section className="hero-section py-5 py-lg-6 position-relative overflow-hidden">
-        {/* Video Background */}
         <video 
           autoPlay 
           muted 
@@ -174,7 +357,6 @@ export default function Landing() {
           Your browser does not support the video tag.
         </video>
 
-        {/* Overlay for readability */}
         <div className="hero-overlay"></div>
 
         <FloatingParticles />
@@ -211,7 +393,6 @@ export default function Landing() {
               A multi-dimensional digital identity, data security and digital signature platform. Transform your digital experience and the way you provide services safely and securely.
             </motion.p>
 
-            {/* CTA Buttons */}
             <motion.div
               className="d-flex flex-column flex-sm-row justify-content-center gap-3 gap-lg-4 mb-5"
               variants={containerVariants}
@@ -219,18 +400,17 @@ export default function Landing() {
               animate="visible"
             >
               <motion.div variants={itemVariants}>
-                <RippleButton to="/login/issuer" variant="primary">
+                <RippleButton to="/issuer" variant="primary">
                   Get Started as Issuer <FiArrowRight />
                 </RippleButton>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <RippleButton to="/login/owner" variant="outline">
+                <RippleButton to="/owner" variant="outline">
                   Access as Owner <FiArrowRight />
                 </RippleButton>
               </motion.div>
             </motion.div>
 
-            {/* Hero Stats */}
             <motion.div
               className="row mx-auto mb-5"
               style={{ maxWidth: '800px' }}
@@ -269,7 +449,6 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* Tab Navigation */}
           <motion.div
             className="d-flex justify-content-center gap-2 gap-md-3 mb-5 flex-wrap"
             variants={containerVariants}
@@ -300,7 +479,6 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* Tab Content */}
           <motion.div
             className="row align-items-center g-4 g-lg-5"
             key={activeTab}
@@ -598,69 +776,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Partners Section */}
-      <section id="partners" className="partners-section py-6">
-        <div className="container-xl">
-          <motion.div className="text-center mb-5" {...fadeInUp}>
-            <h2 className="display-4 fw-bold mb-3">Become Our Partner</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
-              Together we build the future now. Let's work in collaboration to bring genuine digital transformation.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="row align-items-center g-5"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            <motion.div className="col-lg-6" variants={itemVariants}>
-              <div className="partner-image-box p-5 rounded-4 bg-light">
-                <motion.div
-                  animate={{ y: [0, 30, 0] }}
-                  transition={{ duration: 5, repeat: Infinity }}
-                  className="text-center"
-                >
-                  <FiUsers size={150} className="text-red opacity-50" />
-                </motion.div>
-              </div>
-            </motion.div>
-
-            <motion.div className="col-lg-6" variants={itemVariants}>
-              <h3 className="h2 fw-bold mb-4">Building the Future Together</h3>
-              <p className="lead text-muted mb-4">
-                We're looking to partner with institutions such as insurance, banking and finance, education, government and various organizations.
-              </p>
-
-              <ul className="list-unstyled mb-5">
-                {[
-                  'Custom integration solutions',
-                  'Dedicated partnership support',
-                  'Revenue sharing opportunities',
-                  'Scalable technology platform',
-                ].map((item, idx) => (
-                  <motion.li
-                    key={idx}
-                    className="d-flex align-items-center gap-3 mb-3 py-2"
-                    whileHover={{ x: 8 }}
-                  >
-                    <motion.span className="text-red fw-bold text-xl">✓</motion.span>
-                    <span className="text-dark fw-500">{item}</span>
-                  </motion.li>
-                ))}
-              </ul>
-
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <RippleButton variant="primary" to="/partners">
-                  Let's Talk <FiArrowRight />
-                </RippleButton>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Newsletter Section */}
       <section className="newsletter-section py-6 text-white position-relative bg-red">
         <motion.div
@@ -772,12 +887,12 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             <motion.div variants={itemVariants}>
-              <RippleButton to="/login/issuer" variant="primary">
+              <RippleButton to="/issuer" variant="primary">
                 Sign In as Issuer <FiArrowRight />
               </RippleButton>
             </motion.div>
             <motion.div variants={itemVariants}>
-              <RippleButton to="/login/owner" variant="outline">
+              <RippleButton to="/owner" variant="outline">
                 Sign In as Owner <FiArrowRight />
               </RippleButton>
             </motion.div>
