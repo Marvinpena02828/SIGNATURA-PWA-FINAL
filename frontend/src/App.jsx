@@ -5,8 +5,8 @@ import { useAuthStore } from './store/authStore';
 import { supabase } from './utils/supabase';
 import './styles/Landing.css';
 import PaymentPage from './pages/PaymentPage';
-import Navigation from './components/Navigation.jsx';
-import Footer from './components/Footer.jsx';
+// import Navigation from './components/Navigation.jsx';
+// import Footer from './components/Footer.jsx';
 // Pages
 import Landing from './pages/Landing';
 import AllLoginPages from './pages/AllLoginPages';
