@@ -1,10 +1,10 @@
 // src/pages/IssuerDashboard.jsx
-// Enhanced with Cryptographic Signature Engine + Existing Workflow
+// UPDATED: Shows owner details (First Name, Middle Name, Last Name) in requests table
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { FiLogOut, FiPlus, FiTrash2, FiKey, FiEye, FiEyeOff, FiCopy, FiDownload, FiFileText, FiCheck } from 'react-icons/fi';
+import { FiLogOut, FiPlus, FiTrash2, FiKey, FiEye, FiEyeOff, FiCopy, FiDownload, FiFileText, FiCheck, FiChevronDown } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { generateKeyPair, signDocument, createSignedDocument } from '../services/signatureEngine';
 import { issueCredential, batchIssueCredentials } from '../services/issuerService';
@@ -29,6 +29,7 @@ export default function IssuerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [showPublicKey, setShowPublicKey] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
+  const [expandedRequest, setExpandedRequest] = useState(null);
 
   // Issuer Keys (Cryptographic)
   const [issuerKeys, setIssuerKeys] = useState(() => {
@@ -370,10 +371,18 @@ export default function IssuerDashboard() {
     }
 
     setSelectedRequest(request);
+    
+    // Build full name from new owner details
+    const fullName = request.ownerFullName || 
+                     `${request.ownerFirstName || ''} ${request.ownerLastName || ''}`.trim() || 
+                     request.owner_name || 
+                     request.owner_email || 
+                     'Unknown';
+
     setApprovalForm({
       dateRequested: new Date().toLocaleDateString(),
       signatureId: '',
-      fullName: request.owner_name || request.owner_email || 'Unknown',
+      fullName: fullName,
       documentType: docType,
       documentId: '',
       processedBy: user?.full_name || '',
@@ -695,7 +704,7 @@ export default function IssuerDashboard() {
           </div>
         </div>
 
-        {/* Requests Table */}
+        {/* Requests Table - UPDATED to show owner details */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-signatura-dark">📥 Document Requests</h2>
@@ -705,7 +714,7 @@ export default function IssuerDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Owner Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Requested</th>
@@ -720,52 +729,135 @@ export default function IssuerDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  incomingRequests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">
-                        {request.owner_name || request.owner_email || 'Unknown'}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">{request.owner_email}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            request.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : request.status === 'approved'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
+                  incomingRequests.map((request) => {
+                    // Build owner name from new owner details
+                    const ownerName = request.ownerFirstName && request.ownerLastName
+                      ? `${request.ownerFirstName} ${request.ownerLastName}`
+                      : (request.ownerFullName || request.owner_name || request.owner_email || 'Unknown');
+
+                    return (
+                      <React.Fragment key={request.id}>
+                        {/* Main Row */}
+                        <tr 
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
                         >
-                          {request.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 text-sm">
-                        {new Date(request.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 flex gap-2">
-                        {request.status === 'pending' ? (
-                          <>
-                            <button
-                              onClick={() => handleOpenApprovalModal(request)}
-                              className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded transition font-medium text-sm"
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {ownerName}
+                            {request.ownerMiddleName && (
+                              <p className="text-xs text-gray-500">Middle: {request.ownerMiddleName}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600 text-sm">{request.owner_email}</td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                request.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : request.status === 'approved'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
                             >
-                              Approve →
-                            </button>
-                            <button
-                              onClick={() => handleRejectRequest(request.id)}
-                              className="text-red-600 hover:bg-red-50 px-3 py-1 rounded transition font-medium text-sm"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-gray-500 text-sm">
-                            {request.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
-                          </span>
+                              {request.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600 text-sm">
+                            {new Date(request.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {request.status === 'pending' ? (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenApprovalModal(request);
+                                    }}
+                                    className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded transition font-medium text-sm"
+                                  >
+                                    Approve →
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRejectRequest(request.id);
+                                    }}
+                                    className="text-red-600 hover:bg-red-50 px-3 py-1 rounded transition font-medium text-sm"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-gray-500 text-sm">
+                                  {request.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
+                                </span>
+                              )}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedRequest(expandedRequest === request.id ? null : request.id);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <FiChevronDown size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expanded Details Row */}
+                        {expandedRequest === request.id && (
+                          <tr className="bg-gray-50">
+                            <td colSpan="5" className="px-6 py-6">
+                              <div className="space-y-4">
+                                {/* Owner Information */}
+                                {(request.ownerFirstName || request.ownerMiddleName || request.ownerLastName) && (
+                                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                                    <h4 className="font-bold text-blue-900 mb-3 text-sm">👤 OWNER INFORMATION</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                      {request.ownerFirstName && (
+                                        <div>
+                                          <label className="text-gray-600 text-xs font-medium">First Name</label>
+                                          <p className="text-gray-900 font-semibold">{request.ownerFirstName}</p>
+                                        </div>
+                                      )}
+                                      {request.ownerMiddleName && (
+                                        <div>
+                                          <label className="text-gray-600 text-xs font-medium">Middle Name</label>
+                                          <p className="text-gray-900 font-semibold">{request.ownerMiddleName}</p>
+                                        </div>
+                                      )}
+                                      {request.ownerLastName && (
+                                        <div>
+                                          <label className="text-gray-600 text-xs font-medium">Last Name</label>
+                                          <p className="text-gray-900 font-semibold">{request.ownerLastName}</p>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <label className="text-gray-600 text-xs font-medium">Email</label>
+                                        <p className="text-gray-900 font-semibold text-xs break-all">
+                                          {request.owner_email}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Documents Requested */}
+                                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                                  <h4 className="font-bold text-purple-900 mb-3 text-sm">📋 DOCUMENTS REQUESTED</h4>
+                                  <p className="text-gray-700 text-sm">
+                                    {request.message?.replace('Requesting ', '').replace(' documents from', '') || 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                    </tr>
-                  ))
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -773,7 +865,7 @@ export default function IssuerDashboard() {
         </div>
       </main>
 
-      {/* ===== MODALS ===== */}
+      {/* ===== MODALS ===== (Keep all existing modals unchanged) */}
 
       {/* Keys Modal */}
       {showKeysModal && (
@@ -1011,7 +1103,7 @@ export default function IssuerDashboard() {
         </div>
       )}
 
-      {/* Document Modal (Existing) */}
+      {/* Document Modal */}
       {showDocumentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
@@ -1071,14 +1163,14 @@ export default function IssuerDashboard() {
         </div>
       )}
 
-      {/* Approval Modal (Existing) */}
+      {/* Approval Modal */}
       {showApprovalModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <h2 className="text-2xl font-bold text-signatura-dark">📋 Approve Document Request</h2>
               <p className="text-sm text-gray-600 mt-2">
-                From: {selectedRequest.owner_name || selectedRequest.owner_email}
+                From: {approvalForm.fullName}
               </p>
             </div>
 
