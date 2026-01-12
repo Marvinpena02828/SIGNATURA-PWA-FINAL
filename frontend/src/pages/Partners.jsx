@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiUsers, FiTrendingUp, FiGlobe, FiCheckCircle } from 'react-icons/fi';
-import Navigation from './components/Navigation';
-import Footer from './components/Footer';
+import Navigation from '../components/Navigation.jsx';
+import Footer from '../components/Footer.jsx';
 
 export default function Partners() {
   const [email, setEmail] = useState('');
@@ -306,9 +306,11 @@ export default function Partners() {
                       : 'bg-light text-dark'
                   }`}
                   whileHover={{ y: -12 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  animate={tier.highlighted ? { y: [-8, 8, -8] } : {}}
-                  transition={tier.highlighted ? { duration: 3, repeat: Infinity } : {}}
+                animate={tier.highlighted ? { y: [-8, 8, -8] } : {}}
+transition={tier.highlighted 
+  ? { duration: 3, repeat: Infinity } 
+  : { type: 'spring', stiffness: 300 }
+}
                 >
                   <h4 className={`fw-bold mb-2 ${tier.color}`}>{tier.tier}</h4>
                   <p className={`mb-2 ${tier.highlighted ? 'opacity-90' : 'text-muted'}`}>{tier.desc}</p>
