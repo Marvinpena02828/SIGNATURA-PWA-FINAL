@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
   FiLogOut, FiDownload, FiPrinter, FiShare2, FiEye, FiPlus, FiCopy, FiX,
-  FiCheck, FiAlertCircle, FiLock, FiTrash2, FiChevronDown, FiChevronUp, FiBell,
-  FiBook, FiBriefcase, FiShield, FiHome, FiUsers, FiTrendingUp
+  FiCheck, FiAlertCircle, FiLock, FiTrash2, FiChevronDown, FiChevronUp, FiBell
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { getWallet, verifyCredentialSignature, deleteCredential } from '../services/ownerWalletService';
@@ -27,19 +26,16 @@ export default function OwnerDashboard() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  // State
   const [wallet, setWallet] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [issuers, setIssuers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // UI State
   const [activeTab, setActiveTab] = useState('documents');
   const [expandedCard, setExpandedCard] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   
-  // Modals
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -48,13 +44,20 @@ export default function OwnerDashboard() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [selectedDocTypes, setSelectedDocTypes] = useState([]);
 
-  // Forms
   const [shareForm, setShareForm] = useState({
     verifierEmail: '',
     canPrint: true,
     canShare: false,
     canDownload: false,
     expiryDays: 7,
+  });
+
+  // NEW: Owner Details for Request
+  const [ownerDetails, setOwnerDetails] = useState({
+    firstName: user?.user_metadata?.first_name || '',
+    middleName: user?.user_metadata?.middle_name || '',
+    lastName: user?.user_metadata?.last_name || '',
+    email: user?.email || '',
   });
 
   const [stats, setStats] = useState({
@@ -203,8 +206,19 @@ export default function OwnerDashboard() {
     );
   };
 
+  // UPDATED: Include owner details in request
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
+    
+    // Validate inputs
+    if (!ownerDetails.firstName.trim()) {
+      toast.error('First name is required');
+      return;
+    }
+    if (!ownerDetails.lastName.trim()) {
+      toast.error('Last name is required');
+      return;
+    }
     if (selectedDocTypes.length === 0) {
       toast.error('Please select at least one document');
       return;
@@ -218,18 +232,22 @@ export default function OwnerDashboard() {
         body: JSON.stringify({
           endpoint: 'document-requests',
           ownerId: user?.id,
-          ownerEmail: user?.email,
-          ownerName: user?.full_name || user?.email,
+          ownerEmail: ownerDetails.email,
+          ownerFirstName: ownerDetails.firstName,
+          ownerMiddleName: ownerDetails.middleName,
+          ownerLastName: ownerDetails.lastName,
+          ownerFullName: `${ownerDetails.firstName} ${ownerDetails.middleName} ${ownerDetails.lastName}`.trim(),
           issuerId: selectedIssuer.id,
           issuerEmail: selectedIssuer.email,
+          issuerOrganization: selectedIssuer.organization_name,
           documentIds: selectedDocTypes,
-          message: `Requesting ${selectedDocTypes.join(', ')}`,
+          message: `Requesting ${selectedDocTypes.join(', ')} documents from ${ownerDetails.firstName} ${ownerDetails.lastName}`,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        toast.success('✓ Request sent!');
+        toast.success('✓ Request sent successfully!');
         setShowRequestModal(false);
         setSelectedIssuer(null);
         setSelectedDocTypes([]);
@@ -276,14 +294,14 @@ export default function OwnerDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => navigate('/notifications')}
-                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                onClick={() => navigate('/owner/notifications')}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
               >
                 🔔 Notifications
               </button>
               <button
-                onClick={() => navigate('/profile')}
-                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                onClick={() => navigate('/owner/profile')}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
               >
                 👤 Profile
               </button>
@@ -354,7 +372,7 @@ export default function OwnerDashboard() {
           </button>
         </div>
 
-        {/* ===== DIGITAL DOCUMENTS TAB ===== */}
+        {/* DOCUMENTS TAB */}
         {activeTab === 'documents' && (
           <div>
             {wallet.length === 0 ? (
@@ -368,7 +386,6 @@ export default function OwnerDashboard() {
                     key={cred.credentialId}
                     className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition"
                   >
-                    {/* Card Header */}
                     <div
                       className={`bg-gradient-to-r ${
                         cred.verificationStatus === 'verified'
@@ -400,10 +417,8 @@ export default function OwnerDashboard() {
                       </div>
                     </div>
 
-                    {/* Expanded Details */}
                     {expandedCard === cred.credentialId && (
                       <div className="p-4 border-t border-gray-200 space-y-4">
-                        {/* Document Details Box */}
                         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                           <h4 className="font-bold text-gray-900 mb-3 text-sm">📋 DOCUMENT DETAIL</h4>
                           
@@ -448,7 +463,6 @@ export default function OwnerDashboard() {
                           </div>
                         </div>
 
-                        {/* QR Code Section */}
                         <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
                           <h4 className="font-bold text-blue-900 mb-3 text-sm">📱 DIGITAL DOCUMENTS</h4>
                           <div className="bg-white p-3 rounded border border-blue-200 text-center">
@@ -467,7 +481,6 @@ export default function OwnerDashboard() {
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="grid grid-cols-3 gap-2">
                           <button
                             onClick={() => handleVerifyCredential(cred)}
@@ -497,7 +510,7 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* ===== MY REQUESTS TAB ===== */}
+        {/* REQUESTS TAB */}
         {activeTab === 'requests' && (
           <div className="space-y-3">
             {myRequests.length === 0 ? (
@@ -535,12 +548,11 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* ===== REQUEST NEW TAB ===== */}
+        {/* REQUEST NEW TAB */}
         {activeTab === 'request-new' && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">Select Issuer Organization</h2>
             
-            {/* Organization Categories Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {ORGANIZATION_CATEGORIES.map((category) => (
                 <div
@@ -556,42 +568,25 @@ export default function OwnerDashboard() {
               ))}
             </div>
 
-            {/* Issuers for Selected Category */}
             {selectedCategory && (
               <div className="mt-8">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
                   {ORGANIZATION_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
                 </h3>
                 <div className="space-y-3">
-                  {issuers
-                    .filter((issuer) => {
-                      // Filter issuers by category (you can customize this logic)
-                      return issuer.id !== null; // For now, show all. Customize as needed
-                    })
-                    .map((issuer) => (
-                      <div key={issuer.id} className="bg-white rounded-lg p-4 border border-gray-300 shadow-sm hover:shadow-md transition">
-                        <h4 className="font-bold text-gray-900 mb-1">{issuer.organization_name}</h4>
-                        <p className="text-gray-600 text-sm mb-3">{issuer.email}</p>
-                        <button
-                          onClick={() => handleOpenRequestModal(issuer)}
-                          className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium text-sm transition"
-                        >
-                          Request Documents
-                        </button>
-                      </div>
-                    ))}
-                  {issuers.length === 0 && (
-                    <div className="text-center text-gray-500 py-8">
-                      <p>No issuers available in this category</p>
+                  {issuers.map((issuer) => (
+                    <div key={issuer.id} className="bg-white rounded-lg p-4 border border-gray-300 shadow-sm hover:shadow-md transition">
+                      <h4 className="font-bold text-gray-900 mb-1">{issuer.organization_name}</h4>
+                      <p className="text-gray-600 text-sm mb-3">{issuer.email}</p>
+                      <button
+                        onClick={() => handleOpenRequestModal(issuer)}
+                        className="w-full bg-signatura-red text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium text-sm transition"
+                      >
+                        Request Documents
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
-            )}
-
-            {!selectedCategory && issuers.length > 0 && (
-              <div className="bg-white rounded-lg p-8 text-center border border-gray-300">
-                <p className="text-gray-500 text-lg">Select an organization category above to request documents</p>
               </div>
             )}
           </div>
@@ -712,16 +707,82 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* Request Modal */}
+      {/* Request Modal - WITH OWNER DETAILS INPUT */}
       {showRequestModal && selectedIssuer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b-4 border-signatura-red sticky top-0 bg-white">
               <h2 className="text-2xl font-bold text-signatura-dark">📋 Request Documents</h2>
               <p className="text-gray-600 text-sm mt-1">From: {selectedIssuer.organization_name}</p>
             </div>
 
             <form onSubmit={handleSubmitRequest} className="p-6 space-y-4">
+              {/* OWNER INFORMATION SECTION */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <h4 className="font-bold text-blue-900 mb-3 text-sm">👤 YOUR INFORMATION</h4>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={ownerDetails.firstName}
+                      onChange={(e) =>
+                        setOwnerDetails({ ...ownerDetails, firstName: e.target.value })
+                      }
+                      placeholder="First name"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Middle Name
+                    </label>
+                    <input
+                      type="text"
+                      value={ownerDetails.middleName}
+                      onChange={(e) =>
+                        setOwnerDetails({ ...ownerDetails, middleName: e.target.value })
+                      }
+                      placeholder="Middle name (optional)"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={ownerDetails.lastName}
+                      onChange={(e) =>
+                        setOwnerDetails({ ...ownerDetails, lastName: e.target.value })
+                      }
+                      placeholder="Last name"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={ownerDetails.email}
+                      disabled
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-gray-100 text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Read-only</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* DOCUMENT TYPE SELECTION */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-3">
                   Select documents *
@@ -741,7 +802,8 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4 sticky bottom-0 bg-white">
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-2 pt-4 sticky bottom-0 bg-white border-t">
                 <button
                   type="button"
                   onClick={() => setShowRequestModal(false)}
@@ -754,7 +816,7 @@ export default function OwnerDashboard() {
                   disabled={submitting || selectedDocTypes.length === 0}
                   className="flex-1 px-4 py-2 bg-signatura-red text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
                 >
-                  {submitting ? 'Sending...' : 'Request'}
+                  {submitting ? 'Sending...' : 'Send Request'}
                 </button>
               </div>
             </form>
