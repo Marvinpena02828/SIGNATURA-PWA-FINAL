@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowRight, FiChevronDown } from 'react-icons/fi';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from './components/Navigation';
+import Footer from './components/Footer';
 
 export default function Industries() {
   const [expandedIndustry, setExpandedIndustry] = useState(0);
