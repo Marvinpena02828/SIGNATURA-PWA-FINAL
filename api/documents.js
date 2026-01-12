@@ -251,7 +251,7 @@ async function handleGet(req, res) {
       return await getAccessRequests(req, res);
     }
 
-    // Get Document Requests
+    // ===== UPDATED: Get Document Requests with owner details =====
     if (endpoint === 'document-requests') {
       console.log('📋 Fetching document requests...');
       console.log('🔍 Query params:', { ownerId, issuerId });
@@ -287,9 +287,30 @@ async function handleGet(req, res) {
 
         console.log(`✅ Found ${requests?.length || 0} requests`);
         
+        // Log sample data to verify owner fields are being returned
+        if (requests && requests.length > 0) {
+          console.log('📋 Sample request data:');
+          console.log('   Owner:', {
+            firstName: requests[0].owner_first_name,
+            middleName: requests[0].owner_middle_name,
+            lastName: requests[0].owner_last_name,
+            email: requests[0].owner_email,
+          });
+        }
+
+        // Map data to include both snake_case (database) and camelCase (frontend) for compatibility
+        const mappedRequests = requests.map(req => ({
+          ...req,
+          // Add camelCase versions for frontend
+          ownerFirstName: req.owner_first_name,
+          ownerMiddleName: req.owner_middle_name,
+          ownerLastName: req.owner_last_name,
+          ownerFullName: req.owner_full_name,
+        }));
+
         return res.status(200).json({
           success: true,
-          data: requests || [],
+          data: mappedRequests || [],
         });
       } catch (err) {
         console.error('❌ Document requests error:', err);
@@ -611,10 +632,24 @@ async function handleDelete(req, res) {
 // HELPER FUNCTIONS
 // ============================================
 
+// ===== UPDATED: createDocumentRequest with owner details =====
 async function createDocumentRequest(req, res) {
-  const { ownerId, ownerEmail, ownerName, issuerId, issuerEmail, issuerOrganization, documentIds, message } = req.body;
+  const { 
+    ownerId, 
+    ownerEmail, 
+    ownerFirstName,       // NEW
+    ownerMiddleName,      // NEW
+    ownerLastName,        // NEW
+    ownerFullName,        // NEW
+    issuerId, 
+    issuerEmail, 
+    issuerOrganization, 
+    documentIds, 
+    message 
+  } = req.body;
 
   console.log('📋 Creating document request...');
+  console.log('   Owner:', { ownerFirstName, ownerMiddleName, ownerLastName, ownerEmail });
   
   if (!ownerId || !issuerId || !documentIds || documentIds.length === 0) {
     return res.status(400).json({
@@ -659,12 +694,16 @@ async function createDocumentRequest(req, res) {
         id: requestId,
         owner_id: ownerId,
         owner_email: ownerEmail,
-        owner_name: ownerName || null,
+        owner_first_name: ownerFirstName || null,      // SAVE THESE ✅
+        owner_middle_name: ownerMiddleName || null,    // SAVE THESE ✅
+        owner_last_name: ownerLastName || null,        // SAVE THESE ✅
+        owner_full_name: ownerFullName || ownerFirstName || null,  // SAVE THIS ✅
         issuer_id: issuerId,
         issuer_email: issuerEmail,
         issuer_organization: issuer.organization_name,
         status: 'pending',
         message: message || null,
+        created_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -675,6 +714,7 @@ async function createDocumentRequest(req, res) {
     }
 
     console.log('✅ Request created:', requestId);
+    console.log('   Saved owner name:', { ownerFirstName, ownerMiddleName, ownerLastName });
 
     return res.status(201).json({
       success: true,
