@@ -268,6 +268,21 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="hero-section py-5 py-lg-6 position-relative overflow-hidden">
+        {/* Video Background */}
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          className="hero-video"
+        >
+          <source src="/path/to/your/video.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Overlay for readability */}
+        <div className="hero-overlay"></div>
+
         <FloatingParticles />
         <motion.div className="hero-blob-1" animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 20, repeat: Infinity }} />
         <motion.div className="hero-blob-2" animate={{ x: [0, -50, 0], y: [0, -30, 0] }} transition={{ duration: 25, repeat: Infinity }} />
