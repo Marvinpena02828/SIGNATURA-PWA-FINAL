@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiTarget, FiEye, FiHeart, FiShield } from 'react-icons/fi';
-import Navigation from '../components/Navigation.jsx';
-import Footer from '../components/Footer.jsx';
+// import Navigation from '../components/Navigation.jsx';
+// import Footer from '../components/Footer.jsx';
 
 export default function About() {
   const fadeInUp = {
