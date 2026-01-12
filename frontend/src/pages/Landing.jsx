@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, FiZap, FiMail } from 'react-icons/fi';
+import { 
+  FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, 
+  FiZap, FiMail, FiMenu, FiX, FiBarChart3, FiKey, FiGlobe, FiChevronDown
+} from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo31.png';
 import './Landing.css';
 
-// Ripple Effect Component
+// Enhanced Ripple Button
 const RippleButton = ({ children, onClick, className, to, variant = 'primary', disabled = false }) => {
   const [ripples, setRipples] = useState([]);
 
   const handleClick = (e) => {
+    if (disabled) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = e.clientX - rect.left - size / 2;
@@ -61,9 +65,9 @@ const RippleButton = ({ children, onClick, className, to, variant = 'primary', d
   );
 };
 
-// Floating Particles Background
+// Animated Background Particles
 const FloatingParticles = () => {
-  const particles = Array.from({ length: 20 }).map((_, i) => ({
+  const particles = Array.from({ length: 15 }).map((_, i) => ({
     id: i,
     delay: Math.random() * 0.5,
     duration: 4 + Math.random() * 2,
@@ -85,7 +89,7 @@ const FloatingParticles = () => {
           }}
           animate={{
             y: window.innerHeight + 20,
-            opacity: [0.2, 0.4, 0.2],
+            opacity: [0.1, 0.3, 0.1],
           }}
           transition={{
             duration: particle.duration,
@@ -99,16 +103,27 @@ const FloatingParticles = () => {
   );
 };
 
+// Gradient Background
+const GradientBg = ({ children }) => (
+  <div className="gradient-bg-container">
+    <motion.div className="gradient-blur blur-1" animate={{ y: [0, 20, 0] }} transition={{ duration: 8, repeat: Infinity }} />
+    <motion.div className="gradient-blur blur-2" animate={{ y: [20, 0, 20] }} transition={{ duration: 10, repeat: Infinity }} />
+    <div className="gradient-content">{children}</div>
+  </div>
+);
+
 export default function Landing() {
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeSuccess, setSubscribeSuccess] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [activeTab, setActiveTab] = useState('identity');
 
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: 'easeOut' },
+    transition: { duration: 0.7, ease: 'easeOut' },
     viewport: { once: true, margin: '0px 0px -100px 0px' }
   };
 
@@ -117,15 +132,15 @@ export default function Landing() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
+        staggerChildren: 0.12,
+        delayChildren: 0.1,
       },
     },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
   const handleNewsletterSubmit = async (e) => {
@@ -144,12 +159,20 @@ export default function Landing() {
   const handleNavigate = (id) => {
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: 'smooth' });
+    setMobileMenuOpen(false);
   };
+
+  const navItems = [
+    { label: 'About', id: 'about', path: '#about' },
+    { label: 'Solutions', id: 'solutions', path: '#solutions' },
+    { label: 'Industries', id: 'industries', path: '#industries' },
+    { label: 'Partners', id: 'partners', path: '#partners' },
+  ];
 
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className="navbar sticky-top navbar-expand-md navbar-light bg-white border-bottom border-red">
+      <nav className="navbar sticky-top navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
         <div className="container-xl">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -157,175 +180,352 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
             className="w-100 d-flex justify-content-between align-items-center"
           >
-            <Link to="/" className="navbar-brand">
+            <Link to="/" className="navbar-brand me-auto">
               <motion.img
                 src={logo}
                 alt="Signatura Logo"
-                height="40"
-                whileHover={{ scale: 1.1 }}
+                height="45"
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               />
             </Link>
 
-            <button
-              className="navbar-toggler"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#navbarNav"
-            >
-              <span className="navbar-toggler-icon"></span>
-            </button>
-
-            <div className="collapse navbar-collapse" id="navbarNav">
-              <ul className="navbar-nav ms-auto">
-                {[
-                  { label: 'Features', id: 'features' },
-                  { label: 'How It Works', id: 'how-it-works' },
-                  { label: 'Security', id: 'security' },
-                ].map((item) => (
-                  <li className="nav-item" key={item.id}>
-                    <motion.button
-                      onClick={() => handleNavigate(item.id)}
-                      className="nav-link text-decoration-none text-dark"
-                      whileHover={{ y: -2, color: '#DC2626' }}
-                    >
-                      {item.label}
-                    </motion.button>
-                  </li>
-                ))}
-              </ul>
+            {/* Desktop Menu */}
+            <div className="d-none d-lg-flex align-items-center gap-1">
+              {navItems.map((item) => (
+                <motion.button
+                  key={item.id}
+                  onClick={() => handleNavigate(item.id)}
+                  className="btn btn-link nav-link text-dark text-decoration-none fw-500 position-relative"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {item.label}
+                  <motion.span
+                    className="position-absolute bottom-0 start-0 bg-red"
+                    style={{ height: '2px', width: '0%' }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.button>
+              ))}
             </div>
 
-            <div className="d-flex align-items-center gap-3 ms-3">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/login/issuer" className="text-decoration-none text-red fw-500">
-                  Sign In
+            {/* Right Actions */}
+            <div className="d-flex align-items-center gap-2 gap-lg-3 ms-auto ms-lg-0">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="d-none d-md-flex align-items-center gap-2">
+                <Link to="/login/owner" className="btn btn-sm btn-outline-secondary fw-500">
+                  Owner
+                </Link>
+                <Link to="/login/issuer" className="btn btn-sm btn-outline-secondary fw-500">
+                  Issuer
                 </Link>
               </motion.div>
-              <RippleButton to="/login/issuer" variant="primary">
-                Get Started <FiArrowRight />
-              </RippleButton>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                className="btn d-lg-none"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+              </button>
             </div>
           </motion.div>
+
+          {/* Mobile Menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-100 mt-3"
+              >
+                {navItems.map((item) => (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.id)}
+                    className="btn btn-link w-100 text-start text-dark text-decoration-none py-2"
+                    whileHover={{ x: 10 }}
+                  >
+                    {item.label}
+                  </motion.button>
+                ))}
+                <div className="d-flex gap-2 mt-3">
+                  <Link to="/login/owner" className="btn btn-sm btn-outline-secondary w-100">
+                    Owner
+                  </Link>
+                  <Link to="/login/issuer" className="btn btn-sm btn-outline-secondary w-100">
+                    Issuer
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="hero-section py-5 position-relative">
+      <section className="hero-section py-5 py-lg-6 position-relative overflow-hidden">
         <FloatingParticles />
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
+        <motion.div className="hero-blob-1" animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 20, repeat: Infinity }} />
+        <motion.div className="hero-blob-2" animate={{ x: [0, -50, 0], y: [0, -30, 0] }} transition={{ duration: 25, repeat: Infinity }} />
 
         <div className="container-xl position-relative">
-          <motion.div className="text-center" {...fadeInUp}>
+          <motion.div className="text-center mb-5" {...fadeInUp}>
             <motion.h1
-              className="display-4 fw-bold mb-4 hero-title"
+              className="display-3 fw-900 mb-4 hero-title lh-1"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             >
-              Verify Credentials with
+              Signatura
+              <motion.br />
               <motion.span
-                className="d-block gradient-text-red"
-                initial={{ opacity: 0 }}
+                className="gradient-text-red"
+                initial={{ opacity: 0, backgroundPosition: '0% 50%' }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
               >
-                Confidence
+                Digitally Transforming Lives
               </motion.span>
             </motion.h1>
 
             <motion.p
               className="lead text-muted mb-5 mx-auto"
-              style={{ maxWidth: '600px' }}
+              style={{ maxWidth: '700px' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
             >
-              Issue, store, and verify digital documents with cryptographic signatures. Give your users control over who can access their credentials.
+              A multi-dimensional digital identity, data security and digital signature platform. Transform your digital experience and the way you provide services safely and securely.
             </motion.p>
 
             {/* CTA Buttons */}
             <motion.div
-              className="d-flex flex-column flex-sm-row justify-content-center gap-3 mb-5"
+              className="d-flex flex-column flex-sm-row justify-content-center gap-3 gap-lg-4 mb-5"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               <motion.div variants={itemVariants}>
                 <RippleButton to="/login/issuer" variant="primary">
-                  For Issuers <FiArrowRight />
+                  Get Started as Issuer <FiArrowRight />
                 </RippleButton>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <RippleButton to="/login/owner" variant="secondary">
-                  For Document Owners <FiArrowRight />
+                <RippleButton to="/login/owner" variant="outline">
+                  Access as Owner <FiArrowRight />
                 </RippleButton>
               </motion.div>
             </motion.div>
 
-            {/* Animated Stats */}
+            {/* Hero Stats */}
             <motion.div
               className="row mx-auto mb-5"
-              style={{ maxWidth: '700px' }}
+              style={{ maxWidth: '800px' }}
               variants={containerVariants}
               initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
+              animate="visible"
             >
               {[
-                { label: 'Privacy Control', value: '100%' },
-                { label: 'Encryption', value: '256-bit' },
+                { label: 'Security Level', value: 'Military Grade' },
+                { label: 'Encryption', value: 'End-to-End' },
                 { label: 'Verification', value: 'Instant' },
               ].map((stat, idx) => (
-                <motion.div key={idx} variants={itemVariants} className="col-md-4 mb-3">
+                <motion.div key={idx} variants={itemVariants} className="col-md-4 mb-4">
                   <motion.div
-                    className="stat-value text-red"
-                    whileHover={{ scale: 1.1 }}
+                    className="stat-card p-4 rounded-4"
+                    whileHover={{ y: -8 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
                   >
-                    {stat.value}
+                    <p className="text-muted small text-uppercase fw-bold mb-2 letter-spacing">{stat.label}</p>
+                    <p className="h5 fw-bold text-red">{stat.value}</p>
                   </motion.div>
-                  <p className="text-muted small">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
           </motion.div>
+        </div>
+      </section>
 
-          {/* Hero Visual */}
+      {/* Solutions / Features Section */}
+      <section id="solutions" className="solutions-section py-6 position-relative">
+        <div className="container-xl">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-3">Core Solutions</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
+              Complete platform for digital transformation with three pillars of security and identity
+            </p>
+          </motion.div>
+
+          {/* Tab Navigation */}
           <motion.div
-            className="mt-5 position-relative"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            className="d-flex justify-content-center gap-2 gap-md-3 mb-5 flex-wrap"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true }}
           >
-            <div className="hero-visual-bg"></div>
-            <div className="hero-visual">
-              <div className="row g-3">
-                {[FiLock, FiShield, FiUsers].map((Icon, idx) => (
-                  <motion.div
-                    key={idx}
-                    className="col-4"
-                    whileHover={{ scale: 1.05, y: -5 }}
-                  >
-                    <div className="hero-visual-card text-red">
-                      <Icon className="h-100 w-100" size={48} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            {[
+              { id: 'identity', label: 'Digital Identity', icon: FiKey },
+              { id: 'security', label: 'Data Security', icon: FiShield },
+              { id: 'signature', label: 'Digital Signature', icon: FiLock },
+            ].map((tab) => (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`btn btn-lg px-4 py-3 rounded-pill fw-bold transition-all ${
+                  activeTab === tab.id
+                    ? 'btn-red text-white shadow-lg'
+                    : 'btn-outline-red text-red'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                variants={itemVariants}
+              >
+                <tab.icon className="me-2" />
+                {tab.label}
+              </motion.button>
+            ))}
+          </motion.div>
+
+          {/* Tab Content */}
+          <motion.div
+            className="row align-items-center g-4 g-lg-5"
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {activeTab === 'identity' && (
+              <>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
+                    <motion.div
+                      animate={{ y: [0, 20, 0] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="text-center"
+                    >
+                      <FiKey size={120} className="text-red mb-4" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <h3 className="h2 fw-bold mb-4">Digital Identity</h3>
+                  <p className="lead text-muted mb-4">
+                    Stay in control with your identity details and prevent identity theft and data breach.
+                  </p>
+                  <ul className="list-unstyled mb-4">
+                    {[
+                      'Multi-Factor Authentication',
+                      'KYC - Selfie Verification',
+                      'Secure Identity Storage',
+                      'Real-time Threat Monitoring',
+                    ].map((item, idx) => (
+                      <motion.li
+                        key={idx}
+                        className="d-flex align-items-center gap-3 mb-3 py-2"
+                        whileHover={{ x: 8 }}
+                      >
+                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
+                        <span className="text-dark">{item}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </>
+            )}
+
+            {activeTab === 'security' && (
+              <>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
+                    <motion.div
+                      animate={{ y: [0, 20, 0] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="text-center"
+                    >
+                      <FiShield size={120} className="text-red mb-4" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <h3 className="h2 fw-bold mb-4">Data Security</h3>
+                  <p className="lead text-muted mb-4">
+                    Keep data safe and protected from data corruption through blockchain technology and added layers of security.
+                  </p>
+                  <ul className="list-unstyled mb-4">
+                    {[
+                      'Blockchain Technology',
+                      'End-to-End Encryption',
+                      'Secure Data Residency',
+                      'Continuous Monitoring',
+                    ].map((item, idx) => (
+                      <motion.li
+                        key={idx}
+                        className="d-flex align-items-center gap-3 mb-3 py-2"
+                        whileHover={{ x: 8 }}
+                      >
+                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
+                        <span className="text-dark">{item}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </>
+            )}
+
+            {activeTab === 'signature' && (
+              <>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
+                    <motion.div
+                      animate={{ y: [0, 20, 0] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="text-center"
+                    >
+                      <FiLock size={120} className="text-red mb-4" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+                <motion.div className="col-lg-6" variants={itemVariants}>
+                  <h3 className="h2 fw-bold mb-4">Digital Signature</h3>
+                  <p className="lead text-muted mb-4">
+                    Sign anytime and anywhere with our uniquely designed QR code protected digital signature.
+                  </p>
+                  <ul className="list-unstyled mb-4">
+                    {[
+                      'QR Code Protected Signing',
+                      'Legal Compliance',
+                      'Instant Verification',
+                      'Audit Trail Tracking',
+                    ].map((item, idx) => (
+                      <motion.li
+                        key={idx}
+                        className="d-flex align-items-center gap-3 mb-3 py-2"
+                        whileHover={{ x: 8 }}
+                      >
+                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
+                        <span className="text-dark">{item}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </>
+            )}
           </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="features-section py-5 position-relative">
-        <div className="container-xl position-relative">
+      {/* Benefits Section */}
+      <section id="about" className="benefits-section py-6 position-relative bg-light">
+        <div className="container-xl">
           <motion.div className="text-center mb-5" {...fadeInUp}>
-            <h2 className="display-5 fw-bold mb-3">Powerful Features</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
-              Everything you need to issue, manage, and verify digital credentials securely.
+            <h2 className="display-4 fw-bold mb-3">Why Signatura?</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
+              Transform your business with genuine digital solutions that matter
             </p>
           </motion.div>
 
@@ -337,13 +537,37 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             {[
-              { icon: FiShield, title: 'Cryptographic Signatures', desc: 'Every document is digitally signed and can be verified offline. Your credentials are tamper-proof.' },
-              { icon: FiUsers, title: 'Owner-Controlled Access', desc: 'Document owners have complete control. Grant or revoke verification access anytime.' },
-              { icon: FiLock, title: 'Privacy First', desc: 'Selective disclosure means sharing only what\'s necessary. Your data stays private.' },
-              { icon: FiTrendingUp, title: 'Complete Audit Trail', desc: 'Track every verification event. Know exactly who accessed your documents and when.' },
-              { icon: FiZap, title: 'Instant Issuance', desc: 'Issue credentials in seconds. No paperwork, no delays. Completely digital.' },
-              { icon: FiCheckCircle, title: 'Simple Verification', desc: 'Verifiers get instant confirmation. No more waiting for credential validation.' },
-            ].map((feature, idx) => (
+              {
+                icon: FiBarChart3,
+                title: 'Enhanced Data Collection',
+                desc: 'Optimize and analyze data collected to vastly improve customer experience with informed decisions.'
+              },
+              {
+                icon: FiUsers,
+                title: 'Improved Customer Experience',
+                desc: 'Consistent and pleasant experience by providing enhanced services that exceed expectations.'
+              },
+              {
+                icon: FiGlobe,
+                title: 'Digital Culture Transformation',
+                desc: 'Digitized environment providing teams with right tools for sustainable collaboration.'
+              },
+              {
+                icon: FiTrendingUp,
+                title: 'Increased Profitability',
+                desc: 'True digital transformation leading to efficiency gains, reduced costs, and brand loyalty.'
+              },
+              {
+                icon: FiZap,
+                title: 'Productivity Growth',
+                desc: 'Simplified workflows with right tools, optimized service delivery, and empowered workforce.'
+              },
+              {
+                icon: FiCheckCircle,
+                title: 'Environmentally Conscious',
+                desc: 'Paperless transactions reducing carbon footprint and supporting sustainability advocacy.'
+              },
+            ].map((benefit, idx) => (
               <motion.div
                 key={idx}
                 variants={itemVariants}
@@ -352,23 +576,24 @@ export default function Landing() {
                 onMouseLeave={() => setHoveredFeature(null)}
               >
                 <motion.div
-                  className="feature-card"
+                  className="benefit-card p-5 rounded-4 h-100 bg-white position-relative"
                   animate={{
                     boxShadow: hoveredFeature === idx
-                      ? '0 20px 40px rgba(220, 38, 38, 0.15)'
-                      : '0 10px 20px rgba(0, 0, 0, 0.05)',
+                      ? '0 20px 60px rgba(220, 38, 38, 0.15)'
+                      : '0 10px 30px rgba(0, 0, 0, 0.05)',
+                    y: hoveredFeature === idx ? -12 : 0,
                   }}
-                  whileHover={{ y: -8 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <motion.div
-                    className="feature-icon text-red"
+                    className="benefit-icon mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit"
                     whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.6 }}
                   >
-                    <feature.icon size={32} />
+                    <benefit.icon size={32} className="text-red" />
                   </motion.div>
-                  <h3 className="h5 fw-bold mb-2">{feature.title}</h3>
-                  <p className="text-muted small">{feature.desc}</p>
+                  <h3 className="h5 fw-bold mb-3">{benefit.title}</h3>
+                  <p className="text-muted small lh-lg">{benefit.desc}</p>
                 </motion.div>
               </motion.div>
             ))}
@@ -376,147 +601,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="how-it-works-section py-5">
+      {/* Industries Section */}
+      <section id="industries" className="industries-section py-6">
         <div className="container-xl">
           <motion.div className="text-center mb-5" {...fadeInUp}>
-            <h2 className="display-5 fw-bold mb-3">How It Works</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
-              Simple workflow for issuance, management, and verification.
-            </p>
-          </motion.div>
-
-          {/* Main Steps */}
-          <motion.div
-            className="row g-4 mb-5"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { num: 1, title: 'Issuance', desc: 'Issuers create and cryptographically sign documents. Recipients receive and store them securely.' },
-              { num: 2, title: 'Request', desc: 'Verifiers request permission to access a document. The owner receives and reviews the request.' },
-              { num: 3, title: 'Verification', desc: 'Owner grants access with fine-grained control. Verifier gets instant cryptographic proof.' },
-            ].map((step, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="col-md-4">
-                <div className="step-card position-relative">
-                  <motion.div
-                    className="step-number text-red"
-                    whileHover={{ scale: 1.2, rotate: 10 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                  >
-                    {step.num}
-                  </motion.div>
-                  <h3 className="h5 fw-bold mb-3">{step.title}</h3>
-                  <p className="text-muted small">{step.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Detailed Steps */}
-          <motion.div
-            className="how-it-works-detail p-4 p-md-5 rounded-3"
-            {...fadeInUp}
-          >
-            <div className="row g-4">
-              {[
-                { title: 'Digital Signing', desc: 'Documents are signed with issuer\'s private key using industry-standard algorithms.' },
-                { title: 'Consent-Based Access', desc: 'Owners explicitly approve each verification request with granular permission controls.' },
-                { title: 'Offline Verification', desc: 'Verifiers can validate credentials offline using the issuer\'s public key.' },
-              ].map((item, idx) => (
-                <motion.div key={idx} className="col-md-4" whileHover={{ y: -4 }}>
-                  <div className="d-flex gap-2 mb-3">
-                    <motion.span
-                      className="step-checkmark text-red"
-                      whileHover={{ scale: 1.3 }}
-                    >
-                      ✓
-                    </motion.span>
-                    <h4 className="fw-bold">{item.title}</h4>
-                  </div>
-                  <p className="text-muted small ps-5">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Security Section */}
-      <section id="security" className="security-section py-5 text-white position-relative bg-red">
-        <div className="security-blob-1"></div>
-        <div className="security-blob-2"></div>
-
-        <div className="container-xl position-relative">
-          <motion.div className="text-center mb-5" {...fadeInUp}>
-            <h2 className="display-5 fw-bold mb-3">Enterprise Security</h2>
-            <p className="lead opacity-75 mx-auto" style={{ maxWidth: '600px' }}>
-              Built with security best practices from day one.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="row g-5"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              {
-                title: 'What We Protect',
-                items: [
-                  'End-to-end encryption for all documents',
-                  'SHA-256 hashing for document integrity',
-                  'Ed25519 signatures for authenticity',
-                  'Rate limiting and DDoS protection',
-                ],
-              },
-              {
-                title: 'Compliance',
-                items: [
-                  'GDPR compliant data handling',
-                  'Local data residency options',
-                  'Complete audit logs',
-                  'Right to erasure support',
-                ],
-              },
-            ].map((section, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="col-md-6">
-                <h3 className="h4 fw-bold mb-4">{section.title}</h3>
-                <ul className="list-unstyled">
-                  {section.items.map((item, itemIdx) => (
-                    <motion.li
-                      key={itemIdx}
-                      className="d-flex align-items-start gap-3 mb-3"
-                      whileHover={{ x: 8 }}
-                    >
-                      <motion.div
-                        className="security-checkmark"
-                        whileHover={{ scale: 1.2, rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        ✓
-                      </motion.div>
-                      <span className="opacity-75">{item}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="pricing-section py-5 position-relative">
-        <div className="container-xl position-relative">
-          <motion.div className="text-center mb-5" {...fadeInUp}>
-            <h2 className="display-5 fw-bold mb-3">Simple, Transparent Pricing</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
-              No hidden fees. Pay only for what you use.
+            <h2 className="display-4 fw-bold mb-3">Industries We Serve</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
+              Trusted by leading organizations across multiple sectors
             </p>
           </motion.div>
 
@@ -528,85 +619,141 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             {[
-              {
-                name: 'Starter',
-                price: 'Free',
-                desc: 'For small teams',
-                features: ['Up to 10 documents/month', '5 verification requests', 'Basic audit logs'],
-                variant: 'outline',
-              },
-              {
-                name: 'Professional',
-                price: '₱99',
-                period: '/month',
-                desc: 'For growing businesses',
-                features: ['Unlimited documents', 'Unlimited requests', 'Advanced analytics', 'Priority support'],
-                variant: 'primary',
-                popular: true,
-              },
-              {
-                name: 'Enterprise',
-                price: 'Custom',
-                desc: 'For large organizations',
-                features: ['Custom volume pricing', 'Dedicated support', 'Custom integrations', 'SLA guarantee'],
-                variant: 'outlineRed',
-              },
-            ].map((plan, idx) => (
-              <motion.div
-                key={idx}
-                variants={itemVariants}
-                className="col-md-4"
-                whileHover={{ scale: 1.02, y: -8 }}
-              >
-                <div className={`pricing-card ${plan.popular ? 'pricing-card-popular' : ''}`}>
-                  {plan.popular && (
-                    <motion.div
-                      className="pricing-badge bg-red"
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                    >
-                      POPULAR
-                    </motion.div>
-                  )}
-
-                  <h3 className="h4 fw-bold">{plan.name}</h3>
-                  <p className="text-muted small mb-3">{plan.desc}</p>
-
-                  <div className="mb-4">
-                    <p className="display-6 fw-bold text-red">{plan.price}</p>
-                    {plan.period && <p className="text-muted small">{plan.period}</p>}
-                  </div>
-
-                  <ul className="list-unstyled mb-4">
-                    {plan.features.map((feature, featureIdx) => (
-                      <motion.li
-                        key={featureIdx}
-                        className="d-flex align-items-center gap-2 mb-3 text-muted small"
-                        whileHover={{ x: 4 }}
-                      >
-                        <FiCheckCircle className="text-red flex-shrink-0" />
-                        {feature}
-                      </motion.li>
-                    ))}
-                  </ul>
-
-                  <RippleButton
-                    to={plan.popular ? '/login/issuer' : undefined}
-                    onClick={!plan.popular ? () => alert(`${plan.name} plan selected`) : undefined}
-                    variant={plan.variant}
-                    className="w-100"
-                  >
-                    {plan.popular ? 'Start Free Trial' : plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
-                  </RippleButton>
-                </div>
+              { icon: '🏥', title: 'Insurance', desc: 'Secure policy management and claim verification' },
+              { icon: '🏛️', title: 'Government', desc: 'Digital document verification and citizen services' },
+              { icon: '🏦', title: 'Banking & Finance', desc: 'Secure transactions and regulatory compliance' },
+              { icon: '📚', title: 'Education', desc: 'Credential verification and degree authentication' },
+            ].map((industry, idx) => (
+              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-3">
+                <motion.div
+                  className="industry-card p-5 rounded-4 bg-gradient-red text-white text-center h-100 cursor-pointer"
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <motion.div className="text-5xl mb-3">{industry.icon}</motion.div>
+                  <h3 className="h5 fw-bold mb-2">{industry.title}</h3>
+                  <p className="small opacity-90">{industry.desc}</p>
+                </motion.div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
+      {/* Blockchain Section */}
+      <section className="blockchain-section py-6 position-relative bg-red text-white">
+        <motion.div className="blockchain-blob-1" animate={{ x: [0, 30, 0] }} transition={{ duration: 15, repeat: Infinity }} />
+        <motion.div className="blockchain-blob-2" animate={{ x: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity }} />
+
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-3">Blockchain Technology</h2>
+            <p className="lead opacity-90 mx-auto" style={{ maxWidth: '700px' }}>
+              SECURED, TRANSPARENT, TRUSTED
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="row g-4"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: '🔐', title: 'Multi-Factor Authentication', desc: 'Enhanced security with multiple verification layers' },
+              { icon: '👤', title: 'KYC - Selfie', desc: 'Identity verification through biometric authentication' },
+              { icon: '🔒', title: 'Encryption', desc: 'Military-grade encryption for all data' },
+              { icon: '📱', title: 'QR-Code', desc: 'Secure QR code protected transactions' },
+            ].map((feature, idx) => (
+              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-3">
+                <motion.div
+                  className="blockchain-feature p-4 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-20 text-center"
+                  whileHover={{ y: -8, borderColor: 'rgba(255,255,255,0.4)' }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="text-4xl mb-3">{feature.icon}</div>
+                  <h4 className="fw-bold mb-2">{feature.title}</h4>
+                  <p className="small opacity-90">{feature.desc}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div className="text-center mt-5" {...fadeInUp}>
+            <p className="lead mb-4 opacity-90">Signatura ensures protection from Identity Theft and will not compromise Data Privacy</p>
+            <RippleButton variant="ghost" className="text-white">
+              Learn More About Security <FiArrowRight />
+            </RippleButton>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Partners Section */}
+      <section id="partners" className="partners-section py-6">
+        <div className="container-xl">
+          <motion.div className="text-center mb-5" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-3">Become Our Partner</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
+              Together we build the future now. Let's work in collaboration to bring genuine digital transformation.
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="row align-items-center g-5"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <div className="partner-image-box p-5 rounded-4 bg-light">
+                <motion.div
+                  animate={{ y: [0, 30, 0] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="text-center"
+                >
+                  <FiUsers size={150} className="text-red opacity-50" />
+                </motion.div>
+              </div>
+            </motion.div>
+
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="h2 fw-bold mb-4">Building the Future Together</h3>
+              <p className="lead text-muted mb-4">
+                We're looking to partner with institutions such as insurance, banking and finance, education, government and various organizations.
+              </p>
+
+              <ul className="list-unstyled mb-5">
+                {[
+                  'Custom integration solutions',
+                  'Dedicated partnership support',
+                  'Revenue sharing opportunities',
+                  'Scalable technology platform',
+                ].map((item, idx) => (
+                  <motion.li
+                    key={idx}
+                    className="d-flex align-items-center gap-3 mb-3 py-2"
+                    whileHover={{ x: 8 }}
+                  >
+                    <motion.span className="text-red fw-bold text-xl">✓</motion.span>
+                    <span className="text-dark fw-500">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <RippleButton variant="primary">
+                  Let's Talk <FiArrowRight />
+                </RippleButton>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Newsletter Section */}
-      <section className="newsletter-section py-5 text-white position-relative bg-red">
+      <section className="newsletter-section py-6 text-white position-relative bg-red">
         <motion.div
           className="newsletter-blob-1"
           animate={{ x: [0, 50, 0], y: [0, 50, 0] }}
@@ -618,7 +765,7 @@ export default function Landing() {
           transition={{ duration: 8, repeat: Infinity }}
         />
 
-        <div className="container-lg position-relative" style={{ maxWidth: '600px' }}>
+        <div className="container-lg position-relative" style={{ maxWidth: '700px' }}>
           <motion.h2
             className="h3 fw-bold text-center mb-3"
             initial={{ opacity: 0, y: 20 }}
@@ -628,13 +775,13 @@ export default function Landing() {
             Stay Updated
           </motion.h2>
           <motion.p
-            className="text-center opacity-75 mb-4"
+            className="text-center opacity-90 mb-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.1 }}
             viewport={{ once: true }}
           >
-            Get the latest news on credential verification and digital signatures.
+            Get the latest news on digital identity, data security, and digital transformation.
           </motion.p>
 
           <motion.form
@@ -642,7 +789,7 @@ export default function Landing() {
             className="d-flex flex-column flex-sm-row gap-3"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
             viewport={{ once: true }}
           >
             <input
@@ -650,14 +797,14 @@ export default function Landing() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="form-control form-control-lg newsletter-input"
+              className="form-control form-control-lg rounded-pill newsletter-input"
               disabled={isSubscribing}
             />
             <RippleButton
               variant="ghost"
               onClick={handleNewsletterSubmit}
               disabled={isSubscribing}
-              className="newsletter-btn"
+              className="newsletter-btn rounded-pill"
             >
               {isSubscribing ? (
                 <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }}>
@@ -685,44 +832,44 @@ export default function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="final-cta-section py-5 position-relative">
+      <section className="final-cta-section py-6 position-relative">
         <div className="cta-blob"></div>
 
         <div className="container-lg text-center position-relative" style={{ maxWidth: '900px' }}>
           <motion.h2
-            className="display-5 fw-bold mb-4"
+            className="display-4 fw-bold mb-4"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Ready to Get Started?
+            Ready for Digital Transformation?
           </motion.h2>
           <motion.p
-            className="lead text-muted mb-4"
+            className="lead text-muted mb-5"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.1 }}
             viewport={{ once: true }}
           >
-            Join hundreds of organizations using Signatura to issue and verify credentials securely.
+            Join hundreds of organizations using Signatura for secure digital identity, data security, and digital signatures.
           </motion.p>
 
           <motion.div
-            className="d-flex flex-column flex-sm-row justify-content-center gap-3"
+            className="d-flex flex-column flex-sm-row justify-content-center gap-3 gap-lg-4"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
             viewport={{ once: true }}
           >
             <motion.div variants={itemVariants}>
               <RippleButton to="/login/issuer" variant="primary">
-                Start Issuing <FiArrowRight />
+                Sign In as Issuer <FiArrowRight />
               </RippleButton>
             </motion.div>
             <motion.div variants={itemVariants}>
-              <RippleButton to="/login/owner" variant="secondary">
-                Manage Credentials <FiArrowRight />
+              <RippleButton to="/login/owner" variant="outline">
+                Sign In as Owner <FiArrowRight />
               </RippleButton>
             </motion.div>
           </motion.div>
@@ -730,51 +877,51 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="footer py-4 border-top border-red">
+      <footer className="footer py-5 border-top border-red">
         <div className="container-xl">
-          <div className="row g-4 mb-4">
+          <div className="row g-4 mb-5">
             {[
               {
                 title: 'Product',
                 links: [
-                  { label: 'Features', action: () => handleNavigate('features') },
-                  { label: 'Pricing', action: () => handleNavigate('pricing') },
-                  { label: 'Security', action: () => handleNavigate('security') },
+                  { label: 'Features', action: () => handleNavigate('solutions') },
+                  { label: 'Industries', action: () => handleNavigate('industries') },
+                  { label: 'Security', action: () => {} },
                 ],
               },
               {
                 title: 'Company',
                 links: [
-                  { label: 'About', action: () => alert('About page') },
-                  { label: 'Blog', action: () => alert('Blog page') },
-                  { label: 'Careers', action: () => alert('Careers page') },
+                  { label: 'About', action: () => handleNavigate('about') },
+                  { label: 'Partners', action: () => handleNavigate('partners') },
+                  { label: 'Contact', action: () => {} },
                 ],
               },
               {
                 title: 'Legal',
                 links: [
-                  { label: 'Privacy', action: () => alert('Privacy page') },
-                  { label: 'Terms', action: () => alert('Terms page') },
-                  { label: 'Contact', action: () => alert('Contact page') },
+                  { label: 'Privacy Policy', action: () => {} },
+                  { label: 'Terms & Conditions', action: () => {} },
+                  { label: 'Cookie Policy', action: () => {} },
                 ],
               },
               {
                 title: 'Follow',
                 links: [
-                  { label: 'Twitter', action: () => window.open('https://twitter.com') },
+                  { label: 'Facebook', action: () => window.open('https://facebook.com/PHsignatura') },
+                  { label: 'YouTube', action: () => window.open('https://youtube.com/@Signatura') },
                   { label: 'LinkedIn', action: () => window.open('https://linkedin.com') },
-                  { label: 'GitHub', action: () => window.open('https://github.com') },
                 ],
               },
             ].map((section, idx) => (
-              <motion.div key={idx} className="col-md-3" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-                <h6 className="fw-bold mb-3">{section.title}</h6>
+              <motion.div key={idx} className="col-md-3 col-6" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+                <h6 className="fw-bold mb-3 text-dark">{section.title}</h6>
                 <ul className="list-unstyled">
                   {section.links.map((link, linkIdx) => (
                     <motion.li key={linkIdx} whileHover={{ x: 4 }} className="mb-2">
                       <button
                         onClick={link.action}
-                        className="btn btn-link p-0 text-decoration-none text-muted text-start"
+                        className="btn btn-link p-0 text-decoration-none text-muted text-start fw-500"
                       >
                         {link.label}
                       </button>
@@ -792,9 +939,9 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none mb-3 mb-sm-0">
-              <img src={logo} alt="Signatura Logo" height="32" />
+              <img src={logo} alt="Signatura Logo" height="35" />
             </Link>
-            <p className="text-muted small mb-0">&copy; 2025 Signatura. All rights reserved.</p>
+            <p className="text-muted small mb-0">&copy; 2025 Signatura. All rights reserved. | Powered by 1Knight Solutions, Inc.</p>
           </motion.div>
         </div>
       </footer>
