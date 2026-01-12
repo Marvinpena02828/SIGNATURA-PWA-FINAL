@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiKey, FiShield, FiLock, FiCheckCircle, FiArrowRight } from 'react-icons/fi';
-import Navigation from './components/Navigation';
-import Footer from './components/Footer';
+// import Navigation from './components/Navigation';
+// import Footer from './components/Footer';
 
 export default function Solutions() {
   const [activeTab, setActiveTab] = useState('identity');
