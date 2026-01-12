@@ -6,7 +6,8 @@ import {
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo31.png';
-import './Landing.css';
+import Navigation from '../components/Navigation';
+import Footer from '../components/Footer';
 
 // Enhanced Ripple Button
 const RippleButton = ({ children, onClick, className, to, variant = 'primary', disabled = false }) => {
@@ -116,7 +117,6 @@ export default function Landing() {
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeSuccess, setSubscribeSuccess] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [activeTab, setActiveTab] = useState('identity');
 
@@ -156,115 +156,9 @@ export default function Landing() {
     }, 1500);
   };
 
-  const handleNavigate = (id) => {
-    const element = document.getElementById(id);
-    element?.scrollIntoView({ behavior: 'smooth' });
-    setMobileMenuOpen(false);
-  };
-
-  const navItems = [
-    { label: 'About', id: 'about', path: '#about' },
-    { label: 'Solutions', id: 'solutions', path: '#solutions' },
-    { label: 'Industries', id: 'industries', path: '#industries' },
-    { label: 'Partners', id: 'partners', path: '#partners' },
-  ];
-
   return (
     <div className="landing-page">
-      {/* Navigation */}
-      <nav className="navbar sticky-top navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
-        <div className="container-xl">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-100 d-flex justify-content-between align-items-center"
-          >
-            <Link to="/" className="navbar-brand me-auto">
-              <motion.img
-                src={logo}
-                alt="Signatura Logo"
-                height="45"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              />
-            </Link>
-
-            {/* Desktop Menu */}
-            <div className="d-none d-lg-flex align-items-center gap-1">
-              {navItems.map((item) => (
-                <motion.button
-                  key={item.id}
-                  onClick={() => handleNavigate(item.id)}
-                  className="btn btn-link nav-link text-dark text-decoration-none fw-500 position-relative"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {item.label}
-                  <motion.span
-                    className="position-absolute bottom-0 start-0 bg-red"
-                    style={{ height: '2px', width: '0%' }}
-                    whileHover={{ width: '100%' }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Right Actions */}
-            <div className="d-flex align-items-center gap-2 gap-lg-3 ms-auto ms-lg-0">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="d-none d-md-flex align-items-center gap-2">
-                <Link to="/login/owner" className="btn btn-sm btn-outline-secondary fw-500">
-                  Owner
-                </Link>
-                <Link to="/login/issuer" className="btn btn-sm btn-outline-secondary fw-500">
-                  Issuer
-                </Link>
-              </motion.div>
-
-              {/* Mobile Menu Toggle */}
-              <button
-                className="btn d-lg-none"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Mobile Menu */}
-          <AnimatePresence>
-            {mobileMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="w-100 mt-3"
-              >
-                {navItems.map((item) => (
-                  <motion.button
-                    key={item.id}
-                    onClick={() => handleNavigate(item.id)}
-                    className="btn btn-link w-100 text-start text-dark text-decoration-none py-2"
-                    whileHover={{ x: 10 }}
-                  >
-                    {item.label}
-                  </motion.button>
-                ))}
-                <div className="d-flex gap-2 mt-3">
-                  <Link to="/login/owner" className="btn btn-sm btn-outline-secondary w-100">
-                    Owner
-                  </Link>
-                  <Link to="/login/issuer" className="btn btn-sm btn-outline-secondary w-100">
-                    Issuer
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
       <section className="hero-section py-5 py-lg-6 position-relative overflow-hidden">
@@ -276,7 +170,7 @@ export default function Landing() {
           playsInline
           className="hero-video"
         >
-          <source src="/videos/A_multi-dimensional_digital_identity,_data_security_and_digital_signature_platform._Transform_your_d_seed637194896.mp4" type="video/mp4" />
+          <source src="/videos/hero-video.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -308,7 +202,7 @@ export default function Landing() {
             </motion.h1>
 
             <motion.p
-              className="lead text-muted mb-5 mx-auto"
+              className="lead text-muted mb-5 mx-auto hero-lead"
               style={{ maxWidth: '700px' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -758,7 +652,7 @@ export default function Landing() {
               </ul>
 
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <RippleButton variant="primary">
+                <RippleButton variant="primary" to="/partners">
                   Let's Talk <FiArrowRight />
                 </RippleButton>
               </motion.div>
@@ -891,75 +785,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer py-5 border-top border-red">
-        <div className="container-xl">
-          <div className="row g-4 mb-5">
-            {[
-              {
-                title: 'Product',
-                links: [
-                  { label: 'Features', action: () => handleNavigate('solutions') },
-                  { label: 'Industries', action: () => handleNavigate('industries') },
-                  { label: 'Security', action: () => {} },
-                ],
-              },
-              {
-                title: 'Company',
-                links: [
-                  { label: 'About', action: () => handleNavigate('about') },
-                  { label: 'Partners', action: () => handleNavigate('partners') },
-                  { label: 'Contact', action: () => {} },
-                ],
-              },
-              {
-                title: 'Legal',
-                links: [
-                  { label: 'Privacy Policy', action: () => {} },
-                  { label: 'Terms & Conditions', action: () => {} },
-                  { label: 'Cookie Policy', action: () => {} },
-                ],
-              },
-              {
-                title: 'Follow',
-                links: [
-                  { label: 'Facebook', action: () => window.open('https://facebook.com/PHsignatura') },
-                  { label: 'YouTube', action: () => window.open('https://youtube.com/@Signatura') },
-                  { label: 'LinkedIn', action: () => window.open('https://linkedin.com') },
-                ],
-              },
-            ].map((section, idx) => (
-              <motion.div key={idx} className="col-md-3 col-6" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-                <h6 className="fw-bold mb-3 text-dark">{section.title}</h6>
-                <ul className="list-unstyled">
-                  {section.links.map((link, linkIdx) => (
-                    <motion.li key={linkIdx} whileHover={{ x: 4 }} className="mb-2">
-                      <button
-                        onClick={link.action}
-                        className="btn btn-link p-0 text-decoration-none text-muted text-start fw-500"
-                      >
-                        {link.label}
-                      </button>
-                    </motion.li>
-                  ))}
-                </ul>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div
-            className="border-top border-red pt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none mb-3 mb-sm-0">
-              <img src={logo} alt="Signatura Logo" height="35" />
-            </Link>
-            <p className="text-muted small mb-0">&copy; 2025 Signatura. All rights reserved. | Powered by 1Knight Solutions, Inc.</p>
-          </motion.div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
