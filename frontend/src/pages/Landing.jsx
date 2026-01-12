@@ -5,7 +5,7 @@ import {
   FiZap, FiMail, FiMenu, FiX, FiActivity, FiKey, FiGlobe
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import '../css/Landing.css';
+import '../Landing.css';
 
 // Enhanced Ripple Button
 const RippleButton = ({ children, onClick, className, to, variant = 'primary', disabled = false }) => {
