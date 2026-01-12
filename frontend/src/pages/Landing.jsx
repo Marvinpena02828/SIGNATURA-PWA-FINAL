@@ -276,7 +276,7 @@ export default function Landing() {
           playsInline
           className="hero-video"
         >
-          <source src="/videos/video.mp4" type="video/mp4" />
+          <source src="/videos/frontend/public/videos/A_multi-dimensional_digital_identity,_data_security_and_digital_signature_platform._Transform_your_d_seed637194896.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
