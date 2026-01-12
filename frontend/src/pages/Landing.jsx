@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, 
-  FiZap, FiMail, FiMenu, FiX, FiBarChart3, FiKey, FiGlobe, FiChevronDown
+  FiZap, FiMail, FiMenu, FiX, FiActivity, FiKey, FiGlobe
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo31.png';
@@ -538,7 +538,7 @@ export default function Landing() {
           >
             {[
               {
-                icon: FiBarChart3,
+                icon: FiActivity,
                 title: 'Enhanced Data Collection',
                 desc: 'Optimize and analyze data collected to vastly improve customer experience with informed decisions.'
               },
