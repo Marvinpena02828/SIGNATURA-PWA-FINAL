@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiMail, FiPhone, FiMapPin, FiArrowRight, FiMessageCircle, FiClock } from 'react-icons/fi';
-import Navigation from './components/Navigation';
-import Footer from './components/Footer';
+import Navigation from '../components/Navigation';
+import Footer from '../components/Footer';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
