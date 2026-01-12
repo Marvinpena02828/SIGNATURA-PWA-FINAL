@@ -16,7 +16,11 @@ import NotificationCenter from './pages/NotificationCenter';
 import AdminDashboard from './pages/AdminDashboard';
 import SharedDocumentPage from './pages/SharedDocumentPage';
 import UserProfile from './pages/UserProfile';
-
+import About from './pages/About';
+import Solutions from './pages/Solutions';
+import Industries from './pages/Industries';
+import Partners from './pages/Partners';
+import Contact from './pages/Contact';
 // NotFound component
 const NotFound = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -194,7 +198,12 @@ function App() {
 
         {/* User Profile Route */}
         <Route path="/profile" element={<UserProfile />} />
-
+   <Route path="/about" element={<About />} />
+        <Route path="/solutions" element={<Solutions />} />
+        <Route path="/industries" element={<Industries />} />
+        <Route path="/industries/:type" element={<Industries />} />
+        <Route path="/partners" element={<Partners />} />
+        <Route path="/contact" element={<Contact />} />
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
