@@ -276,7 +276,7 @@ export default function Landing() {
           playsInline
           className="hero-video"
         >
-          <source src="/path/to/your/video.mp4" type="video/mp4" />
+          <source src="/videos/video.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
