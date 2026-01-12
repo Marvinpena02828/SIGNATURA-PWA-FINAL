@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiUsers, FiTrendingUp, FiGlobe, FiCheckCircle } from 'react-icons/fi';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import Navigation from './components/Navigation';
+import Footer from './components/Footer';
 
 export default function Partners() {
   const [email, setEmail] = useState('');
