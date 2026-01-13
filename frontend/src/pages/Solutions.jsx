@@ -1,12 +1,208 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiKey, FiShield, FiLock, FiCheckCircle, FiArrowRight } from 'react-icons/fi';
-// import Navigation from './components/Navigation';
-// import Footer from './components/Footer';
+import { 
+  FiMenu, FiX, FiArrowRight, FiCheckCircle,
+  FiShoppingCart, FiKey, FiZap, FiCloud, FiFile, FiPenTool, FiActivity, FiDollarSign, FiCalendar, FiBell
+} from 'react-icons/fi';
 
+// Navigation Component (Embedded)
+const Navigation = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'About', path: '/about' },
+    { label: 'Solutions', path: '/solutions' },
+    { label: 'Contact', path: '/contact' },
+  ];
+
+  return (
+    <nav className={`navbar sticky-top navbar-expand-lg navbar-light transition-all ${
+      scrolled ? 'bg-white shadow-md border-bottom border-light' : 'bg-white bg-opacity-95'
+    }`}>
+      <div className="container-xl">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-100 d-flex justify-content-between align-items-center"
+        >
+          <Link to="/" className="navbar-brand me-auto">
+            <motion.img
+              src="/logo31.png"
+              alt="Signatura Logo"
+              height="45"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            />
+          </Link>
+
+          <div className="d-none d-lg-flex align-items-center gap-1">
+            {navItems.map((item) => (
+              <motion.div key={item.path}>
+                <Link
+                  to={item.path}
+                  className="btn btn-link nav-link text-decoration-none fw-500 position-relative text-dark"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {item.label}
+                  <motion.span
+                    className="position-absolute bottom-0 start-0 bg-red"
+                    style={{ height: '2px', width: '0%' }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="d-flex align-items-center gap-2 gap-lg-3 ms-auto ms-lg-0">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="d-none d-md-flex align-items-center gap-2">
+              <Link to="/" className="btn btn-sm btn-outline-secondary fw-500">
+                Login
+              </Link>
+            </motion.div>
+
+            <button
+              className="btn d-lg-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-100 mt-3"
+            >
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </nav>
+  );
+};
+
+// Footer Component (Embedded)
+const Footer = () => {
+  return (
+    <footer className="footer bg-dark text-white py-6">
+      <div className="container-xl">
+        <div className="row g-4 mb-6">
+          <motion.div
+            className="col-lg-3 col-md-6"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <h6 className="fw-bold mb-3">Signatura</h6>
+            <p className="text-muted small mb-4">
+              A multi-dimensional digital identity, data security and digital signature platform.
+            </p>
+            <div className="d-flex gap-3">
+              <a href="https://www.facebook.com/PHsignatura" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                Facebook
+              </a>
+              <a href="https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                YouTube
+              </a>
+            </div>
+          </motion.div>
+
+          {[
+            {
+              title: 'Solutions',
+              links: [
+                { label: 'Digital Identity', path: '/solutions' },
+                { label: 'Data Security', path: '/solutions' },
+                { label: 'Digital Signature', path: '/solutions' },
+              ],
+            },
+            {
+              title: 'Company',
+              links: [
+                { label: 'About', path: '/about' },
+                { label: 'Contact', path: '/contact' },
+              ],
+            },
+          ].map((section, idx) => (
+            <motion.div
+              key={idx}
+              className="col-lg-2 col-md-6"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <h6 className="fw-bold mb-4">{section.title}</h6>
+              <ul className="list-unstyled">
+                {section.links.map((link) => (
+                  <li key={link.path} className="mb-2">
+                    <Link
+                      to={link.path}
+                      className="text-muted text-decoration-none transition-all"
+                    >
+                      <small>{link.label}</small>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.hr
+          className="border-secondary opacity-25 my-4"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0.25 }}
+          viewport={{ once: true }}
+        />
+
+        <motion.div
+          className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <p className="text-muted small mb-0">
+            &copy; 2025 Signatura | Powered by 1Knight Solutions, Inc.
+          </p>
+        </motion.div>
+      </div>
+    </footer>
+  );
+};
+
+// Main Solutions Component
 export default function Solutions() {
-  const [activeTab, setActiveTab] = useState('identity');
-
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },
@@ -19,7 +215,7 @@ export default function Solutions() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.15,
+        staggerChildren: 0.12,
         delayChildren: 0.1,
       },
     },
@@ -32,226 +228,201 @@ export default function Solutions() {
 
   const solutions = [
     {
-      id: 'identity',
+      icon: FiShoppingCart,
+      title: 'Marketplace',
+      desc: 'Easy navigation through a multitude of custom-fit services.',
+      color: 'bg-blue'
+    },
+    {
       icon: FiKey,
-      title: 'Digital Identity',
-      shortDesc: 'Manage and protect your identity with advanced security',
-      fullDesc: 'Stay in control with your identity details and prevent identity theft and data breach. Our comprehensive identity management system uses multi-factor authentication and KYC verification.',
-      features: [
-        { icon: '🔐', name: 'Multi-Factor Authentication', desc: 'Multiple verification layers for enhanced security' },
-        { icon: '👤', name: 'KYC - Selfie Verification', desc: 'Biometric identity verification with liveness detection' },
-        { icon: '🔒', name: 'Secure Identity Storage', desc: 'Encrypted storage with zero-knowledge architecture' },
-        { icon: '📊', name: 'Real-time Threat Monitoring', desc: 'Continuous monitoring and threat detection' },
-        { icon: '🛡️', name: 'Privacy Control', desc: 'User-controlled data sharing and permissions' },
-        { icon: '⚡', name: 'Instant Verification', desc: 'Real-time identity verification across platforms' },
-      ],
-      benefits: [
-        'Reduced identity theft incidents',
-        'Compliance with global regulations',
-        'Enhanced customer trust',
-        'Streamlined onboarding process',
-        'Lower fraud rates',
-      ]
+      title: 'Digital ID',
+      desc: 'Ensures security and protection of end-users from Identity Theft through the Know-Your-Customer (KYC) or the selfie process.',
+      color: 'bg-purple'
     },
     {
-      id: 'security',
-      icon: FiShield,
-      title: 'Data Security',
-      shortDesc: 'Protect your data with blockchain and encryption',
-      fullDesc: 'Keep data safe and protected from data corruption through blockchain technology and added layers of security. Enterprise-grade protection for sensitive information.',
-      features: [
-        { icon: '⛓️', name: 'Blockchain Technology', desc: 'Immutable record keeping with distributed ledger' },
-        { icon: '🔐', name: 'End-to-End Encryption', desc: 'Military-grade encryption for all data in transit' },
-        { icon: '🏢', name: 'Secure Data Residency', desc: 'Compliant data storage in your preferred location' },
-        { icon: '📡', name: 'Continuous Monitoring', desc: '24/7 security monitoring and anomaly detection' },
-        { icon: '🔄', name: 'Automated Backups', desc: 'Regular encrypted backups with disaster recovery' },
-        { icon: '📋', name: 'Audit Trail', desc: 'Complete audit logs for compliance and forensics' },
-      ],
-      benefits: [
-        'Zero data breaches',
-        'Regulatory compliance',
-        'Business continuity',
-        'Fraud prevention',
-        'Risk mitigation',
-      ]
+      icon: FiZap,
+      title: 'Simplified Digital Workflow',
+      desc: 'Easy and hassle-free steps and processes.',
+      color: 'bg-orange'
     },
     {
-      id: 'signature',
-      icon: FiLock,
+      icon: FiCloud,
+      title: 'Secured Cloud Storage',
+      desc: 'Highly secure cloud storage for important and sensitive corporate and/or personal records which can only be accessed with end-user\'s consent.',
+      color: 'bg-cyan'
+    },
+    {
+      icon: FiFile,
+      title: 'Digital Document Wallet',
+      desc: 'A versatile virtual storage capable of safekeeping any important and highly confidential, for-your-eyes-only documents.',
+      color: 'bg-green'
+    },
+    {
+      icon: FiPenTool,
       title: 'Digital Signature',
-      shortDesc: 'Sign securely with QR code protected signatures',
-      fullDesc: 'Sign anytime and anywhere with our uniquely designed QR code protected digital signature. Legally binding and instantly verifiable signatures.',
-      features: [
-        { icon: '🔗', name: 'QR Code Protected Signing', desc: 'Unique QR code for each signature transaction' },
-        { icon: '⚖️', name: 'Legal Compliance', desc: 'Meets eIDAS, ESIGN, and global digital signature laws' },
-        { icon: '✓', name: 'Instant Verification', desc: 'Real-time verification of signature authenticity' },
-        { icon: '📝', name: 'Audit Trail Tracking', desc: 'Complete tracking of signature lifecycle' },
-        { icon: '🌍', name: 'Global Recognition', desc: 'Internationally recognized and enforceable' },
-        { icon: '📱', name: 'Mobile Signing', desc: 'Sign documents on any device, anytime, anywhere' },
-      ],
-      benefits: [
-        'Legally binding signatures',
-        'Reduced document turnaround',
-        'Cost savings on printing',
-        'Improved customer experience',
-        'Environmental sustainability',
-      ]
+      desc: 'Affix your signature, anytime, anywhere with Signatura\'s uniquely designed QR code-based digital signature.',
+      color: 'bg-red'
+    },
+    {
+      icon: FiActivity,
+      title: 'Contact Tracing',
+      desc: 'Signatura can be utilized as a tool in tracking and breaking chains of a viral transmission which can be helpful in protecting the business, customers/clients and entire communities.',
+      color: 'bg-pink'
+    },
+    {
+      icon: FiDollarSign,
+      title: 'Secured Online Payment',
+      desc: 'Signatura comes with an integrated payment system through our payment gateway partners.',
+      color: 'bg-emerald'
+    },
+    {
+      icon: FiCalendar,
+      title: 'Scheduler',
+      desc: 'Signatura conveniently offers queueing and scheduling systems, minimizing any delays or waiting periods.',
+      color: 'bg-indigo'
+    },
+    {
+      icon: FiBell,
+      title: 'Notification System',
+      desc: 'Customizable status updates, alerts, announcements, promotions with an integrated GPS service for roadside assistance.',
+      color: 'bg-yellow'
     },
   ];
-
-  const currentSolution = solutions.find(s => s.id === activeTab);
 
   return (
     <div className="solutions-page">
       <Navigation />
 
       {/* Hero Section */}
-      <section className="solutions-hero py-6 py-lg-8 position-relative overflow-hidden bg-gradient-light">
-        <motion.div className="blob-1" animate={{ x: [0, 30, 0], y: [0, 20, 0] }} transition={{ duration: 20, repeat: Infinity }} />
-        <motion.div className="blob-2" animate={{ x: [0, -30, 0], y: [0, -20, 0] }} transition={{ duration: 25, repeat: Infinity }} />
+      <section className="solutions-hero py-8 py-lg-10 position-relative overflow-hidden text-white" style={{
+        backgroundImage: 'linear-gradient(135deg, rgba(220, 38, 38, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: '600px',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <motion.div className="blob-1 position-absolute" style={{ top: '-10%', right: '-5%' }} animate={{ x: [0, 30, 0], y: [0, 20, 0] }} transition={{ duration: 20, repeat: Infinity }} />
+        <motion.div className="blob-2 position-absolute" style={{ bottom: '-10%', left: '-5%' }} animate={{ x: [0, -30, 0], y: [0, -20, 0] }} transition={{ duration: 25, repeat: Infinity }} />
 
         <div className="container-xl position-relative">
           <motion.div className="text-center" {...fadeInUp}>
+            <motion.div
+              className="mb-4"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 100 }}
+            >
+              <span className="badge bg-white text-red fw-bold px-4 py-2">Our Solutions</span>
+            </motion.div>
             <motion.h1
-              className="display-3 fw-900 mb-4"
+              className="display-2 fw-900 mb-4"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              Our <span className="text-red">Solutions</span>
+              Going Beyond The Ordinary
             </motion.h1>
             <motion.p
-              className="lead text-muted mx-auto mb-0"
-              style={{ maxWidth: '700px' }}
+              className="lead mx-auto mb-0 opacity-90"
+              style={{ maxWidth: '900px' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              Three powerful pillars for complete digital transformation
+              As we are committed to provide ONLY the right tools, Signatura went beyond the ordinary or the predictable, and designed tools that simplifies the digital experience, allowing wider accessibility without compromising data security.
             </motion.p>
           </motion.div>
         </div>
       </section>
 
-      {/* Solutions Section */}
-      <section className="py-6 py-lg-8">
+      {/* Having the Right Tools Section */}
+      <section className="py-8 py-lg-10">
         <div className="container-xl">
-          {/* Tab Navigation */}
+          <motion.div className="text-center mb-8" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-4">Having the Right Tools</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '900px' }}>
+              Signatura simplifies the digital experience, promotes empowerment and efficiency, and assures great service improvement of any dynamic enterprise.
+            </p>
+          </motion.div>
+
           <motion.div
-            className="d-flex justify-content-center gap-2 gap-md-3 mb-5 flex-wrap"
+            className="row g-4"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {solutions.map((solution) => (
-              <motion.button
-                key={solution.id}
-                onClick={() => setActiveTab(solution.id)}
-                className={`btn btn-lg px-4 py-3 rounded-pill fw-bold transition-all ${
-                  activeTab === solution.id
-                    ? 'btn-red text-white shadow-lg'
-                    : 'btn-outline-red text-red'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                variants={itemVariants}
-              >
-                <solution.icon className="me-2" />
-                {solution.title}
-              </motion.button>
+            {solutions.map((solution, idx) => (
+              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-4">
+                <motion.div
+                  className="p-6 rounded-4 bg-white h-100 position-relative overflow-hidden shadow-sm"
+                  whileHover={{ y: -12, boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  {/* Background Icon */}
+                  <motion.div
+                    className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <solution.icon size={200} className="text-red" />
+                  </motion.div>
+
+                  {/* Content */}
+                  <motion.div
+                    className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit"
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <solution.icon size={32} className="text-red" />
+                  </motion.div>
+                  
+                  <h3 className="h5 fw-bold mb-3">{solution.title}</h3>
+                  <p className="text-muted lh-lg mb-4">{solution.desc}</p>
+                  
+                  <motion.div
+                    className="d-flex align-items-center gap-2 text-red fw-bold small"
+                    whileHover={{ x: 5 }}
+                  >
+                    Learn More <FiArrowRight size={16} />
+                  </motion.div>
+                </motion.div>
+              </motion.div>
             ))}
           </motion.div>
-
-          {/* Tab Content */}
-          <AnimatePresence mode="wait">
-            {currentSolution && (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-              >
-                {/* Main Description */}
-                <motion.div className="row align-items-center mb-6" {...fadeInUp}>
-                  <div className="col-lg-6 mb-4 mb-lg-0">
-                    <motion.div
-                      className="feature-illustration-box p-5 rounded-4 bg-light"
-                      animate={{ y: [0, 20, 0] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                    >
-                      <motion.div className="text-center">
-                        <currentSolution.icon size={150} className="text-red mb-4" />
-                      </motion.div>
-                    </motion.div>
-                  </div>
-                  <div className="col-lg-6">
-                    <h2 className="display-5 fw-bold mb-4">{currentSolution.title}</h2>
-                    <p className="lead text-muted mb-4">{currentSolution.fullDesc}</p>
-
-                    {/* Benefits List */}
-                    <div className="mb-4">
-                      <h5 className="fw-bold mb-3">Key Benefits</h5>
-                      <ul className="list-unstyled">
-                        {currentSolution.benefits.map((benefit, idx) => (
-                          <motion.li
-                            key={idx}
-                            className="d-flex align-items-center gap-3 mb-2 py-1"
-                            whileHover={{ x: 8 }}
-                          >
-                            <motion.span className="text-red fw-bold">✓</motion.span>
-                            <span className="text-dark fw-500">{benefit}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <motion.button
-                      className="btn btn-lg btn-red text-white fw-bold rounded-pill"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Learn More <FiArrowRight className="ms-2" />
-                    </motion.button>
-                  </div>
-                </motion.div>
-
-                {/* Features Grid */}
-                <div className="mt-6">
-                  <h3 className="h3 fw-bold text-center mb-5">Core Features</h3>
-                  <motion.div
-                    className="row g-4"
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                  >
-                    {currentSolution.features.map((feature, idx) => (
-                      <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-4">
-                        <motion.div
-                          className="p-4 rounded-4 bg-light h-100 position-relative overflow-hidden"
-                          whileHover={{ y: -8 }}
-                          transition={{ type: 'spring', stiffness: 300 }}
-                        >
-                          <div className="text-4xl mb-3">{feature.icon}</div>
-                          <h5 className="fw-bold mb-2">{feature.name}</h5>
-                          <p className="text-muted small mb-0">{feature.desc}</p>
-                        </motion.div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </section>
 
-      {/* Comparison Section */}
-      <section className="py-6 py-lg-8 bg-light">
+      {/* Solutions Image Section */}
+      <section className="py-8 py-lg-10 bg-light position-relative">
         <div className="container-xl">
-          <motion.div className="text-center mb-5" {...fadeInUp}>
+          <motion.div className="text-center mb-8" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-4">Complete Digital Transformation Platform</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '900px' }}>
+              All the tools you need in one powerful platform
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="position-relative"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          >
+            <img 
+              src="/api/placeholder/1200/600" 
+              alt="Signatura Platform" 
+              className="img-fluid rounded-4 w-100"
+              style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Why Signatura Section */}
+      <section className="py-8 py-lg-10">
+        <div className="container-xl">
+          <motion.div className="text-center mb-8" {...fadeInUp}>
             <h2 className="display-4 fw-bold mb-3">Why Choose Signatura?</h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
               We deliver what others promise
@@ -266,17 +437,17 @@ export default function Solutions() {
             viewport={{ once: true }}
           >
             {[
-              { title: 'Industry Leading', desc: '5 years of trusted security and compliance' },
-              { title: 'Global Scale', desc: 'Supports 50+ countries and regulations' },
-              { title: 'Enterprise Grade', desc: '99.99% uptime SLA and 24/7 support' },
-              { title: 'Easy Integration', desc: 'REST APIs and SDKs for quick deployment' },
-              { title: 'Affordable', desc: 'Flexible pricing for businesses of all sizes' },
-              { title: 'Future Ready', desc: 'AI-powered and blockchain-backed solutions' },
+              { title: 'Simplicity', desc: 'Simple solutions to complex problems' },
+              { title: 'Security', desc: 'Military-grade encryption and blockchain' },
+              { title: 'Scalability', desc: 'Grows with your business needs' },
+              { title: 'Accessibility', desc: 'Easy to use for everyone' },
+              { title: 'Reliability', desc: '99.99% uptime SLA' },
+              { title: 'Innovation', desc: 'Constantly evolving with technology' },
             ].map((item, idx) => (
               <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-4">
                 <motion.div
-                  className="p-4 rounded-4 bg-white h-100"
-                  whileHover={{ y: -8 }}
+                  className="p-5 rounded-4 bg-white h-100"
+                  whileHover={{ y: -8, boxShadow: '0 20px 60px rgba(220, 38, 38, 0.1)' }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
                   <motion.div
@@ -284,7 +455,7 @@ export default function Solutions() {
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                   >
-                    <FiCheckCircle size={24} className="text-red" />
+                    <FiCheckCircle size={28} className="text-red" />
                   </motion.div>
                   <h5 className="fw-bold mb-2">{item.title}</h5>
                   <p className="text-muted small mb-0">{item.desc}</p>
@@ -296,8 +467,9 @@ export default function Solutions() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-6 py-lg-8 bg-red text-white position-relative overflow-hidden">
-        <motion.div className="blob-1" animate={{ x: [0, 30, 0] }} transition={{ duration: 15, repeat: Infinity }} />
+      <section className="py-8 py-lg-10 bg-red text-white position-relative overflow-hidden">
+        <motion.div className="blob-1 position-absolute" style={{ top: '-10%', right: '-5%' }} animate={{ x: [0, 30, 0] }} transition={{ duration: 15, repeat: Infinity }} />
+        <motion.div className="blob-2 position-absolute" style={{ bottom: '-10%', left: '-5%' }} animate={{ x: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity }} />
 
         <div className="container-xl position-relative text-center">
           <motion.h2
@@ -306,40 +478,36 @@ export default function Solutions() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Get Started Today
+            Experience the Difference
           </motion.h2>
           <motion.p
-            className="lead mb-5 opacity-90 mx-auto"
-            style={{ maxWidth: '600px' }}
+            className="lead mb-6 opacity-90 mx-auto"
+            style={{ maxWidth: '700px' }}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             viewport={{ once: true }}
           >
-            Choose your role and start transforming your digital experience in minutes.
+            Start using Signatura today and transform your digital experience in minutes.
           </motion.p>
 
           <motion.div
-            className="d-flex flex-column flex-sm-row justify-content-center gap-3"
+            className="d-flex flex-column flex-sm-row justify-content-center gap-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <motion.button
-              className="btn btn-lg btn-white text-red fw-bold rounded-pill px-5"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Sign Up as Issuer <FiArrowRight className="ms-2" />
-            </motion.button>
-            <motion.button
-              className="btn btn-lg btn-outline-white fw-bold rounded-pill px-5"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Sign Up as Owner
-            </motion.button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to="/issuer" className="btn btn-lg btn-white text-red fw-bold rounded-pill px-6 text-decoration-none">
+                Sign Up as Issuer <FiArrowRight className="ms-2" />
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to="/owner" className="btn btn-lg btn-outline-white fw-bold rounded-pill px-6 text-decoration-none">
+                Sign Up as Owner <FiArrowRight className="ms-2" />
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
       </section>
