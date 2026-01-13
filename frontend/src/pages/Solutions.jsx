@@ -23,8 +23,11 @@ const Navigation = () => {
     { label: 'Home', path: '/' },
     { label: 'About', path: '/about' },
     { label: 'Solutions', path: '/solutions' },
+    { label: 'Industries', path: '/industries' },
+    { label: 'Partners', path: '/partners' },
     { label: 'Contact', path: '/contact' },
   ];
+
 
   return (
     <nav className={`navbar sticky-top navbar-expand-lg navbar-light transition-all ${
