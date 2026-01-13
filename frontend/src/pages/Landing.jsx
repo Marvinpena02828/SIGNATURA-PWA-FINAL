@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiMenu, FiX, FiArrowRight, FiCheckCircle,
   FiKey, FiShield, FiLock, FiUsers, FiTarget, FiEye, FiHeart,
-  FiShoppingCart, FiZap, FiCloud, FiFile, FiPenTool, FiActivity, FiDollarSign, FiCalendar, FiBell
+  FiShoppingCart, FiZap, FiCloud, FiFile, FiPenTool, FiActivity, FiDollarSign, FiCalendar, FiBell,
+  FiTrendingUp
 } from 'react-icons/fi';
 
 // Navigation Component
