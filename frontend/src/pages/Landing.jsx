@@ -304,7 +304,7 @@ export default function Landing() {
   const [subscribeSuccess, setSubscribeSuccess] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [activeTab, setActiveTab] = useState('identity');
-  const [logo] = useState('/logo31.png');
+  const [logo] = useState('../assets/logo31.png');
 
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
