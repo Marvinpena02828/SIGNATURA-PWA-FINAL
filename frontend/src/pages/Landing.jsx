@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FiArrowRight, FiShield, FiUsers, FiCheckCircle, FiLock, FiTrendingUp, 
-  FiZap, FiMail, FiMenu, FiX, FiActivity, FiKey, FiGlobe
+  FiZap, FiMail, FiMenu, FiX, FiActivity, FiKey, FiGlobe, FiCode, FiBarChart2
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../Landing.css';
@@ -302,7 +302,7 @@ export default function Landing() {
   const [subscribeSuccess, setSubscribeSuccess] = useState(false);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [activeTab, setActiveTab] = useState('identity');
-  const [logo] = useState('/logo31.png'); // Update path to your logo
+  const [logo] = useState('/logo31.png');
 
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -326,6 +326,90 @@ export default function Landing() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
+
+  // Tab data with all content
+  const tabs = [
+    {
+      id: 'identity',
+      label: 'Digital Identity',
+      icon: FiKey,
+      title: 'Digital Identity',
+      description: 'Stay in control with your identity details and prevent identity theft and data breach.',
+      features: [
+        'Multi-Factor Authentication',
+        'KYC - Selfie Verification',
+        'Secure Identity Storage',
+        'Real-time Threat Monitoring',
+      ]
+    },
+    {
+      id: 'security',
+      label: 'Data Security',
+      icon: FiShield,
+      title: 'Data Security',
+      description: 'Keep data safe and protected from data corruption through blockchain technology and added layers of security.',
+      features: [
+        'Blockchain Technology',
+        'End-to-End Encryption',
+        'Secure Data Residency',
+        'Continuous Monitoring',
+      ]
+    },
+    {
+      id: 'signature',
+      label: 'Digital Signature',
+      icon: FiLock,
+      title: 'Digital Signature',
+      description: 'Sign anytime and anywhere with our uniquely designed QR code protected digital signature.',
+      features: [
+        'QR Code Protected Signing',
+        'Legal Compliance',
+        'Instant Verification',
+        'Audit Trail Tracking',
+      ]
+    },
+    {
+      id: 'api',
+      label: 'API Integration',
+      icon: FiCode,
+      title: 'API Integration',
+      description: 'Seamlessly integrate Signatura with your existing systems using our comprehensive REST API.',
+      features: [
+        'RESTful API',
+        'SDK for Multiple Languages',
+        'Webhook Support',
+        'Rate Limiting & Throttling',
+      ]
+    },
+    {
+      id: 'compliance',
+      label: 'Compliance',
+      icon: FiCheckCircle,
+      title: 'Compliance & Regulations',
+      description: 'Meet global compliance standards and regulatory requirements with Signatura.',
+      features: [
+        'GDPR Compliant',
+        'ISO 27001 Certified',
+        'eIDAS Regulation Support',
+        'SOC 2 Type II',
+      ]
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics & Reporting',
+      icon: FiBarChart2,
+      title: 'Analytics & Reporting',
+      description: 'Gain insights into your digital identity and security operations with comprehensive analytics.',
+      features: [
+        'Real-time Dashboards',
+        'Custom Reports',
+        'User Activity Tracking',
+        'Security Metrics',
+      ]
+    },
+  ];
+
+  const currentTab = tabs.find(tab => tab.id === activeTab);
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
@@ -439,16 +523,17 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Solutions / Features Section */}
+      {/* Solutions / Features Section with TABS */}
       <section id="solutions" className="solutions-section py-6 position-relative">
         <div className="container-xl">
           <motion.div className="text-center mb-5" {...fadeInUp}>
             <h2 className="display-4 fw-bold mb-3">Core Solutions</h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
-              Complete platform for digital transformation with three pillars of security and identity
+              Complete platform for digital transformation with multiple features and capabilities
             </p>
           </motion.div>
 
+          {/* TAB BUTTONS */}
           <motion.div
             className="d-flex justify-content-center gap-2 gap-md-3 mb-5 flex-wrap"
             variants={containerVariants}
@@ -456,11 +541,7 @@ export default function Landing() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {[
-              { id: 'identity', label: 'Digital Identity', icon: FiKey },
-              { id: 'security', label: 'Data Security', icon: FiShield },
-              { id: 'signature', label: 'Digital Signature', icon: FiLock },
-            ].map((tab) => (
+            {tabs.map((tab) => (
               <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -479,130 +560,46 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          <motion.div
-            className="row align-items-center g-4 g-lg-5"
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {activeTab === 'identity' && (
-              <>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
-                    <motion.div
-                      animate={{ y: [0, 20, 0] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className="text-center"
+          {/* TAB CONTENT */}
+          {currentTab && (
+            <motion.div
+              className="row align-items-center g-4 g-lg-5"
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.div className="col-lg-6" variants={itemVariants}>
+                <div className="feature-illustration-box p-5 rounded-4 bg-light">
+                  <motion.div
+                    animate={{ y: [0, 20, 0] }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                    className="text-center"
+                  >
+                    <currentTab.icon size={120} className="text-red mb-4" />
+                  </motion.div>
+                </div>
+              </motion.div>
+              <motion.div className="col-lg-6" variants={itemVariants}>
+                <h3 className="h2 fw-bold mb-4">{currentTab.title}</h3>
+                <p className="lead text-muted mb-4">
+                  {currentTab.description}
+                </p>
+                <ul className="list-unstyled mb-4">
+                  {currentTab.features.map((item, idx) => (
+                    <motion.li
+                      key={idx}
+                      className="d-flex align-items-center gap-3 mb-3 py-2"
+                      whileHover={{ x: 8 }}
                     >
-                      <FiKey size={120} className="text-red mb-4" />
-                    </motion.div>
-                  </div>
-                </motion.div>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <h3 className="h2 fw-bold mb-4">Digital Identity</h3>
-                  <p className="lead text-muted mb-4">
-                    Stay in control with your identity details and prevent identity theft and data breach.
-                  </p>
-                  <ul className="list-unstyled mb-4">
-                    {[
-                      'Multi-Factor Authentication',
-                      'KYC - Selfie Verification',
-                      'Secure Identity Storage',
-                      'Real-time Threat Monitoring',
-                    ].map((item, idx) => (
-                      <motion.li
-                        key={idx}
-                        className="d-flex align-items-center gap-3 mb-3 py-2"
-                        whileHover={{ x: 8 }}
-                      >
-                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
-                        <span className="text-dark">{item}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                </motion.div>
-              </>
-            )}
-
-            {activeTab === 'security' && (
-              <>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
-                    <motion.div
-                      animate={{ y: [0, 20, 0] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className="text-center"
-                    >
-                      <FiShield size={120} className="text-red mb-4" />
-                    </motion.div>
-                  </div>
-                </motion.div>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <h3 className="h2 fw-bold mb-4">Data Security</h3>
-                  <p className="lead text-muted mb-4">
-                    Keep data safe and protected from data corruption through blockchain technology and added layers of security.
-                  </p>
-                  <ul className="list-unstyled mb-4">
-                    {[
-                      'Blockchain Technology',
-                      'End-to-End Encryption',
-                      'Secure Data Residency',
-                      'Continuous Monitoring',
-                    ].map((item, idx) => (
-                      <motion.li
-                        key={idx}
-                        className="d-flex align-items-center gap-3 mb-3 py-2"
-                        whileHover={{ x: 8 }}
-                      >
-                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
-                        <span className="text-dark">{item}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                </motion.div>
-              </>
-            )}
-
-            {activeTab === 'signature' && (
-              <>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <div className="feature-illustration-box p-5 rounded-4 bg-light">
-                    <motion.div
-                      animate={{ y: [0, 20, 0] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className="text-center"
-                    >
-                      <FiLock size={120} className="text-red mb-4" />
-                    </motion.div>
-                  </div>
-                </motion.div>
-                <motion.div className="col-lg-6" variants={itemVariants}>
-                  <h3 className="h2 fw-bold mb-4">Digital Signature</h3>
-                  <p className="lead text-muted mb-4">
-                    Sign anytime and anywhere with our uniquely designed QR code protected digital signature.
-                  </p>
-                  <ul className="list-unstyled mb-4">
-                    {[
-                      'QR Code Protected Signing',
-                      'Legal Compliance',
-                      'Instant Verification',
-                      'Audit Trail Tracking',
-                    ].map((item, idx) => (
-                      <motion.li
-                        key={idx}
-                        className="d-flex align-items-center gap-3 mb-3 py-2"
-                        whileHover={{ x: 8 }}
-                      >
-                        <motion.span className="text-red fw-bold text-xl">✓</motion.span>
-                        <span className="text-dark">{item}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                </motion.div>
-              </>
-            )}
-          </motion.div>
+                      <motion.span className="text-red fw-bold text-xl">✓</motion.span>
+                      <span className="text-dark">{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </section>
 
