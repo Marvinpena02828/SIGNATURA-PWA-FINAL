@@ -42,7 +42,7 @@ const Navigation = () => {
         >
           <Link to="/" className="navbar-brand me-auto">
             <motion.img
-              src="/logo31.png"
+              src="../assets/logo31.png"
               alt="Signatura Logo"
               height="45"
               whileHover={{ scale: 1.05 }}
@@ -300,7 +300,7 @@ export default function Solutions() {
    <section
   className="solutions-hero py-8 py-lg-10 position-relative overflow-hidden text-white"
   style={{
-    backgroundImage: "url('/assets/logo31.png')",
+    backgroundImage: "url('../assets/sol.png')",
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     minHeight: '600px',
