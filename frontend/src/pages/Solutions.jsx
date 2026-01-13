@@ -42,7 +42,7 @@ const Navigation = () => {
         >
           <Link to="/" className="navbar-brand me-auto">
             <motion.img
-              src="the/logo31.png"
+              src="/logo31.png"
               alt="Signatura Logo"
               height="45"
               whileHover={{ scale: 1.05 }}
