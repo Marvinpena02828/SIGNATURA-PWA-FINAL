@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiArrowRight, FiTarget, FiEye, FiHeart, FiShield, FiMenu, FiX, FiUsers, FiAward, FiGlobe } from 'react-icons/fi';
+import { FiArrowRight, FiTarget, FiEye, FiHeart, FiShield, FiMenu, FiX, FiUsers, FiAward, FiGlobe, FiActivity, FiTrendingUp, FiZap, FiCheckCircle } from 'react-icons/fi';
 
 // Navigation Component (Embedded)
 const Navigation = ({ logo }) => {
@@ -122,24 +122,25 @@ const Footer = () => {
           >
             <h6 className="fw-bold mb-3">Signatura</h6>
             <p className="text-muted small mb-4">
-              Digital identity, data security, and digital signature solutions for the modern world.
+              A multi-dimensional digital identity, data security and digital signature platform.
             </p>
             <div className="d-flex gap-3">
-              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+              <a href="https://www.facebook.com/PHsignatura" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
                 Facebook
               </a>
-              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
-                LinkedIn
+              <a href="https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                YouTube
               </a>
             </div>
           </motion.div>
 
           {[
             {
-              title: 'Product',
+              title: 'Solutions',
               links: [
-                { label: 'Features', path: '/solutions' },
-                { label: 'Security', path: '/' },
+                { label: 'Digital Identity', path: '/solutions' },
+                { label: 'Data Security', path: '/solutions' },
+                { label: 'Digital Signature', path: '/solutions' },
               ],
             },
             {
@@ -189,7 +190,7 @@ const Footer = () => {
           viewport={{ once: true }}
         >
           <p className="text-muted small mb-0">
-            &copy; 2025 Signatura. All rights reserved. | Powered by 1Knight Solutions, Inc.
+            &copy; 2025 Signatura | Powered by 1Knight Solutions, Inc.
           </p>
         </motion.div>
       </div>
@@ -197,7 +198,7 @@ const Footer = () => {
   );
 };
 
-// Main About Component
+// Main About Component with ACTUAL CONTENT
 export default function About() {
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -255,344 +256,400 @@ export default function About() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              Transforming Digital Identity for a Secure Future
+              A Genuine Digital Transformation
             </motion.h1>
             <motion.p
               className="lead mx-auto mb-0 opacity-90"
-              style={{ maxWidth: '800px' }}
+              style={{ maxWidth: '900px' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              Leading the digital transformation revolution with innovative solutions for secure identity, data protection, and digital signatures.
+              Signatura, a multi-dimensional digital identity, data security and digital signature platform, aimed to transform customers digital experience and the way industries provide services in a safe and secure way.
             </motion.p>
           </motion.div>
         </div>
       </section>
 
-      {/* Company Overview Section */}
+      {/* Why Signatura Section */}
       <section className="py-8 py-lg-10">
         <div className="container-xl">
-          <motion.div className="row align-items-center g-5" {...fadeInUp}>
+          <motion.div className="text-center mb-8" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-4">Why Signatura?</h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '900px' }}>
+              As we desire for a truly transformative experience that will change the way we navigate our everyday lives, we turn to a digital technology which ushers simple solutions to difficulties that come with complex processes.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Benefits Section with Images */}
+      <section className="py-8 py-lg-10 bg-light position-relative">
+        <div className="container-xl">
+          <motion.div
+            className="row g-5 align-items-center mb-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Enhanced Data Collection</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura helps businesses optimize and analyze data collected to vastly improve customer experience, in terms of making informed and cost-effective decisions to further expand business opportunities.
+              </p>
               <motion.div
-                className="position-relative rounded-4 overflow-hidden"
+                className="mt-5"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: 'spring', stiffness: 300 }}
               >
                 <img 
                   src="/api/placeholder/500/400" 
-                  alt="Signatura Company" 
+                  alt="Data Collection" 
                   className="img-fluid rounded-4 w-100"
                   style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
-                />
-                <motion.div
-                  className="position-absolute top-0 start-0 w-100 h-100 bg-red rounded-4"
-                  style={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.1, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
                 />
               </motion.div>
             </motion.div>
             <motion.div className="col-lg-6" variants={itemVariants}>
-              <h2 className="display-4 fw-bold mb-4">Our Story</h2>
-              <p className="lead text-muted mb-4">
-                Founded in 2020, Signatura was born from a vision to revolutionize how organizations handle digital identity and security. What started as a small team of passionate innovators has grown into a market leader trusted by hundreds of organizations worldwide.
-              </p>
-              <p className="text-muted mb-4 lh-lg">
-                Our journey has been defined by a commitment to innovation, security, and customer success. We've continuously evolved our platform to meet the changing needs of the digital landscape, integrating cutting-edge technologies like blockchain and AI-powered verification to stay ahead of emerging threats.
-              </p>
-              <div className="d-flex flex-column gap-3">
-                <motion.div className="d-flex align-items-start gap-3" whileHover={{ x: 10 }}>
-                  <div className="p-3 rounded-3 bg-red bg-opacity-10">
-                    <FiAward className="text-red" size={24} />
-                  </div>
-                  <div>
-                    <h5 className="fw-bold">Industry Recognition</h5>
-                    <p className="text-muted small mb-0">Recognized as a leader in digital identity solutions</p>
-                  </div>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiActivity size={200} className="text-red" />
                 </motion.div>
-                <motion.div className="d-flex align-items-start gap-3" whileHover={{ x: 10 }}>
-                  <div className="p-3 rounded-3 bg-red bg-opacity-10">
-                    <FiGlobe className="text-red" size={24} />
-                  </div>
-                  <div>
-                    <h5 className="fw-bold">Global Presence</h5>
-                    <p className="text-muted small mb-0">Serving organizations across multiple countries</p>
-                  </div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiActivity size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Data-Driven Decisions</h4>
+                <p className="text-muted lh-lg">Make informed decisions with optimized data collection and analysis for business growth.</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="row g-5 align-items-center mb-8 flex-row-reverse"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Much Improved Customer Experience</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura provides a more consistent and pleasant customer experience by gaining customers' insights to provide enhanced and practical services, that will more than meet and exceed customers' expectations.
+              </p>
+              <motion.div
+                className="mt-5"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <img 
+                  src="/api/placeholder/500/400" 
+                  alt="Customer Experience" 
+                  className="img-fluid rounded-4 w-100"
+                  style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                />
+              </motion.div>
+            </motion.div>
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiUsers size={200} className="text-red" />
                 </motion.div>
-              </div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiUsers size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Customer Satisfaction</h4>
+                <p className="text-muted lh-lg">Exceed expectations with consistent and pleasant customer experiences powered by insights.</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="row g-5 align-items-center mb-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Makes the Switch to Digital Culture</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura is a digitized environment which provides any business team with the right tools and propels a sustainable and efficient collaboration to successfully engage in diverse and dynamic business environments.
+              </p>
+              <motion.div
+                className="mt-5"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <img 
+                  src="/api/placeholder/500/400" 
+                  alt="Digital Culture" 
+                  className="img-fluid rounded-4 w-100"
+                  style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                />
+              </motion.div>
+            </motion.div>
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiGlobe size={200} className="text-red" />
+                </motion.div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiGlobe size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Digital Transformation</h4>
+                <p className="text-muted lh-lg">Enable sustainable collaboration with the right digital tools and environment.</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="row g-5 align-items-center mb-8 flex-row-reverse"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Increased Profitability</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura assures a true digital transformation expectedly which leads to increased profitability through enhanced efficiency, reduced costs and an improved customer service experience resulting to a deep brand loyalty base.
+              </p>
+              <motion.div
+                className="mt-5"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <img 
+                  src="/api/placeholder/500/400" 
+                  alt="Profitability" 
+                  className="img-fluid rounded-4 w-100"
+                  style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                />
+              </motion.div>
+            </motion.div>
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiTrendingUp size={200} className="text-red" />
+                </motion.div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiTrendingUp size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Growth & Profitability</h4>
+                <p className="text-muted lh-lg">Achieve business growth through efficiency gains, cost reduction, and brand loyalty.</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="row g-5 align-items-center mb-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Increased Productivity</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura believes that having the right tools simplifies the workflow and processes, resulting to optimized delivery of services and an empowered and highly motivated work force.
+              </p>
+              <motion.div
+                className="mt-5"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <img 
+                  src="/api/placeholder/500/400" 
+                  alt="Productivity" 
+                  className="img-fluid rounded-4 w-100"
+                  style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                />
+              </motion.div>
+            </motion.div>
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiZap size={200} className="text-red" />
+                </motion.div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiZap size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Team Empowerment</h4>
+                <p className="text-muted lh-lg">Simplify workflows and empower your workforce with the right tools.</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="row g-5 align-items-center flex-row-reverse"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <h3 className="display-5 fw-bold mb-4">Environmentally Sensitive</h3>
+              <p className="lead text-muted lh-lg">
+                Signatura pushes for paperless transactions and the reduction of carbon footprint which supports our advocacy to preserve and conserve our planet's resources for generations to come.
+              </p>
+              <motion.div
+                className="mt-5"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <img 
+                  src="/api/placeholder/500/400" 
+                  alt="Environment" 
+                  className="img-fluid rounded-4 w-100"
+                  style={{ boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
+                />
+              </motion.div>
+            </motion.div>
+            <motion.div className="col-lg-6" variants={itemVariants}>
+              <motion.div
+                className="p-6 rounded-4 bg-white position-relative overflow-hidden"
+                whileHover={{ y: -8 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <motion.div
+                  className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                >
+                  <FiCheckCircle size={200} className="text-red" />
+                </motion.div>
+                <div className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit">
+                  <FiCheckCircle size={40} className="text-red" />
+                </div>
+                <h4 className="h3 fw-bold mb-3">Sustainability</h4>
+                <p className="text-muted lh-lg">Go paperless and reduce carbon footprint for a sustainable future.</p>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Mission, Vision, Values Section */}
-      <section className="py-8 py-lg-10 bg-light position-relative">
-        <div className="container-xl">
-          <motion.div className="text-center mb-8" {...fadeInUp}>
-            <h2 className="display-4 fw-bold mb-3">Our Purpose & Values</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
-              Everything we do is guided by our core mission and values
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="row g-4"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              {
-                icon: FiTarget,
-                title: 'Our Mission',
-                desc: 'To provide secure, innovative digital identity and signature solutions that empower organizations and individuals to transform their digital experience safely and securely.'
-              },
-              {
-                icon: FiEye,
-                title: 'Our Vision',
-                desc: 'A world where digital identity and security are accessible, trustworthy, and seamless for everyone, everywhere.'
-              },
-              {
-                icon: FiHeart,
-                title: 'Our Values',
-                desc: 'Security First • Innovation Always • Customer Success • Integrity & Transparency • Continuous Improvement'
-              },
-              {
-                icon: FiShield,
-                title: 'Our Commitment',
-                desc: 'We are committed to protecting your data with military-grade security while maintaining the highest standards of service excellence.'
-              },
-            ].map((value, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-6">
-                <motion.div
-                  className="p-5 rounded-4 bg-white h-100 position-relative overflow-hidden"
-                  whileHover={{ y: -8, boxShadow: '0 20px 60px rgba(220, 38, 38, 0.15)' }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <motion.div
-                    className="position-absolute top-0 end-0 w-100 h-100 opacity-5"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <value.icon size={200} className="text-red" />
-                  </motion.div>
-
-                  <motion.div
-                    className="mb-4 p-3 rounded-3 bg-red bg-opacity-10 w-fit"
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <value.icon size={32} className="text-red" />
-                  </motion.div>
-                  <h3 className="h4 fw-bold mb-3">{value.title}</h3>
-                  <p className="text-muted lh-lg">{value.desc}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Timeline Section */}
-      <section className="py-8 py-lg-10 position-relative">
-        <div className="container-xl">
-          <motion.div className="text-center mb-8" {...fadeInUp}>
-            <h2 className="display-4 fw-bold mb-3">Our Journey Through Time</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
-              From startup vision to market leader, Signatura has been at the forefront of digital identity innovation
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="position-relative"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { year: '2020', event: 'Signatura Founded - Launch of Digital Identity Platform', icon: '🚀' },
-              { year: '2021', event: 'Integration of Blockchain Technology for Enhanced Security', icon: '⛓️' },
-              { year: '2022', event: 'Expansion to Multiple Industries - Insurance, Banking, Education', icon: '🏢' },
-              { year: '2023', event: 'Launch of QR Code Protected Digital Signature', icon: '📱' },
-              { year: '2024', event: 'Government Sector Partnership & Global Expansion', icon: '🌍' },
-              { year: '2025', event: 'AI-Powered Verification & Enhanced Analytics', icon: '🤖' },
-            ].map((item, idx) => (
-              <motion.div
-                key={idx}
-                variants={itemVariants}
-                className={`row mb-5 align-items-center ${idx % 2 === 1 ? 'flex-row-reverse' : ''}`}
-              >
-                <div className="col-lg-5">
-                  <motion.div
-                    className="timeline-card p-5 rounded-4 bg-white position-relative"
-                    whileHover={{ x: idx % 2 === 0 ? 10 : -10, boxShadow: '0 20px 60px rgba(220, 38, 38, 0.1)' }}
-                    transition={{ type: 'spring', stiffness: 300 }}
-                  >
-                    <h3 className="h4 fw-bold text-red mb-2">{item.year}</h3>
-                    <p className="text-muted mb-0">{item.event}</p>
-                  </motion.div>
-                </div>
-                <div className="col-lg-2 text-center">
-                  <motion.div
-                    className="text-4xl"
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: idx * 0.1 }}
-                  >
-                    {item.icon}
-                  </motion.div>
-                </div>
-                <div className="col-lg-5"></div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-8 py-lg-10 bg-light position-relative">
-        <div className="container-xl">
-          <motion.div className="text-center mb-8" {...fadeInUp}>
-            <h2 className="display-4 fw-bold mb-3">Our Leadership Team</h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px' }}>
-              Experienced leaders driving innovation in digital identity
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="row g-4"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { name: 'John Smith', role: 'Chief Executive Officer', image: '/api/placeholder/300/300' },
-              { name: 'Sarah Johnson', role: 'Chief Technology Officer', image: '/api/placeholder/300/300' },
-              { name: 'Michael Chen', role: 'Chief Security Officer', image: '/api/placeholder/300/300' },
-              { name: 'Emily Rodriguez', role: 'Chief Operating Officer', image: '/api/placeholder/300/300' },
-            ].map((member, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-3">
-                <motion.div
-                  className="text-center"
-                  whileHover={{ y: -10 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <motion.div
-                    className="position-relative mb-4 mx-auto rounded-4 overflow-hidden"
-                    style={{ width: '200px', height: '200px' }}
-                  >
-                    <img 
-                      src={member.image} 
-                      alt={member.name}
-                      className="w-100 h-100 object-cover"
-                    />
-                    <motion.div
-                      className="position-absolute top-0 start-0 w-100 h-100 bg-red"
-                      style={{ opacity: 0 }}
-                      animate={{ opacity: [0, 0.15, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </motion.div>
-                  <h4 className="fw-bold mb-2">{member.name}</h4>
-                  <p className="text-red fw-600 small">{member.role}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-8 py-lg-10">
-        <div className="container-xl">
-          <motion.div
-            className="row g-4"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { number: '500+', label: 'Organizations Using Signatura', icon: FiUsers },
-              { number: '10M+', label: 'Credentials Verified', icon: FiShield },
-              { number: '99.99%', label: 'Uptime Guarantee', icon: FiAward },
-              { number: '24/7', label: 'Security Monitoring', icon: FiTarget },
-            ].map((stat, idx) => (
-              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-3">
-                <motion.div
-                  className="text-center p-6 rounded-4 bg-gradient-to-br"
-                  style={{ background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(220, 38, 38, 0.02) 100%)' }}
-                  whileHover={{ y: -8, boxShadow: '0 20px 60px rgba(220, 38, 38, 0.1)' }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <motion.div
-                    className="mb-4 p-4 rounded-3 bg-red bg-opacity-10 w-fit mx-auto"
-                    whileHover={{ scale: 1.1, rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <stat.icon size={32} className="text-red" />
-                  </motion.div>
-                  <motion.h3
-                    className="display-5 fw-bold text-red mb-2"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                  >
-                    {stat.number}
-                  </motion.h3>
-                  <p className="text-muted fw-500">{stat.label}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
+      {/* Blockchain Section */}
       <section className="py-8 py-lg-10 bg-red text-white position-relative overflow-hidden">
         <motion.div className="blob-1 position-absolute" style={{ top: '-10%', right: '-5%' }} animate={{ x: [0, 30, 0] }} transition={{ duration: 15, repeat: Infinity }} />
         <motion.div className="blob-2 position-absolute" style={{ bottom: '-10%', left: '-5%' }} animate={{ x: [0, -30, 0] }} transition={{ duration: 20, repeat: Infinity }} />
 
-        <div className="container-xl position-relative text-center">
-          <motion.h2
-            className="display-4 fw-bold mb-4"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            Ready to Transform Your Business?
-          </motion.h2>
-          <motion.p
-            className="lead mb-6 opacity-90 mx-auto"
-            style={{ maxWidth: '600px' }}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            viewport={{ once: true }}
-          >
-            Join hundreds of organizations already using Signatura for secure digital transformation.
-          </motion.p>
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-8" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-3">Blockchain Technology</h2>
+            <p className="lead opacity-90">SECURED, TRANSPARENT, TRUSTED</p>
+            <p className="lead opacity-90 mx-auto" style={{ maxWidth: '700px' }}>
+              We enhanced Signatura with blockchain technology, an innovative new technology.
+            </p>
+          </motion.div>
 
           <motion.div
-            className="d-flex flex-column flex-sm-row justify-content-center gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            className="row g-4"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true }}
           >
+            {[
+              { icon: '🔐', title: 'Multi-Factor Authentication', desc: 'Enhanced security with multiple verification layers' },
+              { icon: '👤', title: 'KYC - Selfie', desc: 'Identity verification through biometric authentication' },
+              { icon: '🔒', title: 'Encryption', desc: 'Military-grade encryption for all data' },
+              { icon: '📱', title: 'QR-Code', desc: 'Secure QR code protected transactions' },
+            ].map((feature, idx) => (
+              <motion.div key={idx} variants={itemVariants} className="col-md-6 col-lg-3">
+                <motion.div
+                  className="blockchain-feature p-4 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-20 text-center"
+                  whileHover={{ y: -8, borderColor: 'rgba(255,255,255,0.4)' }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="text-5xl mb-3">{feature.icon}</div>
+                  <h5 className="fw-bold mb-2">{feature.title}</h5>
+                  <p className="small opacity-90">{feature.desc}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div className="text-center mt-8" {...fadeInUp}>
+            <p className="lead mb-4 opacity-90" style={{ maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto' }}>
+              Signatura, ensures protection from Identity Theft and will not compromise Data Privacy and that's our business.
+            </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link to="/issuer" className="btn btn-lg btn-white text-red fw-bold rounded-pill px-6 text-decoration-none">
-                Get Started <FiArrowRight className="ms-2" />
+              <Link to="/solutions" className="btn btn-lg btn-white text-red fw-bold rounded-pill px-6 text-decoration-none">
+                Learn More <FiArrowRight className="ms-2" />
               </Link>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link to="/solutions" className="btn btn-lg btn-outline-white fw-bold rounded-pill px-6 text-decoration-none">
-                Learn More Solutions <FiArrowRight className="ms-2" />
-              </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Partnership CTA Section */}
+      <section className="py-8 py-lg-10 position-relative">
+        <div className="container-xl">
+          <motion.div className="text-center" {...fadeInUp}>
+            <h2 className="display-4 fw-bold mb-5">Let us work together in bringing the future now.</h2>
+            <p className="lead text-muted mx-auto lh-lg mb-6" style={{ maxWidth: '900px' }}>
+              It is our great desire to build our future in collaboration and in partnership with institutions such as: insurance, banking and finance, religious, education, government and various organizations in bringing "A Genuine Digital Transformation" that will redefine the way delivery of services are done and help change the way we navigate our lives now.
+            </p>
+            
+            <motion.div
+              className="d-flex flex-column flex-sm-row justify-content-center gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/contact" className="btn btn-lg btn-red fw-bold rounded-pill px-6 text-decoration-none text-white">
+                  Let's Talk <FiArrowRight className="ms-2" />
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/issuer" className="btn btn-lg btn-outline-red fw-bold rounded-pill px-6 text-decoration-none">
+                  Get Started <FiArrowRight className="ms-2" />
+                </Link>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
