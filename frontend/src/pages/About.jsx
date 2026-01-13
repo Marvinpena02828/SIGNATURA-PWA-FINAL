@@ -1,9 +1,202 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { FiArrowRight, FiTarget, FiEye, FiHeart, FiShield } from 'react-icons/fi';
-// import Navigation from '../components/Navigation.jsx';
-// import Footer from '../components/Footer.jsx';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiArrowRight, FiTarget, FiEye, FiHeart, FiShield, FiMenu, FiX } from 'react-icons/fi';
 
+// Navigation Component (Embedded)
+const Navigation = ({ logo }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'About', path: '/about' },
+    { label: 'Solutions', path: '/solutions' },
+    { label: 'Contact', path: '/contact' },
+  ];
+
+  return (
+    <nav className={`navbar sticky-top navbar-expand-lg navbar-light transition-all ${
+      scrolled ? 'bg-white shadow-md border-bottom border-light' : 'bg-white bg-opacity-95'
+    }`}>
+      <div className="container-xl">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-100 d-flex justify-content-between align-items-center"
+        >
+          <Link to="/" className="navbar-brand me-auto">
+            <motion.img
+              src="/logo31.png"
+              alt="Signatura Logo"
+              height="45"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            />
+          </Link>
+
+          <div className="d-none d-lg-flex align-items-center gap-1">
+            {navItems.map((item) => (
+              <motion.div key={item.path}>
+                <Link
+                  to={item.path}
+                  className="btn btn-link nav-link text-decoration-none fw-500 position-relative text-dark"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {item.label}
+                  <motion.span
+                    className="position-absolute bottom-0 start-0 bg-red"
+                    style={{ height: '2px', width: '0%' }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="d-flex align-items-center gap-2 gap-lg-3 ms-auto ms-lg-0">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="d-none d-md-flex align-items-center gap-2">
+              <Link to="/" className="btn btn-sm btn-outline-secondary fw-500">
+                Login
+              </Link>
+            </motion.div>
+
+            <button
+              className="btn d-lg-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-100 mt-3"
+            >
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </nav>
+  );
+};
+
+// Footer Component (Embedded)
+const Footer = () => {
+  return (
+    <footer className="footer bg-dark text-white py-6">
+      <div className="container-xl">
+        <div className="row g-4 mb-6">
+          <motion.div
+            className="col-lg-3 col-md-6"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-muted small mb-4">
+              Digital identity, data security, and digital signature solutions for the modern world.
+            </p>
+            <div className="d-flex gap-3">
+              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                Facebook
+              </a>
+              <a href="#" className="text-muted text-decoration-none" target="_blank" rel="noopener noreferrer">
+                LinkedIn
+              </a>
+            </div>
+          </motion.div>
+
+          {[
+            {
+              title: 'Product',
+              links: [
+                { label: 'Features', path: '/solutions' },
+                { label: 'Security', path: '/' },
+              ],
+            },
+            {
+              title: 'Company',
+              links: [
+                { label: 'About', path: '/about' },
+                { label: 'Contact', path: '/contact' },
+              ],
+            },
+          ].map((section, idx) => (
+            <motion.div
+              key={idx}
+              className="col-lg-2 col-md-6"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <h6 className="fw-bold mb-4">{section.title}</h6>
+              <ul className="list-unstyled">
+                {section.links.map((link) => (
+                  <li key={link.path} className="mb-2">
+                    <Link
+                      to={link.path}
+                      className="text-muted text-decoration-none transition-all"
+                    >
+                      <small>{link.label}</small>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.hr
+          className="border-secondary opacity-25 my-4"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0.25 }}
+          viewport={{ once: true }}
+        />
+
+        <motion.div
+          className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <p className="text-muted small mb-0">
+            &copy; 2025 Signatura. All rights reserved. | Powered by 1Knight Solutions, Inc.
+          </p>
+        </motion.div>
+      </div>
+    </footer>
+  );
+};
+
+// Main About Component
 export default function About() {
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -260,20 +453,16 @@ export default function About() {
             transition={{ delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <motion.button
-              className="btn btn-lg btn-white text-red fw-bold rounded-pill px-5"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Get Started <FiArrowRight className="ms-2" />
-            </motion.button>
-            <motion.button
-              className="btn btn-lg btn-outline-white fw-bold rounded-pill px-5"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Learn More
-            </motion.button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to="/issuer" className="btn btn-lg btn-white text-red fw-bold rounded-pill px-5 text-decoration-none">
+                Get Started <FiArrowRight className="ms-2" />
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to="/solutions" className="btn btn-lg btn-outline-white fw-bold rounded-pill px-5 text-decoration-none">
+                Learn More <FiArrowRight className="ms-2" />
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
       </section>
