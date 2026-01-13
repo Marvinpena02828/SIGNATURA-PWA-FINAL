@@ -297,14 +297,18 @@ export default function Solutions() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="solutions-hero py-8 py-lg-10 position-relative overflow-hidden text-white" style={{
-        backgroundImage: 'linear-gradient(135deg, rgba(220, 38, 38, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '600px',
-        display: 'flex',
-        alignItems: 'center'
-      }}>
+   <section
+  className="solutions-hero py-8 py-lg-10 position-relative overflow-hidden text-white"
+  style={{
+    backgroundImage: "url('/assets/logo31.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    minHeight: '600px',
+    display: 'flex',
+    alignItems: 'center'
+  }}
+>
+
         <motion.div className="blob-1 position-absolute" style={{ top: '-10%', right: '-5%' }} animate={{ x: [0, 30, 0], y: [0, 20, 0] }} transition={{ duration: 20, repeat: Infinity }} />
         <motion.div className="blob-2 position-absolute" style={{ bottom: '-10%', left: '-5%' }} animate={{ x: [0, -30, 0], y: [0, -20, 0] }} transition={{ duration: 25, repeat: Infinity }} />
 
