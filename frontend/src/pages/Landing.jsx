@@ -308,8 +308,12 @@ const Navigation = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Link to="/" className="fw-900 text-dark" style={{ fontSize: '28px', textDecoration: 'none', letterSpacing: '-1px' }}>
-              <span style={{ color: '#dc2626' }}>Sign</span>atura
+            <Link to="/" className="d-flex align-items-center text-decoration-none">
+              <img 
+                src="/logo31.png" 
+                alt="Signatura" 
+                style={{ height: '50px', width: 'auto' }}
+              />
             </Link>
           </motion.div>
 
@@ -539,9 +543,11 @@ const PremiumFooter = () => {
               visible: { opacity: 1, x: 0 }
             }}
           >
-            <h4 className="fw-900 mb-4 text-white" style={{ fontSize: '28px', letterSpacing: '-1px' }}>
-              <span style={{ color: '#dc2626' }}>Sign</span>atura
-            </h4>
+            <img 
+              src="/logo31.png" 
+              alt="Signatura" 
+              style={{ height: '60px', width: 'auto', marginBottom: '20px' }}
+            />
             <p className="mb-5" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: '1.6' }}>
               Enterprise digital identity platform for the modern world.
             </p>
