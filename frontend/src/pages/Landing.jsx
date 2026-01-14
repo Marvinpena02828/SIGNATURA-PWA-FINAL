@@ -790,13 +790,9 @@ const FeatureCard = ({ feature, idx }) => {
         }}
         transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
       >
-        <motion.div 
-          className="mb-4"
-          animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.1, 1] }}
-          transition={{ duration: 4, repeat: Infinity, delay: idx * 0.2 }}
-        >
-          <IconComponent size={64} />
-        </motion.div>
+        <div className="mb-4" style={{ display: 'flex', justifyContent: 'center' }}>
+          <IconComponent size={72} />
+        </div>
         <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
         <p className="text-muted" style={{ fontSize: '15px' }}>{feature.desc}</p>
       </motion.div>
@@ -1030,13 +1026,9 @@ export default function SignaturaLanding() {
                   }}
                   transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <motion.div 
-                    whileHover={{ scale: 1.3, rotate: 15 }}
-                    transition={{ duration: 0.3 }}
-                    className="mb-4"
-                  >
-                    <solution.icon size={80} />
-                  </motion.div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <solution.icon size={100} />
+                  </div>
                   <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{solution.title}</h5>
                   <p className="text-muted mb-5" style={{ fontSize: '15px' }}>{solution.desc}</p>
                   <motion.ul 
@@ -1126,13 +1118,9 @@ export default function SignaturaLanding() {
                   }}
                   transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <motion.div 
-                    className="mb-4"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 3, repeat: Infinity, delay: idx * 0.15 }}
-                  >
-                    <feature.icon size={64} />
-                  </motion.div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <feature.icon size={72} />
+                  </div>
                   <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
                   <p className="text-white opacity-80 small">{feature.desc}</p>
                 </motion.div>
@@ -1186,13 +1174,9 @@ export default function SignaturaLanding() {
                   }}
                   transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <motion.div 
-                    className="mb-4"
-                    animate={{ rotateY: [0, 360] }}
-                    transition={{ duration: 4, repeat: Infinity, delay: idx * 0.3 }}
-                  >
-                    <industry.icon size={80} />
-                  </motion.div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <industry.icon size={100} />
+                  </div>
                   <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{industry.title}</h5>
                   <p className="text-muted small">{industry.desc}</p>
                 </motion.div>
