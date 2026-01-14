@@ -112,7 +112,7 @@ const EducationIcon = ({ size = 48, color = "#dc2626" }) => (
   </svg>
 );
 
-// ===== FLOATING PHONE MOCKUP =====
+// ===== FLOATING IPHONE 16 PRO MAX MOCKUP =====
 const FloatingPhoneMockup = () => {
   const phoneRef = useRef(null);
   const { scrollY } = useScroll();
@@ -121,120 +121,180 @@ const FloatingPhoneMockup = () => {
   return (
     <motion.div ref={phoneRef} style={{ y }} className="w-100 h-100">
       <motion.svg 
-        viewBox="0 0 300 600" 
+        viewBox="0 0 340 700" 
         className="w-100 h-100" 
         animate={{ 
-          y: [0, -25, 0],
-          rotateZ: [0, -5, 5, 0],
-          rotateX: [0, 10, -10, 0]
+          y: [0, -30, 0],
+          rotateZ: [0, -4, 4, 0],
+          rotateY: [0, 8, -8, 0]
         }} 
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <defs>
-          <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#b91c1c', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: '#7f1d1d', stopOpacity: 1 }} />
+          {/* iPhone 16 Pro Max Titanium Gradient */}
+          <linearGradient id="iphone16Frame" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#a8a8a8', stopOpacity: 1 }} />
+            <stop offset="50%" style={{ stopColor: '#9a9a9a', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#8a8a8a', stopOpacity: 1 }} />
           </linearGradient>
+          
+          {/* Deep Red Glass Back */}
+          <linearGradient id="iphone16Back" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#c41e3a', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#8b0000', stopOpacity: 1 }} />
+          </linearGradient>
+          
+          {/* Screen */}
           <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#f8fafc', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: '#e2e8f0', stopOpacity: 1 }} />
+            <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#f0f0f0', stopOpacity: 1 }} />
           </linearGradient>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="20" stdDeviation="15" floodOpacity="0.3" />
+          
+          <filter id="deepShadow" x="-100%" y="-100%" width="300%" height="300%">
+            <feDropShadow dx="0" dy="30" stdDeviation="20" floodOpacity="0.4" />
+          </filter>
+          
+          <filter id="cameraShadow">
+            <feDropShadow dx="2" dy="2" stdDeviation="3" floodOpacity="0.5" />
           </filter>
         </defs>
 
-        {/* Phone Body */}
-        <g filter="url(#shadow)">
-          {/* Phone Back */}
-          <rect x="25" y="30" width="250" height="540" rx="50" fill="url(#phoneGrad)" />
+        {/* Main Phone Container with Shadow */}
+        <g filter="url(#deepShadow)">
+          {/* Glass Back Panel */}
+          <rect x="20" y="25" width="300" height="650" rx="45" ry="45" fill="url(#iphone16Back)" />
           
-          {/* Phone Bezel/Frame */}
-          <rect x="25" y="30" width="250" height="540" rx="50" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+          {/* Titanium Frame - Top Edge */}
+          <rect x="20" y="25" width="300" height="8" rx="45" fill="url(#iphone16Frame)" />
           
-          {/* Screen Area */}
-          <rect x="35" y="50" width="230" height="500" rx="42" fill="url(#screenGrad)" />
+          {/* Titanium Frame - Bottom Edge */}
+          <rect x="20" y="667" width="300" height="8" fill="url(#iphone16Frame)" />
           
-          {/* Notch */}
-          <rect x="110" y="50" width="80" height="35" rx="0 0 20 20" fill="#1f2937" />
-          <circle cx="135" cy="62" r="4" fill="#0a0a0a" opacity="0.6" />
-          <circle cx="165" cy="62" r="4" fill="#0a0a0a" opacity="0.6" />
+          {/* Titanium Frame - Left Edge */}
+          <rect x="20" y="33" width="8" height="642" fill="url(#iphone16Frame)" />
           
-          {/* Status Bar */}
-          <rect x="35" y="50" width="230" height="30" fill="white" opacity="0.5" />
-          <text x="55" y="70" fontSize="10" fill="#374151" fontWeight="600">9:41</text>
+          {/* Titanium Frame - Right Edge */}
+          <rect x="312" y="33" width="8" height="642" fill="url(#iphone16Frame)" />
           
-          {/* App Content - Top Section */}
-          <rect x="45" y="95" width="210" height="35" rx="12" fill="white" />
-          <text x="55" y="118" fontSize="14" fill="#111827" fontWeight="700">Digital Identity</text>
-          <circle cx="260" cy="112" r="8" fill="#dc2626" />
+          {/* Camera Bump - Large Pro Max Style */}
+          <g filter="url(#cameraShadow)">
+            {/* Bump Background */}
+            <rect x="245" y="35" width="60" height="60" rx="18" fill="rgba(0,0,0,0.3)" />
+            
+            {/* Camera Lens 1 - Main */}
+            <circle cx="260" cy="50" r="13" fill="#000" opacity="0.8" />
+            <circle cx="260" cy="50" r="12" fill="#1a1a1a" />
+            <circle cx="258" cy="48" r="3" fill="rgba(255,255,255,0.3)" />
+            
+            {/* Camera Lens 2 - Telephoto */}
+            <circle cx="280" cy="50" r="11" fill="#000" opacity="0.8" />
+            <circle cx="280" cy="50" r="10" fill="#1a1a1a" />
+            <circle cx="278" cy="48" r="2.5" fill="rgba(255,255,255,0.3)" />
+            
+            {/* Camera Lens 3 - Ultrawide */}
+            <circle cx="270" cy="70" r="10" fill="#000" opacity="0.8" />
+            <circle cx="270" cy="70" r="9" fill="#1a1a1a" />
+            <circle cx="268" cy="68" r="2" fill="rgba(255,255,255,0.3)" />
+            
+            {/* Flash */}
+            <rect x="290" y="65" width="8" height="8" rx="2" fill="#1a1a1a" />
+          </g>
           
-          {/* Card 1 - Verified Badge */}
+          {/* Screen Area with Flat Edges */}
+          <rect x="30" y="50" width="280" height="630" rx="40" fill="url(#screenGrad)" />
+          
+          {/* Dynamic Island */}
           <g>
-            <rect x="45" y="145" width="210" height="55" rx="16" fill="white" stroke="#fee2e2" strokeWidth="1" />
-            <circle cx="65" cy="172" r="14" fill="#fecaca" />
-            <path d="M 61 172 L 64 175 L 69 170" stroke="#dc2626" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <text x="85" y="165" fontSize="12" fill="#111827" fontWeight="700">Status: Verified</text>
-            <text x="85" y="182" fontSize="10" fill="#6b7280">Active Credentials</text>
+            <rect x="135" y="60" width="70" height="32" rx="16" fill="#1f2937" />
+            <circle cx="150" cy="76" r="4" fill="#0a0a0a" opacity="0.8" />
+            <circle cx="170" cy="76" r="4" fill="#0a0a0a" opacity="0.8" />
+          </g>
+          
+          {/* Status Bar Area */}
+          <rect x="30" y="50" width="280" height="40" fill="white" opacity="0.6" />
+          <text x="50" y="78" fontSize="11" fill="#374151" fontWeight="700">9:41</text>
+          <text x="260" y="78" fontSize="9" fill="#6b7280">●●●●●</text>
+          
+          {/* App Header */}
+          <g>
+            <text x="45" y="110" fontSize="16" fill="#111827" fontWeight="800">Digital Identity</text>
+            <motion.circle 
+              cx="275" cy="100" r="10" 
+              fill="#dc2626"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </g>
+          
+          {/* Card 1 - Verified */}
+          <g>
+            <rect x="40" y="130" width="260" height="70" rx="20" fill="white" stroke="#fee2e2" strokeWidth="1.5" />
+            <circle cx="70" cy="165" r="18" fill="#fecaca" />
+            <path d="M 63 165 L 68 170 L 78 160" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <text x="100" y="160" fontSize="13" fill="#111827" fontWeight="700">Status: Verified</text>
+            <text x="100" y="178" fontSize="11" fill="#6b7280">Active credentials & documents</text>
           </g>
           
           {/* Card 2 - Document */}
           <g>
-            <rect x="45" y="215" width="210" height="55" rx="16" fill="white" stroke="#fee2e2" strokeWidth="1" />
-            <rect x="60" y="228" width="28" height="35" rx="4" fill="#fecaca" stroke="#dc2626" strokeWidth="1.5" />
-            <text x="62" y="253" fontSize="8" fill="#dc2626" fontWeight="700" textAnchor="middle">ID</text>
-            <text x="95" y="245" fontSize="12" fill="#111827" fontWeight="700">National ID</text>
-            <text x="95" y="262" fontSize="10" fill="#6b7280">Expires in 4 years</text>
+            <rect x="40" y="215" width="260" height="70" rx="20" fill="white" stroke="#fee2e2" strokeWidth="1.5" />
+            <rect x="60" y="233" width="35" height="45" rx="6" fill="#fecaca" stroke="#dc2626" strokeWidth="2" />
+            <text x="77" y="265" fontSize="9" fill="#dc2626" fontWeight="700" textAnchor="middle">ID</text>
+            <text x="110" y="255" fontSize="13" fill="#111827" fontWeight="700">National ID Card</text>
+            <text x="110" y="273" fontSize="11" fill="#6b7280">Expires in 3 years, 8 months</text>
           </g>
           
-          {/* Card 3 - Lock */}
+          {/* Card 3 - Encryption */}
           <g>
-            <rect x="45" y="285" width="210" height="55" rx="16" fill="white" stroke="#fee2e2" strokeWidth="1" />
-            <circle cx="65" cy="312" r="14" fill="#fecaca" />
-            <rect x="59" y="308" width="12" height="8" rx="2" stroke="#dc2626" strokeWidth="1.5" fill="none" />
-            <path d="M 62 308 L 62 303 Q 62 300 65 300 Q 68 300 68 303 L 68 308" stroke="#dc2626" strokeWidth="1" fill="none" strokeLinecap="round" />
-            <text x="85" y="310" fontSize="12" fill="#111827" fontWeight="700">Encrypted Data</text>
-            <text x="85" y="327" fontSize="10" fill="#6b7280">Military-grade AES-256</text>
+            <rect x="40" y="300" width="260" height="70" rx="20" fill="white" stroke="#fee2e2" strokeWidth="1.5" />
+            <circle cx="70" cy="335" r="18" fill="#fecaca" />
+            <rect x="62" y="330" width="16" height="12" rx="2" stroke="#dc2626" strokeWidth="2" fill="none" />
+            <path d="M 66 330 L 66 324 Q 66 321 70 321 Q 74 321 74 324 L 74 330" stroke="#dc2626" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            <text x="100" y="330" fontSize="13" fill="#111827" fontWeight="700">Encrypted Data</text>
+            <text x="100" y="348" fontSize="11" fill="#6b7280">Military-grade AES-256 security</text>
           </g>
           
-          {/* Bottom Info */}
+          {/* Card 4 - Sync Status */}
           <g>
-            <rect x="45" y="360" width="210" height="45" rx="12" fill="#fafafa" />
-            <circle cx="60" cy="382" r="5" fill="#dc2626" />
-            <text x="72" y="377" fontSize="11" fill="#111827" fontWeight="600">Real-time Sync</text>
-            <text x="72" y="389" fontSize="9" fill="#6b7280">Updated 2 minutes ago</text>
+            <rect x="40" y="385" width="260" height="65" rx="20" fill="#fafafa" stroke="#e5e7eb" strokeWidth="1" />
+            <motion.circle 
+              cx="70" cy="415" r="6" 
+              fill="#22c55e"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <text x="85" y="415" fontSize="12" fill="#111827" fontWeight="700">Real-time Sync Active</text>
+            <text x="85" y="435" fontSize="10" fill="#6b7280">Last updated: 2 minutes ago</text>
           </g>
           
-          {/* Bottom Navigation */}
-          <rect x="35" y="510" width="230" height="40" rx="15" fill="white" stroke="#fee2e2" strokeWidth="1" />
-          <circle cx="65" cy="530" r="6" fill="#dc2626" />
-          <circle cx="150" cy="530" r="6" fill="#d1d5db" />
-          <circle cx="235" cy="530" r="6" fill="#d1d5db" />
+          {/* Bottom Safe Area Indicator */}
+          <rect x="30" y="670" width="280" height="10" fill="white" opacity="0.4" rx="5" />
           
-          {/* Gloss Effect */}
-          <ellipse cx="100" cy="80" rx="80" ry="30" fill="white" opacity="0.15" />
+          {/* Gloss/Reflection Effect */}
+          <ellipse cx="110" cy="80" rx="90" ry="40" fill="white" opacity="0.12" />
+          <ellipse cx="270" cy="200" rx="60" ry="100" fill="white" opacity="0.08" />
         </g>
 
-        {/* Floating Elements Around Phone */}
+        {/* Floating Accent Elements */}
         <motion.g
-          animate={{ y: [0, -10, 0] }}
+          animate={{ y: [0, -12, 0] }}
           transition={{ duration: 4, repeat: Infinity, delay: 0 }}
         >
-          <circle cx="30" cy="150" r="6" fill="#dc2626" opacity="0.4" />
+          <circle cx="25" cy="200" r="7" fill="#dc2626" opacity="0.45" />
         </motion.g>
         
         <motion.g
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
+          animate={{ y: [0, 12, 0] }}
+          transition={{ duration: 4.5, repeat: Infinity, delay: 0.6 }}
         >
-          <circle cx="280" cy="300" r="5" fill="#dc2626" opacity="0.3" />
+          <circle cx="325" cy="350" r="6" fill="#dc2626" opacity="0.35" />
         </motion.g>
         
         <motion.g
-          animate={{ y: [0, -8, 0], x: [0, 5, 0] }}
-          transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+          animate={{ y: [0, -10, 0], x: [0, 6, 0] }}
+          transition={{ duration: 5.5, repeat: Infinity, delay: 1.2 }}
         >
-          <circle cx="20" cy="450" r="4" fill="#dc2626" opacity="0.35" />
+          <circle cx="15" cy="550" r="5" fill="#dc2626" opacity="0.4" />
         </motion.g>
       </motion.svg>
     </motion.div>
