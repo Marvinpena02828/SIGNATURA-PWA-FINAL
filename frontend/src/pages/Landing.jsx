@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward } from 'react-icons/fi';
+import { FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward, FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
 
 // ===== CUSTOM SVG ILLUSTRATIONS =====
 
@@ -220,58 +220,442 @@ const Navigation = () => {
   );
 };
 
-// ===== FOOTER =====
+// ===== ENHANCED FOOTER =====
 
-const Footer = () => {
+const EnhancedFooter = () => {
+  const [emailInput, setEmailInput] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (emailInput) {
+      setSubscribed(true);
+      setTimeout(() => {
+        setEmailInput('');
+        setSubscribed(false);
+      }, 3000);
+    }
+  };
+
+  const fadeInUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: 'easeOut' },
+    viewport: { once: true, margin: '0px 0px -50px 0px' }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+
   return (
-    <footer className="text-white py-12 mt-12" style={{ background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)' }}>
-      <div className="container-xl">
-        <div className="row g-8 mb-10">
-          <div className="col-lg-4">
-            <h5 className="fw-900 mb-4" style={{ letterSpacing: '-1px' }}>
-              <span style={{ color: '#dc2626' }}>Sign</span>atura
-            </h5>
-            <p className="text-muted small mb-6 lh-lg">
-              Enterprise-grade digital identity, data security, and signature solutions trusted by 500+ organizations worldwide.
-            </p>
-            <div className="d-flex gap-4">
-              <a href="https://www.facebook.com/PHsignatura" className="text-muted text-decoration-none small fw-500 hover-text-danger" target="_blank" rel="noopener noreferrer">
-                Facebook
-              </a>
-              <a href="https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg" className="text-muted text-decoration-none small fw-500" target="_blank" rel="noopener noreferrer">
-                YouTube
-              </a>
-            </div>
-          </div>
-          <div className="col-lg-2">
-            <h6 className="fw-700 mb-4">Product</h6>
-            <ul className="list-unstyled small">
-              <li className="mb-3"><a href="#features" className="text-muted text-decoration-none">Features</a></li>
-              <li className="mb-3"><a href="#solutions" className="text-muted text-decoration-none">Solutions</a></li>
-              <li className="mb-3"><a href="#security" className="text-muted text-decoration-none">Security</a></li>
-            </ul>
-          </div>
-          <div className="col-lg-2">
-            <h6 className="fw-700 mb-4">Company</h6>
-            <ul className="list-unstyled small">
-              <li className="mb-3"><a href="#" className="text-muted text-decoration-none">About</a></li>
-              <li className="mb-3"><a href="#" className="text-muted text-decoration-none">Blog</a></li>
-              <li className="mb-3"><a href="#" className="text-muted text-decoration-none">Careers</a></li>
-            </ul>
-          </div>
-          <div className="col-lg-4">
-            <h6 className="fw-700 mb-4">Newsletter</h6>
-            <p className="text-muted small mb-3">Get the latest updates on digital security</p>
-            <div className="d-flex gap-2">
-              <input type="email" placeholder="your@email.com" className="form-control form-control-sm rounded-pill border-0" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} />
-              <button className="btn btn-sm fw-700 text-white rounded-pill px-4" style={{ background: '#dc2626' }}>→</button>
-            </div>
-          </div>
-        </div>
-        <div className="border-top border-secondary opacity-25 pt-6">
-          <p className="text-muted small mb-0 text-center">&copy; 2025 Signatura | Enterprise Digital Identity Platform</p>
+    <footer className="text-white position-relative overflow-hidden" style={{ 
+      background: 'linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%)',
+    }}>
+      {/* Animated Background Elements */}
+      <motion.div 
+        className="position-absolute" 
+        style={{ 
+          top: '-20%', 
+          right: '-10%', 
+          width: '600px', 
+          height: '600px', 
+          borderRadius: '50%', 
+          background: 'radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%)'
+        }}
+        animate={{ scale: [1, 1.2, 1], x: [0, 30, 0] }}
+        transition={{ duration: 20, repeat: Infinity }}
+      />
+      <motion.div 
+        className="position-absolute" 
+        style={{ 
+          bottom: '-10%', 
+          left: '-5%', 
+          width: '500px', 
+          height: '500px', 
+          borderRadius: '50%', 
+          background: 'radial-gradient(circle, rgba(220,38,38,0.05) 0%, transparent 70%)'
+        }}
+        animate={{ scale: [1.2, 1, 1.2], y: [0, 40, 0] }}
+        transition={{ duration: 25, repeat: Infinity }}
+      />
+
+      {/* TOP SECTION - Newsletter + Brand */}
+      <div className="position-relative pt-12 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="container-xl">
+          <motion.div 
+            className="row align-items-center g-8"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Left - Brand & Description */}
+            <motion.div className="col-lg-5" {...fadeInUp}>
+              <motion.h3 
+                className="fw-900 mb-4" 
+                style={{ fontSize: '32px', letterSpacing: '-1px', color: '#ffffff' }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <span style={{ color: '#dc2626' }}>Sign</span>atura
+              </motion.h3>
+              
+              <motion.p 
+                className="lead text-muted mb-6 lh-lg"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+              >
+                Enterprise-grade digital identity and security platform trusted by 500+ organizations worldwide.
+              </motion.p>
+
+              {/* Trust Badges */}
+              <motion.div 
+                className="d-flex flex-wrap gap-4"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+              >
+                {[
+                  { icon: FiShield, text: 'GDPR Compliant' },
+                  { icon: FiAward, text: 'ISO 27001' },
+                  { icon: FiGlobe, text: 'eIDAS Certified' }
+                ].map((badge, idx) => (
+                  <motion.div 
+                    key={idx} 
+                    className="d-flex align-items-center gap-2"
+                    variants={itemVariants}
+                  >
+                    <badge.icon size={16} style={{ color: '#dc2626' }} />
+                    <span className="small fw-600">{badge.text}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* Right - Newsletter Signup */}
+            <motion.div className="col-lg-7" {...fadeInUp}>
+              <div className="bg-white bg-opacity-5 p-8 rounded-4" style={{ backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <h5 className="fw-700 mb-3 text-white">Stay Updated</h5>
+                <p className="text-muted small mb-5">Get the latest security updates and features delivered to your inbox</p>
+                
+                <form onSubmit={handleSubscribe} className="position-relative">
+                  <div className="input-group input-group-lg">
+                    <input 
+                      type="email" 
+                      className="form-control rounded-start-pill border-0" 
+                      placeholder="your@email.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      style={{ background: 'rgba(255,255,255,0.95)', paddingLeft: '24px', fontWeight: 500 }}
+                      required
+                    />
+                    <motion.button
+                      className="btn fw-700 rounded-end-pill text-white px-6"
+                      style={{ background: '#dc2626' }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      type="submit"
+                    >
+                      {subscribed ? '✓ Subscribed' : 'Subscribe'}
+                    </motion.button>
+                  </div>
+                </form>
+                
+                <p className="text-muted small mt-3 mb-0">
+                  <FiCheckCircle size={14} className="me-2" style={{ color: '#dc2626' }} />
+                  No spam, unsubscribe anytime
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
+
+      {/* MIDDLE SECTION - Links & Info */}
+      <div className="container-xl py-12 position-relative">
+        <motion.div
+          className="row g-10"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          {/* Column 1 - Products */}
+          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
+            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Products
+            </h6>
+            <ul className="list-unstyled">
+              {['Digital Identity', 'Digital Signatures', 'Data Security', 'Verification API', 'Compliance'].map((link, idx) => (
+                <li key={idx} className="mb-3">
+                  <motion.a 
+                    href="#" 
+                    className="text-muted text-decoration-none small fw-500"
+                    whileHover={{ color: '#dc2626', x: 5 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {link}
+                  </motion.a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Column 2 - Solutions */}
+          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
+            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Industries
+            </h6>
+            <ul className="list-unstyled">
+              {['Banking & Finance', 'Insurance', 'Government', 'Education', 'Healthcare'].map((link, idx) => (
+                <li key={idx} className="mb-3">
+                  <motion.a 
+                    href="#" 
+                    className="text-muted text-decoration-none small fw-500"
+                    whileHover={{ color: '#dc2626', x: 5 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {link}
+                  </motion.a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Column 3 - Developers */}
+          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
+            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Developers
+            </h6>
+            <ul className="list-unstyled">
+              {['API Documentation', 'SDK Downloads', 'Code Samples', 'Webhooks', 'Sandbox'].map((link, idx) => (
+                <li key={idx} className="mb-3">
+                  <motion.a 
+                    href="#" 
+                    className="text-muted text-decoration-none small fw-500"
+                    whileHover={{ color: '#dc2626', x: 5 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {link}
+                  </motion.a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Column 4 - Company */}
+          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
+            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Company
+            </h6>
+            <ul className="list-unstyled">
+              {['About Us', 'Blog', 'Press Kit', 'Careers', 'Contact'].map((link, idx) => (
+                <li key={idx} className="mb-3">
+                  <motion.a 
+                    href="#" 
+                    className="text-muted text-decoration-none small fw-500"
+                    whileHover={{ color: '#dc2626', x: 5 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {link}
+                  </motion.a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Column 5 - Legal */}
+          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
+            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Legal
+            </h6>
+            <ul className="list-unstyled">
+              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Data Processing', 'Security'].map((link, idx) => (
+                <li key={idx} className="mb-3">
+                  <motion.a 
+                    href="#" 
+                    className="text-muted text-decoration-none small fw-500"
+                    whileHover={{ color: '#dc2626', x: 5 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {link}
+                  </motion.a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* CONTACT SECTION */}
+      <div className="position-relative py-12" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="container-xl">
+          <motion.div
+            className="row g-6"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: FiMail, title: 'Email', content: 'support@signatura.ph', link: 'mailto:support@signatura.ph' },
+              { icon: FiPhone, title: 'Phone', content: '+63 (2) 1234-5678', link: 'tel:+6321234567' },
+              { icon: FiMapPin, title: 'Address', content: 'Manila, Philippines', link: '#' }
+            ].map((contact, idx) => (
+              <motion.div 
+                key={idx} 
+                className="col-md-6 col-lg-4"
+                variants={itemVariants}
+              >
+                <motion.a
+                  href={contact.link}
+                  className="d-flex align-items-start gap-4 text-decoration-none p-5 rounded-3"
+                  style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}
+                  whileHover={{ 
+                    background: 'rgba(220,38,38,0.15)',
+                    borderColor: '#dc2626',
+                    y: -8
+                  }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <motion.div
+                    className="p-3 rounded-2 flex-shrink-0"
+                    style={{ background: 'rgba(220,38,38,0.2)' }}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <contact.icon size={24} style={{ color: '#dc2626' }} />
+                  </motion.div>
+                  <div>
+                    <p className="fw-700 text-white mb-2 small" style={{ textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>
+                      {contact.title}
+                    </p>
+                    <p className="text-muted mb-0">{contact.content}</p>
+                  </div>
+                </motion.a>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* BOTTOM SECTION - Social & Copyright */}
+      <div className="container-xl py-10 position-relative">
+        <motion.div 
+          className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-6"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Left - Copyright */}
+          <motion.div {...fadeInUp}>
+            <p className="text-muted small mb-0">
+              &copy; 2025 Signatura. All rights reserved.<br />
+              <span className="text-muted" style={{ fontSize: '12px' }}>Enterprise Digital Identity Platform</span>
+            </p>
+          </motion.div>
+
+          {/* Right - Social Icons */}
+          <motion.div 
+            className="d-flex gap-4"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: FiFacebook, link: 'https://www.facebook.com/PHsignatura', label: 'Facebook' },
+              { icon: FiYoutube, link: 'https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg', label: 'YouTube' },
+              { icon: FiTwitter, link: '#', label: 'Twitter' },
+              { icon: FiLinkedin, link: '#', label: 'LinkedIn' },
+              { icon: FiInstagram, link: '#', label: 'Instagram' }
+            ].map((social, idx) => (
+              <motion.a
+                key={idx}
+                href={social.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="d-inline-flex align-items-center justify-content-center rounded-circle"
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'rgba(220,38,38,0.15)',
+                  border: '2px solid rgba(220,38,38,0.3)',
+                  color: '#dc2626',
+                  textDecoration: 'none'
+                }}
+                variants={itemVariants}
+                whileHover={{
+                  background: '#dc2626',
+                  color: 'white',
+                  scale: 1.1,
+                  y: -8
+                }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                <social.icon size={20} />
+              </motion.a>
+            ))}
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Stats Bar */}
+      <motion.div 
+        className="py-8" 
+        style={{ background: 'rgba(220,38,38,0.1)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+      >
+        <div className="container-xl">
+          <motion.div
+            className="row g-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: FiTrendingUp, number: '500+', label: 'Organizations' },
+              { icon: FiAward, number: '10M+', label: 'Verified Identities' },
+              { icon: FiShield, number: '99.99%', label: 'Uptime' },
+              { icon: FiGlobe, number: '50+', label: 'Countries' }
+            ].map((stat, idx) => (
+              <motion.div key={idx} className="col-md-6 col-lg-3 text-center" variants={itemVariants}>
+                <motion.div whileHover={{ scale: 1.1 }} className="mb-2">
+                  <stat.icon size={32} style={{ color: '#dc2626' }} />
+                </motion.div>
+                <p className="fw-900 h5 text-white mb-1">{stat.number}</p>
+                <p className="text-muted small">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </motion.div>
     </footer>
   );
 };
@@ -825,7 +1209,7 @@ export default function SignaturaLanding() {
         </div>
       </section>
 
-      <Footer />
+      <EnhancedFooter />
     </div>
   );
 }
