@@ -58,7 +58,7 @@ const Navigation = () => {
           </Link>
 
           <div className="d-none d-lg-flex align-items-center gap-8">
-            {['Features', 'Solutions', 'Industries', 'Security'].map((item) => (
+            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase()}`}
@@ -123,7 +123,7 @@ const Navigation = () => {
               exit={{ opacity: 0, height: 0 }}
               className="w-100 pb-4"
             >
-              {['Features', 'Solutions', 'Industries', 'Security'].map((item) => (
+              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
                 <a key={item} href={`#${item.toLowerCase()}`} className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500" onClick={() => setMobileMenuOpen(false)}>
                   {item}
                 </a>
@@ -639,7 +639,288 @@ export default function SignaturaLanding() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA ===== */}
+      {/* ===== SOLUTIONS SECTION ===== */}
+      <section id="solutions" className="py-14 py-lg-16 position-relative" style={{ background: 'linear-gradient(135deg, #fff5f5 0%, #fafafa 100%)' }}>
+        <div className="container-xl">
+          <motion.div className="text-center mb-14" {...fadeInUp}>
+            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+              Comprehensive Solutions
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
+              Complete digital transformation suite for your organization
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="row g-8"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { emoji: '🆔', title: 'Digital Identity', desc: 'KYC verification, biometric authentication, multi-factor security', features: ['Selfie verification', 'Liveness detection', 'Real-time KYC', 'Secure storage'] },
+              { emoji: '✍️', title: 'Digital Signatures', desc: 'Legally binding signatures with QR protection and audit trails', features: ['Legal compliance', 'QR codes', 'Audit logs', 'Global recognition'] },
+              { emoji: '🔐', title: 'Data Security', desc: 'Military-grade encryption for sensitive documents and data', features: ['AES-256 encryption', 'TLS 1.3', 'Zero knowledge', 'Compliance ready'] },
+            ].map((solution, idx) => (
+              <motion.div 
+                key={idx} 
+                className="col-lg-4"
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.15 }}
+                viewport={{ once: true }}
+              >
+                <motion.div
+                  className="p-8 rounded-4 h-100"
+                  style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
+                  whileHover={{ y: -16, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}
+                >
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>{solution.emoji}</div>
+                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{solution.title}</h5>
+                  <p className="text-muted mb-5">{solution.desc}</p>
+                  <ul className="list-unstyled small">
+                    {solution.features.map((feature, fidx) => (
+                      <li key={fidx} className="mb-2">
+                        <span style={{ color: '#dc2626', fontWeight: 700 }}>✓</span> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECURITY SECTION ===== */}
+      <section id="security" className="py-14 py-lg-16 position-relative text-white" style={{
+        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
+      }}>
+        <motion.div 
+          className="position-absolute" 
+          style={{ top: '-10%', right: '-10%', width: '700px', height: '700px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)' }}
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 20, repeat: Infinity }}
+        />
+
+        <div className="container-xl position-relative">
+          <motion.div className="text-center mb-14" {...fadeInUp}>
+            <h2 className="mb-5 lh-1 text-white" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px' }}>
+              Enterprise-Grade Security
+            </h2>
+            <p className="lead text-white opacity-90" style={{ maxWidth: '700px', fontSize: '18px', margin: '0 auto' }}>
+              Military-grade encryption, blockchain technology, and continuous monitoring
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="row g-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: '🔐', title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
+              { icon: '👤', title: 'Biometric Verification', desc: 'Liveness detection & KYC' },
+              { icon: '🔒', title: 'Military Encryption', desc: 'AES-256 & TLS 1.3' },
+              { icon: '⛓️', title: 'Blockchain Ledger', desc: 'Immutable record keeping' },
+              { icon: '📡', title: '24/7 Monitoring', desc: 'Real-time threat detection' },
+              { icon: '🛡️', title: 'Zero Trust', desc: 'Verify every transaction' },
+            ].map((feature, idx) => (
+              <motion.div 
+                key={idx} 
+                className="col-md-6 col-lg-4"
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.08 }}
+                viewport={{ once: true }}
+              >
+                <motion.div
+                  className="p-8 rounded-4 text-center h-100"
+                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '2px solid rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
+                  whileHover={{ y: -12, background: 'rgba(255, 255, 255, 0.15)', borderColor: 'rgba(255, 255, 255, 0.5)' }}
+                >
+                  <p className="text-5xl mb-4">{feature.icon}</p>
+                  <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
+                  <p className="text-white opacity-80 small">{feature.desc}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== INDUSTRIES SECTION ===== */}
+      <section id="industries" className="py-14 py-lg-16 position-relative" style={{ background: '#ffffff' }}>
+        <div className="container-xl">
+          <motion.div className="text-center mb-14" {...fadeInUp}>
+            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+              Trusted Across Industries
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
+              Serving 500+ organizations across banking, insurance, government, and education
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="row g-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: '🏦', title: 'Banking & Finance', desc: 'Secure transactions and compliance' },
+              { icon: '🏢', title: 'Insurance', desc: 'Policy management and claims' },
+              { icon: '🏛️', title: 'Government', desc: 'Citizen services and digital ID' },
+              { icon: '📚', title: 'Education', desc: 'Credential verification and transcripts' },
+            ].map((industry, idx) => (
+              <motion.div 
+                key={idx} 
+                className="col-md-6 col-lg-3"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.12 }}
+                viewport={{ once: true }}
+              >
+                <motion.div
+                  className="p-10 rounded-4 text-center h-100"
+                  style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
+                  whileHover={{ y: -16, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
+                >
+                  <p className="text-6xl mb-4">{industry.icon}</p>
+                  <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{industry.title}</h5>
+                  <p className="text-muted small">{industry.desc}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== TESTIMONIALS SECTION ===== */}
+      <section className="py-14 py-lg-16 position-relative" style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f3f4f6 100%)' }}>
+        <div className="container-xl">
+          <motion.div className="text-center mb-14" {...fadeInUp}>
+            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+              Trusted by Leaders
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
+              Hear from organizations using Signatura
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="row g-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { name: 'John Smith', role: 'CEO, FinTech Corp', text: 'Signatura transformed our digital operations completely. The security and ease of use are unmatched. Highly recommended!' },
+              { name: 'Maria Garcia', role: 'Head of Compliance', text: 'We achieved full regulatory compliance in weeks. The platform is enterprise-ready out of the box. Outstanding support!' },
+              { name: 'David Lee', role: 'CTO, InsureHub', text: 'The API integration was seamless. Customer adoption rates exceeded our expectations by 300%. Best investment ever!' },
+            ].map((testimonial, idx) => (
+              <motion.div 
+                key={idx} 
+                className="col-md-6 col-lg-4"
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.12 }}
+                viewport={{ once: true }}
+              >
+                <motion.div
+                  className="p-8 rounded-4 h-100"
+                  style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
+                  whileHover={{ y: -12, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.15)' }}
+                >
+                  <div className="d-flex gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <FiStar key={i} size={18} style={{ color: '#dc2626', fill: '#dc2626' }} />
+                    ))}
+                  </div>
+                  <p className="mb-5" style={{ fontSize: '15px', color: '#374151', fontStyle: 'italic', lineHeight: '1.7' }}>"{testimonial.text}"</p>
+                  <div className="pt-4" style={{ borderTop: '1px solid #fee2e2' }}>
+                    <p className="fw-700 mb-0" style={{ color: '#111827' }}>{testimonial.name}</p>
+                    <p className="text-muted small mb-0">{testimonial.role}</p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== PRICING ===== */}
+      <section id="pricing" className="py-14 py-lg-16" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)' }}>
+        <div className="container-xl">
+          <motion.div className="text-center mb-14">
+            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+              Simple, Transparent Pricing
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
+              Choose the plan that fits your organization. No hidden fees. Upgrade or downgrade anytime.
+            </p>
+          </motion.div>
+
+          <motion.div className="row g-6" initial="hidden" whileInView="visible" viewport={{ once: true }}>
+            {[
+              { name: 'Starter', price: '$499', features: ['10,000 verifications', 'Basic API', 'Email support', 'Dashboard', 'Single admin'] },
+              { name: 'Professional', price: '$1,999', features: ['100,000 verifications', 'Full API', 'Priority support', 'Team management', 'Custom branding'], popular: true },
+              { name: 'Enterprise', price: 'Custom', features: ['Unlimited', 'Dedicated support', 'Custom integrations', 'SLA guarantees', 'Multi-region'] },
+            ].map((plan, idx) => (
+              <motion.div key={idx} className="col-md-6 col-lg-4" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.15 }} viewport={{ once: true }}>
+                <motion.div className="p-10 rounded-4 h-100" style={{ background: plan.popular ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : '#ffffff', border: `2px solid ${plan.popular ? '#dc2626' : '#fee2e2'}`, color: plan.popular ? 'white' : 'black' }} whileHover={{ y: -12 }}>
+                  {plan.popular && <div className="badge bg-white text-danger" style={{ marginBottom: '15px' }}>Most Popular</div>}
+                  <h5 className="fw-700 mb-2" style={{ color: plan.popular ? 'white' : '#111827', fontSize: '24px' }}>{plan.name}</h5>
+                  <div className="mb-6"><span style={{ fontSize: '42px', fontWeight: 900, color: plan.popular ? 'white' : '#dc2626' }}>{plan.price}</span></div>
+                  <ul className="list-unstyled mb-8">
+                    {plan.features.map((feature, fidx) => (
+                      <li key={fidx} className="mb-3" style={{ color: plan.popular ? 'rgba(255,255,255,0.8)' : '#6b7280', fontWeight: 500 }}>
+                        <span style={{ color: '#dc2626' }}>✓</span> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <motion.button className="btn w-100 fw-700 rounded-pill py-3" style={{ background: plan.popular ? 'white' : '#dc2626', color: plan.popular ? '#dc2626' : 'white' }} whileHover={{ scale: 1.05 }}>
+                    Get Started
+                  </motion.button>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== DEVELOPERS ===== */}
+      <section id="developers" className="py-14 py-lg-16" style={{ background: '#ffffff' }}>
+        <div className="container-xl">
+          <motion.div className="text-center mb-14">
+            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+              Developer-Friendly
+            </h2>
+            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
+              Complete API documentation, SDKs, and tools for seamless integration. Everything developers need to build quickly.
+            </p>
+          </motion.div>
+
+          <motion.div className="row g-8" initial="hidden" whileInView="visible" viewport={{ once: true }}>
+            {[
+              { emoji: '📚', title: 'Complete Documentation', desc: 'Comprehensive API reference with code examples in multiple languages. Clear tutorials and best practices.' },
+              { emoji: '🔧', title: 'SDKs & Libraries', desc: 'Official SDKs for JavaScript, Python, Java, Go. Pre-built libraries for common use cases.' },
+              { emoji: '🧪', title: 'Sandbox Environment', desc: 'Full-featured sandbox for testing. Realistic test scenarios. Free unlimited testing.' },
+              { emoji: '🔌', title: 'Webhooks & Events', desc: 'Real-time webhooks for updates. Customizable subscriptions. Reliable delivery with retries.' },
+            ].map((dev, idx) => (
+              <motion.div key={idx} className="col-md-6 col-lg-3" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.12 }} viewport={{ once: true }}>
+                <motion.div className="p-8 rounded-4 h-100" style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }} whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}>
+                  <p style={{ fontSize: '48px', marginBottom: '20px' }}>{dev.emoji}</p>
+                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{dev.title}</h5>
+                  <p className="text-muted" style={{ lineHeight: '1.7' }}>{dev.desc}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       <section className="py-14 py-lg-16 position-relative text-white overflow-hidden" style={{
         background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
       }}>
