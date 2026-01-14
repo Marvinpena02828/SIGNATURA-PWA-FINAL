@@ -1,60 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { 
   FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward,
   FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram,
   FiSparkles, FiZap, FiLock
 } from 'react-icons/fi';
 
-// ===== CUSTOM SVG ILLUSTRATIONS =====
+// ===== ENHANCED FLOATING SHIELD WITH PARALLAX =====
 
-const FloatingShield = () => (
-  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ y: [0, -30, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
-    <defs>
-      <linearGradient id="shield1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="shadow1">
-        <feDropShadow dx="0" dy="15" stdDeviation="10" floodOpacity="0.25" />
-      </filter>
-    </defs>
-    <path d="M 150 40 L 220 90 L 220 180 Q 150 240 80 180 L 80 90 Z" fill="url(#shield1)" filter="url(#shadow1)" />
-    <path d="M 150 60 L 200 100 L 200 180 Q 150 220 100 180 L 100 100 Z" fill="white" opacity="0.95" />
-    <circle cx="150" cy="140" r="30" fill="url(#shield1)" />
-    <path d="M 135 140 L 148 153 L 170 130" stroke="white" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-  </motion.svg>
-);
+const FloatingShield = () => {
+  const shieldRef = useRef(null);
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 500], [0, 150]);
 
-// ===== ANIMATED GRADIENT BLOB =====
+  return (
+    <motion.div ref={shieldRef} style={{ y }} className="w-100 h-100">
+      <motion.svg 
+        viewBox="0 0 300 300" 
+        className="w-100 h-100" 
+        animate={{ 
+          y: [0, -50, 0],
+          rotateZ: [0, 8, -8, 0]
+        }} 
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <defs>
+          <linearGradient id="shield1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 1 }} />
+          </linearGradient>
+          <filter id="shadow1">
+            <feDropShadow dx="0" dy="20" stdDeviation="15" floodOpacity="0.35" />
+          </filter>
+          <filter id="glow1">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <motion.g 
+          animate={{ filter: ['url(#shadow1)', 'url(#glow1)', 'url(#shadow1)'] }} 
+          transition={{ duration: 3, repeat: Infinity }}
+        >
+          <path d="M 150 40 L 220 90 L 220 180 Q 150 240 80 180 L 80 90 Z" fill="url(#shield1)" />
+          <path d="M 150 60 L 200 100 L 200 180 Q 150 220 100 180 L 100 100 Z" fill="white" opacity="0.95" />
+          <motion.circle cx="150" cy="140" r="30" fill="url(#shield1)" animate={{ r: [30, 36, 30] }} transition={{ duration: 2.5, repeat: Infinity }} />
+          <motion.path 
+            d="M 135 140 L 148 153 L 170 130" 
+            stroke="white" 
+            strokeWidth="5" 
+            fill="none" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            animate={{ opacity: [1, 0.6, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </motion.g>
+      </motion.svg>
+    </motion.div>
+  );
+};
 
-const AnimatedBlob = ({ top, right, size, duration, delay = 0, color }) => (
-  <motion.div 
-    className="position-absolute" 
-    style={{ 
-      top, 
-      right, 
-      width: size, 
-      height: size, 
-      borderRadius: '50%', 
-      background: color,
-      filter: 'blur(100px)'
-    }}
-    animate={{ 
-      scale: [1, 1.3, 1],
-      rotate: [0, 180, 360]
-    }}
-    transition={{ 
-      duration, 
-      repeat: Infinity,
-      ease: "easeInOut",
-      delay
-    }}
-  />
-);
+// ===== ENHANCED ANIMATED GRADIENT BLOB WITH PARALLAX =====
 
-// ===== NAVIGATION =====
+const AnimatedBlob = ({ top, right, size, duration, delay = 0, color }) => {
+  const blobRef = useRef(null);
+  const { scrollY } = useScroll();
+  const parallaxY = useTransform(scrollY, [0, 1000], [0, 200]);
+
+  return (
+    <motion.div 
+      ref={blobRef}
+      className="position-absolute" 
+      style={{ 
+        top, 
+        right, 
+        width: size, 
+        height: size, 
+        borderRadius: '50%', 
+        background: color,
+        filter: 'blur(120px)',
+        y: parallaxY
+      }}
+      animate={{ 
+        scale: [1, 1.4, 1],
+        rotate: [0, 240, 360],
+        opacity: [0.5, 1, 0.5]
+      }}
+      transition={{ 
+        duration, 
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay
+      }}
+    />
+  );
+};
+
+// ===== ENHANCED NAVIGATION =====
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,23 +124,35 @@ const Navigation = () => {
       }}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <div className="container-xl py-3">
         <div className="d-flex justify-content-between align-items-center">
-          <Link to="/" className="fw-900 text-dark" style={{ fontSize: '28px', textDecoration: 'none', letterSpacing: '-1px' }}>
-            <span style={{ color: '#dc2626' }}>Sign</span>atura
-          </Link>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link to="/" className="fw-900 text-dark" style={{ fontSize: '28px', textDecoration: 'none', letterSpacing: '-1px' }}>
+              <span style={{ color: '#dc2626' }}>Sign</span>atura
+            </Link>
+          </motion.div>
 
           <div className="d-none d-lg-flex align-items-center gap-8">
-            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item) => (
+            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item, idx) => (
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase()}`}
                 className="text-dark text-decoration-none fw-500 small"
                 style={{ fontSize: '14px', letterSpacing: '0.5px' }}
-                whileHover={{ color: '#dc2626', y: -2 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                whileHover={{ 
+                  color: '#dc2626', 
+                  y: -3,
+                  textShadow: "0 10px 20px rgba(220, 38, 38, 0.2)"
+                }}
+                transition={{ duration: 0.3 }}
               >
                 {item}
               </motion.a>
@@ -107,41 +165,56 @@ const Navigation = () => {
                 className="btn btn-link text-dark fw-500 small d-flex align-items-center gap-2 text-decoration-none" 
                 onClick={() => setLoginDropdown(!loginDropdown)}
                 style={{ padding: '8px 0', fontSize: '14px' }}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.08, color: '#dc2626' }}
+                whileTap={{ scale: 0.95 }}
               >
-                Login <FiChevronDown size={16} />
+                Login <motion.div animate={{ rotate: loginDropdown ? 180 : 0 }}><FiChevronDown size={16} /></motion.div>
               </motion.button>
 
               <AnimatePresence>
                 {loginDropdown && (
                   <motion.div 
-                    initial={{ opacity: 0, y: -15, scale: 0.95 }} 
+                    initial={{ opacity: 0, y: -20, scale: 0.9 }} 
                     animate={{ opacity: 1, y: 0, scale: 1 }} 
-                    exit={{ opacity: 0, y: -15, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                    transition={{ duration: 0.25 }}
                     className="position-absolute end-0 mt-3 bg-white rounded-3 shadow-xl overflow-hidden"
                     style={{ minWidth: '240px', zIndex: 1001, backdropFilter: 'blur(20px)' }}
                   >
-                    <Link to="/login/issuer" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
-                      🔑 Issuer Portal
-                    </Link>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Link to="/login/issuer" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => { e.target.style.background = '#fef2f2'; e.target.style.transform = 'translateX(8px)'; }} onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.transform = 'translateX(0)'; }}>
+                        🔑 Issuer Portal
+                      </Link>
+                    </motion.div>
                     <div style={{ borderTop: '1px solid #fee2e2' }} />
-                    <Link to="/login/owner" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
-                      👥 Owner Portal
-                    </Link>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 }}
+                    >
+                      <Link to="/login/owner" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => { e.target.style.background = '#fef2f2'; e.target.style.transform = 'translateX(8px)'; }} onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.transform = 'translateX(0)'; }}>
+                        👥 Owner Portal
+                      </Link>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}>
               <Link to="/issuer" className="btn fw-700 text-white rounded-pill px-6 py-2" style={{ background: '#dc2626', boxShadow: '0 4px 20px rgba(220, 38, 38, 0.3)', fontSize: '14px' }}>
                 Start Free
               </Link>
             </motion.div>
 
             <button className="btn d-lg-none border-0 p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+              <motion.div animate={{ rotate: mobileMenuOpen ? 90 : 0 }}>
+                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+              </motion.div>
             </button>
           </div>
         </div>
@@ -152,12 +225,22 @@ const Navigation = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="w-100 pb-4"
+              transition={{ duration: 0.3 }}
+              className="w-100 pb-4 overflow-hidden"
             >
-              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item) => (
-                <a key={item} href={`#${item.toLowerCase()}`} className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500" onClick={() => setMobileMenuOpen(false)}>
+              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item, idx) => (
+                <motion.a 
+                  key={item} 
+                  href={`#${item.toLowerCase()}`} 
+                  className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ x: 10, color: '#dc2626' }}
+                >
                   {item}
-                </a>
+                </motion.a>
               ))}
             </motion.div>
           )}
@@ -167,7 +250,7 @@ const Navigation = () => {
   );
 };
 
-// ===== PREMIUM FOOTER =====
+// ===== ENHANCED FOOTER =====
 
 const PremiumFooter = () => {
   const [emailInput, setEmailInput] = useState('');
@@ -190,7 +273,6 @@ const PremiumFooter = () => {
       paddingTop: '80px',
       paddingBottom: '60px'
     }}>
-      {/* Animated Background Blobs */}
       <AnimatedBlob 
         top="-20%" 
         right="-10%" 
@@ -208,6 +290,13 @@ const PremiumFooter = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.15, delayChildren: 0.1 }
+            }
+          }}
         >
           {[
             { num: '500', suffix: '+', label: 'Organizations' },
@@ -218,40 +307,35 @@ const PremiumFooter = () => {
             <motion.div 
               key={idx} 
               className="col-md-6 col-lg-3 text-center"
-              initial={{ opacity: 0, scale: 0 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.15, duration: 0.6 }}
-              viewport={{ once: true }}
+              variants={{
+                hidden: { opacity: 0, scale: 0.5, y: 30 },
+                visible: { 
+                  opacity: 1, 
+                  scale: 1, 
+                  y: 0,
+                  transition: { duration: 0.6, type: "spring" }
+                }
+              }}
             >
               <motion.div
                 className="p-6 rounded-3"
                 style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)' }}
                 whileHover={{ 
-                  scale: 1.08,
+                  scale: 1.12,
                   background: 'rgba(220,38,38,0.2)',
-                  borderColor: '#dc2626'
+                  borderColor: '#dc2626',
+                  boxShadow: '0 20px 40px rgba(220,38,38,0.2)'
                 }}
               >
                 <motion.div
                   className="fw-900 h3 mb-2 text-white"
                   style={{ fontSize: '42px' }}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.1, duration: 0.8 }}
-                  viewport={{ once: true }}
                 >
                   <span style={{ color: '#dc2626' }}>{stat.num}</span>{stat.suffix}
                 </motion.div>
-                <motion.p 
-                  className="small fw-600"
-                  style={{ color: 'rgba(255,255,255,0.7)' }}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.15 + 0.3 }}
-                  viewport={{ once: true }}
-                >
+                <p className="small fw-600" style={{ color: 'rgba(255,255,255,0.7)' }}>
                   {stat.label}
-                </motion.p>
+                </p>
               </motion.div>
             </motion.div>
           ))}
@@ -264,48 +348,48 @@ const PremiumFooter = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.2, delayChildren: 0.1 }
+            }
+          }}
         >
-          {/* Left - Brand */}
           <motion.div 
             className="col-lg-4"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
+            variants={{
+              hidden: { opacity: 0, x: -50 },
+              visible: { opacity: 1, x: 0 }
+            }}
           >
-            <motion.h4 
-              className="fw-900 mb-4 text-white" 
-              style={{ fontSize: '28px', letterSpacing: '-1px' }}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-            >
+            <h4 className="fw-900 mb-4 text-white" style={{ fontSize: '28px', letterSpacing: '-1px' }}>
               <span style={{ color: '#dc2626' }}>Sign</span>atura
-            </motion.h4>
-            <motion.p 
-              className="mb-5"
-              style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: '1.6' }}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-            >
+            </h4>
+            <p className="mb-5" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: '1.6' }}>
               Enterprise digital identity platform for the modern world.
-            </motion.p>
+            </p>
 
-            {/* Trust Badges */}
-            <motion.div className="d-flex gap-3">
+            <motion.div 
+              className="d-flex gap-3"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 }
+                }
+              }}
+            >
               {['GDPR', 'ISO 27001', 'eIDAS'].map((badge, idx) => (
                 <motion.div
                   key={idx}
                   className="small fw-600 px-3 py-2 rounded-2"
                   style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
-                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
-                  whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-                  transition={{ delay: idx * 0.15, duration: 0.6 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  variants={{
+                    hidden: { opacity: 0, scale: 0, rotate: -180 },
+                    visible: { opacity: 1, scale: 1, rotate: 0 }
+                  }}
+                  whileHover={{ scale: 1.15, rotate: 8, y: -5 }}
                 >
                   ✓ {badge}
                 </motion.div>
@@ -313,13 +397,12 @@ const PremiumFooter = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right - Newsletter */}
           <motion.div 
             className="col-lg-8"
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
+            variants={{
+              hidden: { opacity: 0, x: 50 },
+              visible: { opacity: 1, x: 0 }
+            }}
           >
             <motion.div
               className="p-8 rounded-4"
@@ -328,37 +411,28 @@ const PremiumFooter = () => {
                 border: '2px solid rgba(220,38,38,0.3)',
                 backdropFilter: 'blur(10px)'
               }}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
               whileHover={{
                 borderColor: '#dc2626',
-                background: 'rgba(220,38,38,0.12)'
+                background: 'rgba(220,38,38,0.12)',
+                boxShadow: '0 20px 50px rgba(220,38,38,0.2)'
               }}
             >
-              <motion.h5 
-                className="fw-700 mb-2 text-white"
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-              >
-                Get Updates
-              </motion.h5>
-              <motion.p 
-                className="small mb-4"
-                style={{ color: 'rgba(255,255,255,0.7)' }}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.35 }}
-              >
+              <h5 className="fw-700 mb-2 text-white">Get Updates</h5>
+              <p className="small mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 Subscribe for latest security features and announcements
-              </motion.p>
+              </p>
               
               <form onSubmit={handleSubscribe}>
-                <div className="input-group input-group-lg">
+                <motion.div 
+                  className="input-group input-group-lg"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: {
+                      opacity: 1,
+                      transition: { staggerChildren: 0.1 }
+                    }
+                  }}
+                >
                   <motion.input 
                     type="email" 
                     className="form-control rounded-start-pill border-0" 
@@ -366,39 +440,24 @@ const PremiumFooter = () => {
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     style={{ background: 'rgba(255,255,255,0.95)', paddingLeft: '24px', fontWeight: 500 }}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.4 }}
+                    whileFocus={{ scale: 1.03, boxShadow: '0 0 0 3px rgba(220,38,38,0.2)' }}
                     required
-                    whileFocus={{ scale: 1.02 }}
                   />
                   <motion.button
                     className="btn fw-700 rounded-end-pill text-white px-8"
                     style={{ background: '#dc2626' }}
-                    whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(220,38,38,0.3)' }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.08, boxShadow: '0 10px 30px rgba(220,38,38,0.4)' }}
+                    whileTap={{ scale: 0.92 }}
                     type="submit"
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.45 }}
                   >
                     {subscribed ? '✓ Subscribed' : 'Subscribe'}
                   </motion.button>
-                </div>
+                </motion.div>
               </form>
 
-              <motion.p 
-                className="small mt-3 mb-0"
-                style={{ color: 'rgba(255,255,255,0.6)' }}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5 }}
-              >
+              <p className="small mt-3 mb-0" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 No spam • Unsubscribe anytime
-              </motion.p>
+              </p>
             </motion.div>
           </motion.div>
         </motion.div>
@@ -410,6 +469,13 @@ const PremiumFooter = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.15 }
+            }
+          }}
         >
           {[
             { title: 'Product', links: ['Solutions', 'Features', 'Security', 'Pricing'] },
@@ -419,35 +485,31 @@ const PremiumFooter = () => {
             <motion.div 
               key={colIdx} 
               className="col-md-6 col-lg-4"
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ delay: colIdx * 0.15, duration: 0.6 }}
-              viewport={{ once: true }}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 }
+              }}
             >
-              <motion.h6 
-                className="fw-700 text-white mb-4"
-                style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1.5px' }}
-                initial={{ opacity: 0, y: -10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: colIdx * 0.1 }}
-              >
+              <h6 className="fw-700 text-white mb-4" style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
                 {column.title}
-              </motion.h6>
+              </h6>
               <ul className="list-unstyled">
                 {column.links.map((link, idx) => (
-                  <motion.li key={idx} className="mb-3">
+                  <motion.li 
+                    key={idx} 
+                    className="mb-3"
+                    initial={{ opacity: 0, x: -15 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: colIdx * 0.1 + idx * 0.08 }}
+                  >
                     <motion.a 
                       href="#" 
                       className="text-decoration-none small fw-500"
                       style={{ color: 'rgba(255,255,255,0.7)' }}
-                      initial={{ opacity: 0, x: -15 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: colIdx * 0.1 + idx * 0.08 }}
                       whileHover={{ 
                         color: '#dc2626',
-                        x: 8
+                        x: 12
                       }}
                     >
                       → {link}
@@ -462,28 +524,26 @@ const PremiumFooter = () => {
         {/* Bottom - Social + Copyright */}
         <motion.div 
           className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-6"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '0px 0px -50px 0px' }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
         >
-          {/* Left */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <p className="small mb-0" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              &copy; 2025 Signatura | Enterprise Digital Identity
-            </p>
-          </motion.div>
+          <p className="small mb-0" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            &copy; 2025 Signatura | Enterprise Digital Identity
+          </p>
 
-          {/* Right - Social Icons */}
           <motion.div 
             className="d-flex gap-3"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 }
+              }
+            }}
           >
             {[
               { icon: FiFacebook, link: 'https://www.facebook.com/PHsignatura' },
@@ -506,17 +566,19 @@ const PremiumFooter = () => {
                   color: '#dc2626',
                   textDecoration: 'none'
                 }}
-                initial={{ opacity: 0, scale: 0, rotate: -180 }}
-                whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1, duration: 0.6 }}
+                variants={{
+                  hidden: { opacity: 0, scale: 0, rotate: -180 },
+                  visible: { opacity: 1, scale: 1, rotate: 0 }
+                }}
                 whileHover={{
                   background: '#dc2626',
                   color: 'white',
-                  scale: 1.15,
-                  y: -10,
-                  boxShadow: '0 15px 40px rgba(220,38,38,0.4)'
+                  scale: 1.25,
+                  y: -15,
+                  boxShadow: '0 20px 50px rgba(220,38,38,0.5)',
+                  rotate: 360
                 }}
+                transition={{ duration: 0.4 }}
               >
                 <social.icon size={20} />
               </motion.a>
@@ -528,6 +590,43 @@ const PremiumFooter = () => {
   );
 };
 
+// ===== FEATURE CARD WITH ENHANCED ANIMATION =====
+
+const FeatureCard = ({ feature, idx }) => {
+  return (
+    <motion.div 
+      className="col-md-6 col-lg-4"
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.1, duration: 0.6 }}
+      viewport={{ once: true }}
+    >
+      <motion.div
+        className="p-8 rounded-4 h-100 cursor-pointer"
+        style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
+        whileHover={{ 
+          y: -28, 
+          boxShadow: '0 60px 120px rgba(220, 38, 38, 0.25)', 
+          borderColor: '#dc2626',
+          rotateY: 5,
+          rotateX: -5
+        }}
+        transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+      >
+        <motion.div 
+          className="text-6xl mb-4"
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 4, repeat: Infinity, delay: idx * 0.2 }}
+        >
+          {feature.icon}
+        </motion.div>
+        <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
+        <p className="text-muted" style={{ fontSize: '15px' }}>{feature.desc}</p>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // ===== MAIN COMPONENT =====
 
 export default function SignaturaLanding() {
@@ -536,6 +635,17 @@ export default function SignaturaLanding() {
     whileInView: { opacity: 1, y: 0 },
     transition: { duration: 0.8, ease: 'easeOut' },
     viewport: { once: true, margin: '0px 0px -100px 0px' }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.1
+      }
+    }
   };
 
   return (
@@ -560,7 +670,12 @@ export default function SignaturaLanding() {
         
         <div className="container-xl position-relative">
           <div className="row align-items-center g-8">
-            <motion.div className="col-lg-6" initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+            <motion.div 
+              className="col-lg-6" 
+              initial={{ opacity: 0, y: 60 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.8, delay: 0.1 }}
+            >
               <motion.h1 
                 className="mb-5 lh-1" 
                 style={{ fontSize: '80px', fontWeight: 900, letterSpacing: '-3px', color: '#111827', lineHeight: '1.05' }}
@@ -568,7 +683,13 @@ export default function SignaturaLanding() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                Your Digital <span style={{ color: '#dc2626' }}>Identity,</span> Secured
+                Your Digital <motion.span 
+                  style={{ color: '#dc2626', display: 'inline-block' }}
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                >
+                  Identity,
+                </motion.span> Secured
               </motion.h1>
               
               <motion.p 
@@ -576,7 +697,7 @@ export default function SignaturaLanding() {
                 style={{ fontSize: '18px', color: '#6b7280', maxWidth: '550px', lineHeight: '1.8' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
               >
                 Enterprise-grade digital identity with military-grade security and legally-binding digital signatures. Trusted by 500+ organizations worldwide.
               </motion.p>
@@ -585,14 +706,29 @@ export default function SignaturaLanding() {
                 className="d-flex flex-column flex-sm-row gap-4 mb-10"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
+                variants={containerVariants}
               >
-                <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
+                <motion.div 
+                  whileHover={{ scale: 1.1, y: -6 }} 
+                  whileTap={{ scale: 0.92 }}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
                   <Link to="/issuer" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626', fontSize: '16px', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)' }}>
                     🔑 Issuer Portal <FiArrowRight className="ms-2" />
                   </Link>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
+                <motion.div 
+                  whileHover={{ scale: 1.1, y: -6 }} 
+                  whileTap={{ scale: 0.92 }}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
                   <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-10 py-3 border-3" style={{ borderColor: '#dc2626', color: '#dc2626', fontSize: '16px' }}>
                     👥 Owner Portal <FiArrowRight className="ms-2" />
                   </Link>
@@ -603,18 +739,29 @@ export default function SignaturaLanding() {
                 className="d-flex gap-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
+                transition={{ delay: 0.7, duration: 0.8 }}
+                variants={containerVariants}
               >
                 {[{ num: '500+', text: 'Organizations' }, { num: '10M+', text: 'Verified' }, { num: '99.99%', text: 'Uptime' }].map((stat, idx) => (
-                  <div key={idx}>
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.7 + idx * 0.1 }}
+                  >
                     <p className="fw-900 h5 mb-1" style={{ color: '#dc2626' }}>{stat.num}</p>
                     <p className="text-muted small">{stat.text}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </motion.div>
             </motion.div>
 
-            <motion.div className="col-lg-6" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.2 }}>
+            <motion.div 
+              className="col-lg-6" 
+              initial={{ opacity: 0, scale: 0.7, rotateY: 30 }} 
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }} 
+              transition={{ duration: 0.9, delay: 0.2, type: "spring" }}
+            >
               <div style={{ height: '650px', width: '100%' }}>
                 <FloatingShield />
               </div>
@@ -627,9 +774,16 @@ export default function SignaturaLanding() {
       <section id="features" className="py-14 py-lg-16 position-relative" style={{ background: '#ffffff' }}>
         <div className="container-xl">
           <motion.div className="text-center mb-14" {...fadeInUp}>
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
+            <motion.h2 
+              className="mb-5 lh-1" 
+              style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
               Everything You Need
-            </h2>
+            </motion.h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
               Comprehensive digital identity and security solutions
             </p>
@@ -640,6 +794,7 @@ export default function SignaturaLanding() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={containerVariants}
           >
             {[
               { icon: '🛡️', title: 'Military-Grade Security', desc: 'End-to-end encrypted protection' },
@@ -649,24 +804,7 @@ export default function SignaturaLanding() {
               { icon: '📱', title: 'Mobile-First', desc: 'Native iOS & Android apps' },
               { icon: '👥', title: '24/7 Support', desc: 'Dedicated enterprise support' },
             ].map((feature, idx) => (
-              <motion.div 
-                key={idx} 
-                className="col-md-6 col-lg-4"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                viewport={{ once: true }}
-              >
-                <motion.div
-                  className="p-8 rounded-4 h-100 cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -24, boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
-                >
-                  <div className="text-6xl mb-4">{feature.icon}</div>
-                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
-                  <p className="text-muted" style={{ fontSize: '15px' }}>{feature.desc}</p>
-                </motion.div>
-              </motion.div>
+              <FeatureCard key={idx} feature={feature} idx={idx} />
             ))}
           </motion.div>
         </div>
@@ -689,6 +827,7 @@ export default function SignaturaLanding() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={containerVariants}
           >
             {[
               { emoji: '🆔', title: 'Digital Identity', desc: 'KYC verification, biometric authentication, multi-factor security', features: ['Selfie verification', 'Liveness detection', 'Real-time KYC', 'Secure storage'] },
@@ -698,26 +837,54 @@ export default function SignaturaLanding() {
               <motion.div 
                 key={idx} 
                 className="col-lg-4"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.15 }}
-                viewport={{ once: true }}
+                variants={{
+                  hidden: { opacity: 0, y: 50 },
+                  visible: { opacity: 1, y: 0 }
+                }}
               >
                 <motion.div
                   className="p-8 rounded-4 h-100"
                   style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}
+                  whileHover={{ 
+                    y: -24, 
+                    boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)', 
+                    borderColor: '#dc2626',
+                    scale: 1.02
+                  }}
+                  transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>{solution.emoji}</div>
+                  <motion.div 
+                    style={{ fontSize: '48px', marginBottom: '20px' }}
+                    whileHover={{ scale: 1.3, rotate: 15 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {solution.emoji}
+                  </motion.div>
                   <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{solution.title}</h5>
                   <p className="text-muted mb-5" style={{ fontSize: '15px' }}>{solution.desc}</p>
-                  <ul className="list-unstyled small">
+                  <motion.ul 
+                    className="list-unstyled small"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: { staggerChildren: 0.05 }
+                      }
+                    }}
+                  >
                     {solution.features.map((feature, fidx) => (
-                      <li key={fidx} className="mb-2">
+                      <motion.li 
+                        key={fidx} 
+                        className="mb-2"
+                        variants={{
+                          hidden: { opacity: 0, x: -10 },
+                          visible: { opacity: 1, x: 0 }
+                        }}
+                      >
                         <span style={{ color: '#dc2626', fontWeight: 700 }}>✓</span> {feature}
-                      </li>
+                      </motion.li>
                     ))}
-                  </ul>
+                  </motion.ul>
                 </motion.div>
               </motion.div>
             ))}
@@ -753,6 +920,7 @@ export default function SignaturaLanding() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={containerVariants}
           >
             {[
               { icon: '🔐', title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
@@ -765,17 +933,29 @@ export default function SignaturaLanding() {
               <motion.div 
                 key={idx} 
                 className="col-md-6 col-lg-4"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                viewport={{ once: true }}
+                variants={{
+                  hidden: { opacity: 0, y: 40 },
+                  visible: { opacity: 1, y: 0 }
+                }}
               >
                 <motion.div
                   className="p-8 rounded-4 text-center h-100"
                   style={{ background: 'rgba(255, 255, 255, 0.1)', border: '2px solid rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
-                  whileHover={{ y: -16, background: 'rgba(255, 255, 255, 0.15)', borderColor: 'rgba(255, 255, 255, 0.5)' }}
+                  whileHover={{ 
+                    y: -20, 
+                    background: 'rgba(255, 255, 255, 0.18)', 
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    boxShadow: '0 20px 50px rgba(255, 255, 255, 0.15)'
+                  }}
+                  transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <p className="text-5xl mb-4">{feature.icon}</p>
+                  <motion.p 
+                    className="text-5xl mb-4"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, delay: idx * 0.15 }}
+                  >
+                    {feature.icon}
+                  </motion.p>
                   <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
                   <p className="text-white opacity-80 small">{feature.desc}</p>
                 </motion.div>
@@ -802,6 +982,7 @@ export default function SignaturaLanding() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={containerVariants}
           >
             {[
               { icon: '🏦', title: 'Banking & Finance', desc: 'Secure transactions and compliance' },
@@ -812,17 +993,29 @@ export default function SignaturaLanding() {
               <motion.div 
                 key={idx} 
                 className="col-md-6 col-lg-3"
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.12 }}
-                viewport={{ once: true }}
+                variants={{
+                  hidden: { opacity: 0, scale: 0.7 },
+                  visible: { opacity: 1, scale: 1 }
+                }}
               >
                 <motion.div
                   className="p-10 rounded-4 text-center h-100"
                   style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
+                  whileHover={{ 
+                    y: -24, 
+                    boxShadow: '0 50px 100px rgba(220, 38, 38, 0.25)', 
+                    borderColor: '#dc2626',
+                    scale: 1.05
+                  }}
+                  transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <p className="text-6xl mb-4">{industry.icon}</p>
+                  <motion.p 
+                    className="text-6xl mb-4"
+                    animate={{ rotateY: [0, 360] }}
+                    transition={{ duration: 4, repeat: Infinity, delay: idx * 0.3 }}
+                  >
+                    {industry.icon}
+                  </motion.p>
                   <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{industry.title}</h5>
                   <p className="text-muted small">{industry.desc}</p>
                 </motion.div>
@@ -849,6 +1042,7 @@ export default function SignaturaLanding() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            variants={containerVariants}
           >
             {[
               { name: 'John Smith', role: 'CEO, FinTech Corp', text: 'Signatura transformed our digital operations completely. The security and ease of use are unmatched. Highly recommended!' },
@@ -858,21 +1052,40 @@ export default function SignaturaLanding() {
               <motion.div 
                 key={idx} 
                 className="col-md-6 col-lg-4"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.12 }}
-                viewport={{ once: true }}
+                variants={{
+                  hidden: { opacity: 0, y: 40 },
+                  visible: { opacity: 1, y: 0 }
+                }}
               >
                 <motion.div
                   className="p-8 rounded-4 h-100"
                   style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -16, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.15)' }}
+                  whileHover={{ 
+                    y: -20, 
+                    boxShadow: '0 40px 80px rgba(220, 38, 38, 0.2)',
+                    borderColor: '#dc2626'
+                  }}
+                  transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <div className="d-flex gap-1 mb-4">
+                  <motion.div 
+                    className="d-flex gap-1 mb-4"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.1 }}
+                    viewport={{ once: true }}
+                  >
                     {[...Array(5)].map((_, i) => (
-                      <FiStar key={i} size={18} style={{ color: '#dc2626', fill: '#dc2626' }} />
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.1 + i * 0.05 }}
+                        viewport={{ once: true }}
+                      >
+                        <FiStar size={18} style={{ color: '#dc2626', fill: '#dc2626' }} />
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                   <p className="mb-5" style={{ fontSize: '15px', color: '#374151', fontStyle: 'italic', lineHeight: '1.7' }}>"{testimonial.text}"</p>
                   <div className="pt-4" style={{ borderTop: '1px solid #fee2e2' }}>
                     <p className="fw-700 mb-0" style={{ color: '#111827' }}>{testimonial.name}</p>
@@ -888,7 +1101,7 @@ export default function SignaturaLanding() {
       {/* ===== PRICING ===== */}
       <section id="pricing" className="py-14 py-lg-16" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)' }}>
         <div className="container-xl">
-          <motion.div className="text-center mb-14">
+          <motion.div className="text-center mb-14" {...fadeInUp}>
             <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
               Simple, Transparent Pricing
             </h2>
@@ -897,25 +1110,83 @@ export default function SignaturaLanding() {
             </p>
           </motion.div>
 
-          <motion.div className="row g-6" initial="hidden" whileInView="visible" viewport={{ once: true }}>
+          <motion.div 
+            className="row g-6" 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true }}
+            variants={containerVariants}
+          >
             {[
               { name: 'Starter', price: '$499', features: ['10,000 verifications', 'Basic API', 'Email support', 'Dashboard', 'Single admin'] },
               { name: 'Professional', price: '$1,999', features: ['100,000 verifications', 'Full API', 'Priority support', 'Team management', 'Custom branding'], popular: true },
               { name: 'Enterprise', price: 'Custom', features: ['Unlimited', 'Dedicated support', 'Custom integrations', 'SLA guarantees', 'Multi-region'] },
             ].map((plan, idx) => (
-              <motion.div key={idx} className="col-md-6 col-lg-4" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.15 }} viewport={{ once: true }}>
-                <motion.div className="p-10 rounded-4 h-100" style={{ background: plan.popular ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : '#ffffff', border: `2px solid ${plan.popular ? '#dc2626' : '#fee2e2'}`, color: plan.popular ? 'white' : 'black' }} whileHover={{ y: -16 }}>
-                  {plan.popular && <div className="badge bg-white text-danger" style={{ marginBottom: '15px', fontSize: '12px', fontWeight: 700 }}>Most Popular</div>}
+              <motion.div 
+                key={idx} 
+                className="col-md-6 col-lg-4" 
+                variants={{
+                  hidden: { opacity: 0, y: 50 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+              >
+                <motion.div 
+                  className="p-10 rounded-4 h-100" 
+                  style={{ 
+                    background: plan.popular ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : '#ffffff', 
+                    border: `2px solid ${plan.popular ? '#dc2626' : '#fee2e2'}`, 
+                    color: plan.popular ? 'white' : 'black' 
+                  }} 
+                  whileHover={{ 
+                    y: -20,
+                    boxShadow: plan.popular ? '0 40px 100px rgba(220, 38, 38, 0.4)' : '0 40px 100px rgba(220, 38, 38, 0.15)',
+                    scale: 1.03
+                  }}
+                  transition={{ duration: 0.3, type: "spring" }}
+                >
+                  {plan.popular && (
+                    <motion.div 
+                      className="badge bg-white text-danger" 
+                      style={{ marginBottom: '15px', fontSize: '12px', fontWeight: 700 }}
+                      initial={{ opacity: 0, y: -20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                    >
+                      Most Popular
+                    </motion.div>
+                  )}
                   <h5 className="fw-700 mb-2" style={{ color: plan.popular ? 'white' : '#111827', fontSize: '24px' }}>{plan.name}</h5>
                   <div className="mb-6"><span style={{ fontSize: '42px', fontWeight: 900, color: plan.popular ? 'white' : '#dc2626' }}>{plan.price}</span></div>
-                  <ul className="list-unstyled mb-8">
+                  <motion.ul 
+                    className="list-unstyled mb-8"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: { staggerChildren: 0.05 }
+                      }
+                    }}
+                  >
                     {plan.features.map((feature, fidx) => (
-                      <li key={fidx} className="mb-3" style={{ color: plan.popular ? 'rgba(255,255,255,0.8)' : '#6b7280', fontWeight: 500, fontSize: '15px' }}>
+                      <motion.li 
+                        key={fidx} 
+                        className="mb-3" 
+                        style={{ color: plan.popular ? 'rgba(255,255,255,0.85)' : '#6b7280', fontWeight: 500, fontSize: '15px' }}
+                        variants={{
+                          hidden: { opacity: 0, x: -10 },
+                          visible: { opacity: 1, x: 0 }
+                        }}
+                      >
                         <span style={{ color: plan.popular ? 'white' : '#dc2626' }}>✓</span> {feature}
-                      </li>
+                      </motion.li>
                     ))}
-                  </ul>
-                  <motion.button className="btn w-100 fw-700 rounded-pill py-3" style={{ background: plan.popular ? 'white' : '#dc2626', color: plan.popular ? '#dc2626' : 'white', fontSize: '15px' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  </motion.ul>
+                  <motion.button 
+                    className="btn w-100 fw-700 rounded-pill py-3" 
+                    style={{ background: plan.popular ? 'white' : '#dc2626', color: plan.popular ? '#dc2626' : 'white', fontSize: '15px' }} 
+                    whileHover={{ scale: 1.08, y: -3 }} 
+                    whileTap={{ scale: 0.92 }}
+                  >
                     Get Started
                   </motion.button>
                 </motion.div>
@@ -953,13 +1224,28 @@ export default function SignaturaLanding() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               viewport={{ once: true }}
+              variants={containerVariants}
             >
-              <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/issuer" className="btn btn-lg fw-700 text-danger rounded-pill px-12 py-4" style={{ background: 'white', fontSize: '18px', boxShadow: '0 15px 40px rgba(0,0,0,0.2)' }}>
+              <motion.div 
+                whileHover={{ scale: 1.12, y: -6 }} 
+                whileTap={{ scale: 0.92 }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+              >
+                <Link to="/issuer" className="btn btn-lg fw-700 text-danger rounded-pill px-12 py-4" style={{ background: 'white', fontSize: '18px', boxShadow: '0 15px 40px rgba(0,0,0,0.3)' }}>
                   🔑 Issuer Portal <FiArrowRight className="ms-3" size={24} />
                 </Link>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
+              <motion.div 
+                whileHover={{ scale: 1.12, y: -6 }} 
+                whileTap={{ scale: 0.92 }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+              >
                 <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-12 py-4 border-3" style={{ borderColor: 'white', color: 'white', fontSize: '18px' }}>
                   👥 Owner Portal <FiArrowRight className="ms-3" size={24} />
                 </Link>
