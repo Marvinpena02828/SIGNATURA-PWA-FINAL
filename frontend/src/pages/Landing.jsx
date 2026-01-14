@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward,
-  FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram 
+  FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram,
+  FiSparkles, FiZap, FiLock
 } from 'react-icons/fi';
 
 // ===== CUSTOM SVG ILLUSTRATIONS =====
 
 const FloatingShield = () => (
-  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ y: [0, -30, 0] }} transition={{ duration: 5, repeat: Infinity }}>
+  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ y: [0, -30, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
     <defs>
       <linearGradient id="shield1" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
@@ -24,6 +25,33 @@ const FloatingShield = () => (
     <circle cx="150" cy="140" r="30" fill="url(#shield1)" />
     <path d="M 135 140 L 148 153 L 170 130" stroke="white" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
   </motion.svg>
+);
+
+// ===== ANIMATED GRADIENT BLOB =====
+
+const AnimatedBlob = ({ top, right, size, duration, delay = 0, color }) => (
+  <motion.div 
+    className="position-absolute" 
+    style={{ 
+      top, 
+      right, 
+      width: size, 
+      height: size, 
+      borderRadius: '50%', 
+      background: color,
+      filter: 'blur(100px)'
+    }}
+    animate={{ 
+      scale: [1, 1.3, 1],
+      rotate: [0, 180, 360]
+    }}
+    transition={{ 
+      duration, 
+      repeat: Infinity,
+      ease: "easeInOut",
+      delay
+    }}
+  />
 );
 
 // ===== NAVIGATION =====
@@ -41,15 +69,16 @@ const Navigation = () => {
 
   return (
     <motion.nav 
-      className={`sticky-top transition-all ${scrolled ? 'shadow-lg' : ''}`} 
+      className={`sticky-top transition-all ${scrolled ? 'shadow-xl' : ''}`} 
       style={{ 
         zIndex: 1000, 
-        background: scrolled ? '#ffffff' : 'rgba(255,255,255,0.7)',
-        backdropFilter: 'blur(12px)'
+        background: scrolled ? '#ffffff' : 'rgba(255,255,255,0.8)',
+        backdropFilter: scrolled ? 'blur(20px)' : 'blur(12px)',
+        borderBottom: scrolled ? '1px solid rgba(0,0,0,0.05)' : 'none'
       }}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <div className="container-xl py-3">
         <div className="d-flex justify-content-between align-items-center">
@@ -58,12 +87,13 @@ const Navigation = () => {
           </Link>
 
           <div className="d-none d-lg-flex align-items-center gap-8">
-            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
+            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item) => (
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase()}`}
-                className="text-dark text-decoration-none fw-600 small"
-                whileHover={{ color: '#dc2626', scale: 1.05 }}
+                className="text-dark text-decoration-none fw-500 small"
+                style={{ fontSize: '14px', letterSpacing: '0.5px' }}
+                whileHover={{ color: '#dc2626', y: -2 }}
                 transition={{ duration: 0.2 }}
               >
                 {item}
@@ -74,9 +104,9 @@ const Navigation = () => {
           <div className="d-flex align-items-center gap-3 ms-auto ms-lg-0">
             <div className="position-relative d-none d-md-block">
               <motion.button 
-                className="btn btn-link text-dark fw-600 small d-flex align-items-center gap-2 text-decoration-none" 
+                className="btn btn-link text-dark fw-500 small d-flex align-items-center gap-2 text-decoration-none" 
                 onClick={() => setLoginDropdown(!loginDropdown)}
-                style={{ padding: '8px 0' }}
+                style={{ padding: '8px 0', fontSize: '14px' }}
                 whileHover={{ scale: 1.05 }}
               >
                 Login <FiChevronDown size={16} />
@@ -88,14 +118,15 @@ const Navigation = () => {
                     initial={{ opacity: 0, y: -15, scale: 0.95 }} 
                     animate={{ opacity: 1, y: 0, scale: 1 }} 
                     exit={{ opacity: 0, y: -15, scale: 0.95 }}
-                    className="position-absolute end-0 mt-3 bg-white rounded-4 shadow-xl overflow-hidden"
-                    style={{ minWidth: '240px', zIndex: 1001 }}
+                    transition={{ duration: 0.2 }}
+                    className="position-absolute end-0 mt-3 bg-white rounded-3 shadow-xl overflow-hidden"
+                    style={{ minWidth: '240px', zIndex: 1001, backdropFilter: 'blur(20px)' }}
                   >
-                    <Link to="/login/issuer" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fee2e2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+                    <Link to="/login/issuer" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
                       🔑 Issuer Portal
                     </Link>
                     <div style={{ borderTop: '1px solid #fee2e2' }} />
-                    <Link to="/login/owner" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fee2e2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+                    <Link to="/login/owner" className="btn btn-link w-100 text-start px-4 py-3 text-dark text-decoration-none fw-500 border-0" onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
                       👥 Owner Portal
                     </Link>
                   </motion.div>
@@ -104,8 +135,8 @@ const Navigation = () => {
             </div>
 
             <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-              <Link to="/issuer" className="btn fw-700 text-white rounded-pill px-6 py-2" style={{ background: '#dc2626' }}>
-                Start
+              <Link to="/issuer" className="btn fw-700 text-white rounded-pill px-6 py-2" style={{ background: '#dc2626', boxShadow: '0 4px 20px rgba(220, 38, 38, 0.3)', fontSize: '14px' }}>
+                Start Free
               </Link>
             </motion.div>
 
@@ -123,7 +154,7 @@ const Navigation = () => {
               exit={{ opacity: 0, height: 0 }}
               className="w-100 pb-4"
             >
-              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
+              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing'].map((item) => (
                 <a key={item} href={`#${item.toLowerCase()}`} className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500" onClick={() => setMobileMenuOpen(false)}>
                   {item}
                 </a>
@@ -136,9 +167,9 @@ const Navigation = () => {
   );
 };
 
-// ===== SIMPLE FOOTER WITH SCROLL ANIMATIONS =====
+// ===== PREMIUM FOOTER =====
 
-const SimpleFooter = () => {
+const PremiumFooter = () => {
   const [emailInput, setEmailInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -154,30 +185,25 @@ const SimpleFooter = () => {
   };
 
   return (
-    <footer className="text-white position-relative overflow-hidden" style={{ 
+    <footer className="position-relative overflow-hidden" style={{ 
       background: 'linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%)',
       paddingTop: '80px',
       paddingBottom: '60px'
     }}>
       {/* Animated Background Blobs */}
-      <motion.div 
-        className="position-absolute" 
-        style={{ 
-          top: '-20%', 
-          right: '-10%', 
-          width: '600px', 
-          height: '600px', 
-          borderRadius: '50%', 
-          background: 'radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%)'
-        }}
-        animate={{ scale: [1, 1.2, 1], rotate: [0, 360, 0] }}
-        transition={{ duration: 30, repeat: Infinity }}
+      <AnimatedBlob 
+        top="-20%" 
+        right="-10%" 
+        size="600px" 
+        duration={30} 
+        delay={0}
+        color="radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 70%)"
       />
 
       <div className="container-xl position-relative">
-        {/* TOP SECTION - Stats with Counter Animation */}
+        {/* TOP SECTION - Stats */}
         <motion.div 
-          className="row g-8 mb-12 pb-10 text-center"
+          className="row g-8 mb-12 pb-10"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
           initial="hidden"
           whileInView="visible"
@@ -191,7 +217,7 @@ const SimpleFooter = () => {
           ].map((stat, idx) => (
             <motion.div 
               key={idx} 
-              className="col-md-6 col-lg-3"
+              className="col-md-6 col-lg-3 text-center"
               initial={{ opacity: 0, scale: 0 }}
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.15, duration: 0.6 }}
@@ -201,7 +227,7 @@ const SimpleFooter = () => {
                 className="p-6 rounded-3"
                 style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)' }}
                 whileHover={{ 
-                  scale: 1.05,
+                  scale: 1.08,
                   background: 'rgba(220,38,38,0.2)',
                   borderColor: '#dc2626'
                 }}
@@ -217,7 +243,8 @@ const SimpleFooter = () => {
                   <span style={{ color: '#dc2626' }}>{stat.num}</span>{stat.suffix}
                 </motion.div>
                 <motion.p 
-                  className="text-muted small fw-600"
+                  className="small fw-600"
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.15 + 0.3 }}
@@ -247,7 +274,7 @@ const SimpleFooter = () => {
             viewport={{ once: true }}
           >
             <motion.h4 
-              className="fw-900 mb-4" 
+              className="fw-900 mb-4 text-white" 
               style={{ fontSize: '28px', letterSpacing: '-1px' }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -257,7 +284,8 @@ const SimpleFooter = () => {
               <span style={{ color: '#dc2626' }}>Sign</span>atura
             </motion.h4>
             <motion.p 
-              className="text-muted mb-5"
+              className="mb-5"
+              style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', lineHeight: '1.6' }}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
@@ -319,7 +347,8 @@ const SimpleFooter = () => {
                 Get Updates
               </motion.h5>
               <motion.p 
-                className="text-muted small mb-4"
+                className="small mb-4"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -361,7 +390,8 @@ const SimpleFooter = () => {
               </form>
 
               <motion.p 
-                className="text-muted small mt-3 mb-0"
+                className="small mt-3 mb-0"
+                style={{ color: 'rgba(255,255,255,0.6)' }}
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
@@ -409,7 +439,8 @@ const SimpleFooter = () => {
                   <motion.li key={idx} className="mb-3">
                     <motion.a 
                       href="#" 
-                      className="text-muted text-decoration-none small fw-500"
+                      className="text-decoration-none small fw-500"
+                      style={{ color: 'rgba(255,255,255,0.7)' }}
                       initial={{ opacity: 0, x: -15 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
@@ -442,7 +473,7 @@ const SimpleFooter = () => {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <p className="text-muted small mb-0">
+            <p className="small mb-0" style={{ color: 'rgba(255,255,255,0.6)' }}>
               &copy; 2025 Signatura | Enterprise Digital Identity
             </p>
           </motion.div>
@@ -518,11 +549,13 @@ export default function SignaturaLanding() {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <motion.div 
-          className="position-absolute" 
-          style={{ top: '-10%', right: '-5%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 70%)' }}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 20, repeat: Infinity }}
+        <AnimatedBlob 
+          top="-10%" 
+          right="-5%" 
+          size="600px" 
+          duration={20} 
+          delay={0}
+          color="radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 70%)"
         />
         
         <div className="container-xl position-relative">
@@ -545,7 +578,7 @@ export default function SignaturaLanding() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Enterprise-grade digital identity, blockchain-backed security, and legally-binding digital signatures. Trusted by 500+ organizations worldwide.
+                Enterprise-grade digital identity with military-grade security and legally-binding digital signatures. Trusted by 500+ organizations worldwide.
               </motion.p>
 
               <motion.div 
@@ -554,12 +587,12 @@ export default function SignaturaLanding() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-                  <Link to="/issuer" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626', fontSize: '16px' }}>
+                <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/issuer" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626', fontSize: '16px', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)' }}>
                     🔑 Issuer Portal <FiArrowRight className="ms-2" />
                   </Link>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
                   <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-10 py-3 border-3" style={{ borderColor: '#dc2626', color: '#dc2626', fontSize: '16px' }}>
                     👥 Owner Portal <FiArrowRight className="ms-2" />
                   </Link>
@@ -625,13 +658,13 @@ export default function SignaturaLanding() {
                 viewport={{ once: true }}
               >
                 <motion.div
-                  className="p-8 rounded-4 h-100"
+                  className="p-8 rounded-4 h-100 cursor-pointer"
                   style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -20, boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
+                  whileHover={{ y: -24, boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
                 >
                   <div className="text-6xl mb-4">{feature.icon}</div>
                   <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
-                  <p className="text-muted">{feature.desc}</p>
+                  <p className="text-muted" style={{ fontSize: '15px' }}>{feature.desc}</p>
                 </motion.div>
               </motion.div>
             ))}
@@ -673,11 +706,11 @@ export default function SignaturaLanding() {
                 <motion.div
                   className="p-8 rounded-4 h-100"
                   style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -16, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}
+                  whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}
                 >
                   <div style={{ fontSize: '48px', marginBottom: '20px' }}>{solution.emoji}</div>
                   <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{solution.title}</h5>
-                  <p className="text-muted mb-5">{solution.desc}</p>
+                  <p className="text-muted mb-5" style={{ fontSize: '15px' }}>{solution.desc}</p>
                   <ul className="list-unstyled small">
                     {solution.features.map((feature, fidx) => (
                       <li key={fidx} className="mb-2">
@@ -696,11 +729,13 @@ export default function SignaturaLanding() {
       <section id="security" className="py-14 py-lg-16 position-relative text-white" style={{
         background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
       }}>
-        <motion.div 
-          className="position-absolute" 
-          style={{ top: '-10%', right: '-10%', width: '700px', height: '700px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)' }}
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 20, repeat: Infinity }}
+        <AnimatedBlob 
+          top="-10%" 
+          right="-10%" 
+          size="700px" 
+          duration={20} 
+          delay={2}
+          color="rgba(255, 255, 255, 0.05)"
         />
 
         <div className="container-xl position-relative">
@@ -709,7 +744,7 @@ export default function SignaturaLanding() {
               Enterprise-Grade Security
             </h2>
             <p className="lead text-white opacity-90" style={{ maxWidth: '700px', fontSize: '18px', margin: '0 auto' }}>
-              Military-grade encryption, blockchain technology, and continuous monitoring
+              Military-grade encryption, advanced monitoring, and continuous threat detection
             </p>
           </motion.div>
 
@@ -723,8 +758,8 @@ export default function SignaturaLanding() {
               { icon: '🔐', title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
               { icon: '👤', title: 'Biometric Verification', desc: 'Liveness detection & KYC' },
               { icon: '🔒', title: 'Military Encryption', desc: 'AES-256 & TLS 1.3' },
-              { icon: '⛓️', title: 'Blockchain Ledger', desc: 'Immutable record keeping' },
               { icon: '📡', title: '24/7 Monitoring', desc: 'Real-time threat detection' },
+              { icon: '⛓️', title: 'Immutable Ledger', desc: 'Blockchain-backed records' },
               { icon: '🛡️', title: 'Zero Trust', desc: 'Verify every transaction' },
             ].map((feature, idx) => (
               <motion.div 
@@ -738,7 +773,7 @@ export default function SignaturaLanding() {
                 <motion.div
                   className="p-8 rounded-4 text-center h-100"
                   style={{ background: 'rgba(255, 255, 255, 0.1)', border: '2px solid rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
-                  whileHover={{ y: -12, background: 'rgba(255, 255, 255, 0.15)', borderColor: 'rgba(255, 255, 255, 0.5)' }}
+                  whileHover={{ y: -16, background: 'rgba(255, 255, 255, 0.15)', borderColor: 'rgba(255, 255, 255, 0.5)' }}
                 >
                   <p className="text-5xl mb-4">{feature.icon}</p>
                   <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
@@ -785,7 +820,7 @@ export default function SignaturaLanding() {
                 <motion.div
                   className="p-10 rounded-4 text-center h-100"
                   style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -16, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
+                  whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
                 >
                   <p className="text-6xl mb-4">{industry.icon}</p>
                   <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{industry.title}</h5>
@@ -831,7 +866,7 @@ export default function SignaturaLanding() {
                 <motion.div
                   className="p-8 rounded-4 h-100"
                   style={{ background: '#ffffff', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -12, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.15)' }}
+                  whileHover={{ y: -16, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.15)' }}
                 >
                   <div className="d-flex gap-1 mb-4">
                     {[...Array(5)].map((_, i) => (
@@ -869,18 +904,18 @@ export default function SignaturaLanding() {
               { name: 'Enterprise', price: 'Custom', features: ['Unlimited', 'Dedicated support', 'Custom integrations', 'SLA guarantees', 'Multi-region'] },
             ].map((plan, idx) => (
               <motion.div key={idx} className="col-md-6 col-lg-4" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.15 }} viewport={{ once: true }}>
-                <motion.div className="p-10 rounded-4 h-100" style={{ background: plan.popular ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : '#ffffff', border: `2px solid ${plan.popular ? '#dc2626' : '#fee2e2'}`, color: plan.popular ? 'white' : 'black' }} whileHover={{ y: -12 }}>
-                  {plan.popular && <div className="badge bg-white text-danger" style={{ marginBottom: '15px' }}>Most Popular</div>}
+                <motion.div className="p-10 rounded-4 h-100" style={{ background: plan.popular ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : '#ffffff', border: `2px solid ${plan.popular ? '#dc2626' : '#fee2e2'}`, color: plan.popular ? 'white' : 'black' }} whileHover={{ y: -16 }}>
+                  {plan.popular && <div className="badge bg-white text-danger" style={{ marginBottom: '15px', fontSize: '12px', fontWeight: 700 }}>Most Popular</div>}
                   <h5 className="fw-700 mb-2" style={{ color: plan.popular ? 'white' : '#111827', fontSize: '24px' }}>{plan.name}</h5>
                   <div className="mb-6"><span style={{ fontSize: '42px', fontWeight: 900, color: plan.popular ? 'white' : '#dc2626' }}>{plan.price}</span></div>
                   <ul className="list-unstyled mb-8">
                     {plan.features.map((feature, fidx) => (
-                      <li key={fidx} className="mb-3" style={{ color: plan.popular ? 'rgba(255,255,255,0.8)' : '#6b7280', fontWeight: 500 }}>
-                        <span style={{ color: '#dc2626' }}>✓</span> {feature}
+                      <li key={fidx} className="mb-3" style={{ color: plan.popular ? 'rgba(255,255,255,0.8)' : '#6b7280', fontWeight: 500, fontSize: '15px' }}>
+                        <span style={{ color: plan.popular ? 'white' : '#dc2626' }}>✓</span> {feature}
                       </li>
                     ))}
                   </ul>
-                  <motion.button className="btn w-100 fw-700 rounded-pill py-3" style={{ background: plan.popular ? 'white' : '#dc2626', color: plan.popular ? '#dc2626' : 'white' }} whileHover={{ scale: 1.05 }}>
+                  <motion.button className="btn w-100 fw-700 rounded-pill py-3" style={{ background: plan.popular ? 'white' : '#dc2626', color: plan.popular ? '#dc2626' : 'white', fontSize: '15px' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     Get Started
                   </motion.button>
                 </motion.div>
@@ -890,40 +925,19 @@ export default function SignaturaLanding() {
         </div>
       </section>
 
-      {/* ===== DEVELOPERS ===== */}
-      <section id="developers" className="py-14 py-lg-16" style={{ background: '#ffffff' }}>
-        <div className="container-xl">
-          <motion.div className="text-center mb-14">
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
-              Developer-Friendly
-            </h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
-              Complete API documentation, SDKs, and tools for seamless integration. Everything developers need to build quickly.
-            </p>
-          </motion.div>
-
-          <motion.div className="row g-8" initial="hidden" whileInView="visible" viewport={{ once: true }}>
-            {[
-              { emoji: '📚', title: 'Complete Documentation', desc: 'Comprehensive API reference with code examples in multiple languages. Clear tutorials and best practices.' },
-              { emoji: '🔧', title: 'SDKs & Libraries', desc: 'Official SDKs for JavaScript, Python, Java, Go. Pre-built libraries for common use cases.' },
-              { emoji: '🧪', title: 'Sandbox Environment', desc: 'Full-featured sandbox for testing. Realistic test scenarios. Free unlimited testing.' },
-              { emoji: '🔌', title: 'Webhooks & Events', desc: 'Real-time webhooks for updates. Customizable subscriptions. Reliable delivery with retries.' },
-            ].map((dev, idx) => (
-              <motion.div key={idx} className="col-md-6 col-lg-3" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.12 }} viewport={{ once: true }}>
-                <motion.div className="p-8 rounded-4 h-100" style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }} whileHover={{ y: -20, boxShadow: '0 40px 80px rgba(220, 38, 38, 0.15)', borderColor: '#dc2626' }}>
-                  <p style={{ fontSize: '48px', marginBottom: '20px' }}>{dev.emoji}</p>
-                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{dev.title}</h5>
-                  <p className="text-muted" style={{ lineHeight: '1.7' }}>{dev.desc}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
+      {/* ===== FINAL CTA ===== */}
       <section className="py-14 py-lg-16 position-relative text-white overflow-hidden" style={{
         background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
       }}>
+        <AnimatedBlob 
+          top="-20%" 
+          right="-5%" 
+          size="800px" 
+          duration={25} 
+          delay={3}
+          color="rgba(255, 255, 255, 0.08)"
+        />
+        
         <div className="container-xl position-relative">
           <motion.div className="text-center" {...fadeInUp}>
             <h2 className="mb-5 lh-1 text-white" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px' }}>
@@ -940,12 +954,12 @@ export default function SignaturaLanding() {
               transition={{ delay: 0.3 }}
               viewport={{ once: true }}
             >
-              <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/issuer" className="btn btn-lg fw-700 text-danger rounded-pill px-12 py-4" style={{ background: 'white', fontSize: '18px' }}>
+              <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/issuer" className="btn btn-lg fw-700 text-danger rounded-pill px-12 py-4" style={{ background: 'white', fontSize: '18px', boxShadow: '0 15px 40px rgba(0,0,0,0.2)' }}>
                   🔑 Issuer Portal <FiArrowRight className="ms-3" size={24} />
                 </Link>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
                 <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-12 py-4 border-3" style={{ borderColor: 'white', color: 'white', fontSize: '18px' }}>
                   👥 Owner Portal <FiArrowRight className="ms-3" size={24} />
                 </Link>
@@ -955,7 +969,7 @@ export default function SignaturaLanding() {
         </div>
       </section>
 
-      <SimpleFooter />
+      <PremiumFooter />
     </div>
   );
 }
