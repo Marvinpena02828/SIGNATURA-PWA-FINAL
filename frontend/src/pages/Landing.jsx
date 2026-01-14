@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward, FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FiMenu, FiX, FiArrowRight, FiCheckCircle, FiChevronDown, FiStar, FiTrendingUp, FiUsers, FiAward,
+  FiMail, FiPhone, FiMapPin, FiShield, FiGlobe, FiFacebook, FiYoutube, FiTwitter, FiLinkedin, FiInstagram 
+} from 'react-icons/fi';
 
 // ===== CUSTOM SVG ILLUSTRATIONS =====
 
@@ -23,86 +26,6 @@ const FloatingShield = () => (
   </motion.svg>
 );
 
-const FloatingAnalytics = () => (
-  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ y: [0, -30, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 0.2 }}>
-    <defs>
-      <linearGradient id="analytics" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="shadow2">
-        <feDropShadow dx="0" dy="15" stdDeviation="10" floodOpacity="0.25" />
-      </filter>
-    </defs>
-    <rect x="40" y="50" width="220" height="180" rx="30" fill="white" stroke="url(#analytics)" strokeWidth="3" opacity="0.95" filter="url(#shadow2)" />
-    <rect x="70" y="100" width="25" height="100" rx="8" fill="url(#analytics)" />
-    <rect x="110" y="80" width="25" height="120" rx="8" fill="url(#analytics)" />
-    <rect x="150" y="110" width="25" height="90" rx="8" fill="url(#analytics)" />
-    <rect x="190" y="70" width="25" height="130" rx="8" fill="url(#analytics)" />
-  </motion.svg>
-);
-
-const FloatingSignature = () => (
-  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ y: [0, -30, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 0.4 }}>
-    <defs>
-      <linearGradient id="signature" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="shadow3">
-        <feDropShadow dx="0" dy="15" stdDeviation="10" floodOpacity="0.25" />
-      </filter>
-    </defs>
-    <rect x="40" y="60" width="220" height="160" rx="25" fill="white" stroke="url(#signature)" strokeWidth="3" opacity="0.95" filter="url(#shadow3)" />
-    <line x1="70" y1="90" x2="230" y2="90" stroke="url(#signature)" strokeWidth="1.5" opacity="0.3" />
-    <line x1="70" y1="110" x2="230" y2="110" stroke="url(#signature)" strokeWidth="1.5" opacity="0.3" />
-    <path d="M 75 155 Q 110 175 180 150" stroke="url(#signature)" strokeWidth="4" fill="none" strokeLinecap="round" />
-    <circle cx="185" cy="145" r="8" fill="url(#signature)" />
-  </motion.svg>
-);
-
-const BlockchainIllustration = () => (
-  <motion.svg viewBox="0 0 300 300" className="w-100 h-100" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}>
-    <defs>
-      <linearGradient id="chain" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 0.8 }} />
-        <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 0.8 }} />
-      </linearGradient>
-    </defs>
-    <circle cx="150" cy="70" r="25" fill="white" stroke="url(#chain)" strokeWidth="3" />
-    <circle cx="240" cy="150" r="25" fill="white" stroke="url(#chain)" strokeWidth="3" />
-    <circle cx="150" cy="230" r="25" fill="white" stroke="url(#chain)" strokeWidth="3" />
-    <circle cx="60" cy="150" r="25" fill="white" stroke="url(#chain)" strokeWidth="3" />
-    <line x1="170" y1="85" x2="220" y2="135" stroke="url(#chain)" strokeWidth="3" />
-    <line x1="230" y1="170" x2="160" y2="210" stroke="url(#chain)" strokeWidth="3" />
-    <line x1="130" y1="220" x2="80" y2="170" stroke="url(#chain)" strokeWidth="3" />
-    <line x1="75" y1="130" x2="130" y2="85" stroke="url(#chain)" strokeWidth="3" />
-  </motion.svg>
-);
-
-const DashboardIllustration = () => (
-  <motion.svg viewBox="0 0 400 300" className="w-100 h-100">
-    <defs>
-      <linearGradient id="dash" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#dc2626', stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: '#991b1b', stopOpacity: 1 }} />
-      </linearGradient>
-      <filter id="shadowDash">
-        <feDropShadow dx="0" dy="20" stdDeviation="15" floodOpacity="0.25" />
-      </filter>
-    </defs>
-    <rect x="20" y="20" width="360" height="260" rx="25" fill="white" stroke="url(#dash)" strokeWidth="3" filter="url(#shadowDash)" opacity="0.95" />
-    <rect x="40" y="40" width="320" height="60" rx="12" fill="url(#dash)" opacity="0.1" />
-    <rect x="40" y="120" width="70" height="140" rx="8" fill="url(#dash)" opacity="0.2" />
-    <rect x="125" y="120" width="70" height="140" rx="8" fill="url(#dash)" opacity="0.3" />
-    <rect x="210" y="120" width="70" height="140" rx="8" fill="url(#dash)" opacity="0.2" />
-    <rect x="295" y="120" width="60" height="140" rx="8" fill="url(#dash)" opacity="0.25" />
-    <circle cx="60" cy="60" r="8" fill="url(#dash)" />
-    <circle cx="85" cy="60" r="8" fill="url(#dash)" opacity="0.5" />
-    <circle cx="110" cy="60" r="8" fill="url(#dash)" opacity="0.3" />
-  </motion.svg>
-);
-
 // ===== NAVIGATION =====
 
 const Navigation = () => {
@@ -118,7 +41,7 @@ const Navigation = () => {
 
   return (
     <motion.nav 
-      className={`sticky-top transition-all ${scrolled ? 'shadow-xl' : ''}`} 
+      className={`sticky-top transition-all ${scrolled ? 'shadow-lg' : ''}`} 
       style={{ 
         zIndex: 1000, 
         background: scrolled ? '#ffffff' : 'rgba(255,255,255,0.7)',
@@ -135,7 +58,7 @@ const Navigation = () => {
           </Link>
 
           <div className="d-none d-lg-flex align-items-center gap-8">
-            {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
+            {['Features', 'Solutions', 'Industries', 'Security'].map((item) => (
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase()}`}
@@ -182,7 +105,7 @@ const Navigation = () => {
 
             <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
               <Link to="/issuer" className="btn fw-700 text-white rounded-pill px-6 py-2" style={{ background: '#dc2626' }}>
-                Get Started
+                Start
               </Link>
             </motion.div>
 
@@ -200,18 +123,11 @@ const Navigation = () => {
               exit={{ opacity: 0, height: 0 }}
               className="w-100 pb-4"
             >
-              {['Features', 'Solutions', 'Industries', 'Security', 'Pricing', 'Developers'].map((item) => (
+              {['Features', 'Solutions', 'Industries', 'Security'].map((item) => (
                 <a key={item} href={`#${item.toLowerCase()}`} className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500" onClick={() => setMobileMenuOpen(false)}>
                   {item}
                 </a>
               ))}
-              <div className="border-top my-2" />
-              <Link to="/login/issuer" className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500">
-                🔑 Issuer Portal
-              </Link>
-              <Link to="/login/owner" className="btn btn-link w-100 text-start text-dark text-decoration-none py-2 fw-500">
-                👥 Owner Portal
-              </Link>
             </motion.div>
           )}
         </AnimatePresence>
@@ -220,9 +136,9 @@ const Navigation = () => {
   );
 };
 
-// ===== ENHANCED FOOTER =====
+// ===== SIMPLE FOOTER WITH SCROLL ANIMATIONS =====
 
-const EnhancedFooter = () => {
+const SimpleFooter = () => {
   const [emailInput, setEmailInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -237,34 +153,13 @@ const EnhancedFooter = () => {
     }
   };
 
-  const fadeInUp = {
-    initial: { opacity: 0, y: 30 },
-    whileInView: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: 'easeOut' },
-    viewport: { once: true, margin: '0px 0px -50px 0px' }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
-
   return (
     <footer className="text-white position-relative overflow-hidden" style={{ 
       background: 'linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%)',
+      paddingTop: '80px',
+      paddingBottom: '60px'
     }}>
-      {/* Animated Background Elements */}
+      {/* Animated Background Blobs */}
       <motion.div 
         className="position-absolute" 
         style={{ 
@@ -275,323 +170,296 @@ const EnhancedFooter = () => {
           borderRadius: '50%', 
           background: 'radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%)'
         }}
-        animate={{ scale: [1, 1.2, 1], x: [0, 30, 0] }}
-        transition={{ duration: 20, repeat: Infinity }}
-      />
-      <motion.div 
-        className="position-absolute" 
-        style={{ 
-          bottom: '-10%', 
-          left: '-5%', 
-          width: '500px', 
-          height: '500px', 
-          borderRadius: '50%', 
-          background: 'radial-gradient(circle, rgba(220,38,38,0.05) 0%, transparent 70%)'
-        }}
-        animate={{ scale: [1.2, 1, 1.2], y: [0, 40, 0] }}
-        transition={{ duration: 25, repeat: Infinity }}
+        animate={{ scale: [1, 1.2, 1], rotate: [0, 360, 0] }}
+        transition={{ duration: 30, repeat: Infinity }}
       />
 
-      {/* TOP SECTION - Newsletter + Brand */}
-      <div className="position-relative pt-12 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="container-xl">
+      <div className="container-xl position-relative">
+        {/* TOP SECTION - Stats with Counter Animation */}
+        <motion.div 
+          className="row g-8 mb-12 pb-10 text-center"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+        >
+          {[
+            { num: '500', suffix: '+', label: 'Organizations' },
+            { num: '10', suffix: 'M+', label: 'Verified Identities' },
+            { num: '99.99', suffix: '%', label: 'Uptime' },
+            { num: '50', suffix: '+', label: 'Countries' }
+          ].map((stat, idx) => (
+            <motion.div 
+              key={idx} 
+              className="col-md-6 col-lg-3"
+              initial={{ opacity: 0, scale: 0 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.15, duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <motion.div
+                className="p-6 rounded-3"
+                style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)' }}
+                whileHover={{ 
+                  scale: 1.05,
+                  background: 'rgba(220,38,38,0.2)',
+                  borderColor: '#dc2626'
+                }}
+              >
+                <motion.div
+                  className="fw-900 h3 mb-2 text-white"
+                  style={{ fontSize: '42px' }}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.1, duration: 0.8 }}
+                  viewport={{ once: true }}
+                >
+                  <span style={{ color: '#dc2626' }}>{stat.num}</span>{stat.suffix}
+                </motion.div>
+                <motion.p 
+                  className="text-muted small fw-600"
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.15 + 0.3 }}
+                  viewport={{ once: true }}
+                >
+                  {stat.label}
+                </motion.p>
+              </motion.div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* MIDDLE SECTION - Brand + Newsletter */}
+        <motion.div 
+          className="row align-items-center g-10 mb-12 pb-10"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+        >
+          {/* Left - Brand */}
           <motion.div 
-            className="row align-items-center g-8"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            className="col-lg-4"
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
           >
-            {/* Left - Brand & Description */}
-            <motion.div className="col-lg-5" {...fadeInUp}>
-              <motion.h3 
-                className="fw-900 mb-4" 
-                style={{ fontSize: '32px', letterSpacing: '-1px', color: '#ffffff' }}
-                initial={{ opacity: 0, y: 20 }}
+            <motion.h4 
+              className="fw-900 mb-4" 
+              style={{ fontSize: '28px', letterSpacing: '-1px' }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <span style={{ color: '#dc2626' }}>Sign</span>atura
+            </motion.h4>
+            <motion.p 
+              className="text-muted mb-5"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              Enterprise digital identity platform for the modern world.
+            </motion.p>
+
+            {/* Trust Badges */}
+            <motion.div className="d-flex gap-3">
+              {['GDPR', 'ISO 27001', 'eIDAS'].map((badge, idx) => (
+                <motion.div
+                  key={idx}
+                  className="small fw-600 px-3 py-2 rounded-2"
+                  style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}
+                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                  whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ delay: idx * 0.15, duration: 0.6 }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                >
+                  ✓ {badge}
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* Right - Newsletter */}
+          <motion.div 
+            className="col-lg-8"
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true }}
+          >
+            <motion.div
+              className="p-8 rounded-4"
+              style={{ 
+                background: 'rgba(220,38,38,0.08)', 
+                border: '2px solid rgba(220,38,38,0.3)',
+                backdropFilter: 'blur(10px)'
+              }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              whileHover={{
+                borderColor: '#dc2626',
+                background: 'rgba(220,38,38,0.12)'
+              }}
+            >
+              <motion.h5 
+                className="fw-700 mb-2 text-white"
+                initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
               >
-                <span style={{ color: '#dc2626' }}>Sign</span>atura
-              </motion.h3>
-              
+                Get Updates
+              </motion.h5>
               <motion.p 
-                className="lead text-muted mb-6 lh-lg"
+                className="text-muted small mb-4"
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.35 }}
+              >
+                Subscribe for latest security features and announcements
+              </motion.p>
+              
+              <form onSubmit={handleSubscribe}>
+                <div className="input-group input-group-lg">
+                  <motion.input 
+                    type="email" 
+                    className="form-control rounded-start-pill border-0" 
+                    placeholder="your@email.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    style={{ background: 'rgba(255,255,255,0.95)', paddingLeft: '24px', fontWeight: 500 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 }}
+                    required
+                    whileFocus={{ scale: 1.02 }}
+                  />
+                  <motion.button
+                    className="btn fw-700 rounded-end-pill text-white px-8"
+                    style={{ background: '#dc2626' }}
+                    whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(220,38,38,0.3)' }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.45 }}
+                  >
+                    {subscribed ? '✓ Subscribed' : 'Subscribe'}
+                  </motion.button>
+                </div>
+              </form>
+
+              <motion.p 
+                className="text-muted small mt-3 mb-0"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.5 }}
               >
-                Enterprise-grade digital identity and security platform trusted by 500+ organizations worldwide.
+                No spam • Unsubscribe anytime
               </motion.p>
-
-              {/* Trust Badges */}
-              <motion.div 
-                className="d-flex flex-wrap gap-4"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-              >
-                {[
-                  { icon: FiShield, text: 'GDPR Compliant' },
-                  { icon: FiAward, text: 'ISO 27001' },
-                  { icon: FiGlobe, text: 'eIDAS Certified' }
-                ].map((badge, idx) => (
-                  <motion.div 
-                    key={idx} 
-                    className="d-flex align-items-center gap-2"
-                    variants={itemVariants}
-                  >
-                    <badge.icon size={16} style={{ color: '#dc2626' }} />
-                    <span className="small fw-600">{badge.text}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
             </motion.div>
-
-            {/* Right - Newsletter Signup */}
-            <motion.div className="col-lg-7" {...fadeInUp}>
-              <div className="bg-white bg-opacity-5 p-8 rounded-4" style={{ backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <h5 className="fw-700 mb-3 text-white">Stay Updated</h5>
-                <p className="text-muted small mb-5">Get the latest security updates and features delivered to your inbox</p>
-                
-                <form onSubmit={handleSubscribe} className="position-relative">
-                  <div className="input-group input-group-lg">
-                    <input 
-                      type="email" 
-                      className="form-control rounded-start-pill border-0" 
-                      placeholder="your@email.com"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      style={{ background: 'rgba(255,255,255,0.95)', paddingLeft: '24px', fontWeight: 500 }}
-                      required
-                    />
-                    <motion.button
-                      className="btn fw-700 rounded-end-pill text-white px-6"
-                      style={{ background: '#dc2626' }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      type="submit"
-                    >
-                      {subscribed ? '✓ Subscribed' : 'Subscribe'}
-                    </motion.button>
-                  </div>
-                </form>
-                
-                <p className="text-muted small mt-3 mb-0">
-                  <FiCheckCircle size={14} className="me-2" style={{ color: '#dc2626' }} />
-                  No spam, unsubscribe anytime
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* MIDDLE SECTION - Links & Info */}
-      <div className="container-xl py-12 position-relative">
-        <motion.div
-          className="row g-10"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          {/* Column 1 - Products */}
-          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
-            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Products
-            </h6>
-            <ul className="list-unstyled">
-              {['Digital Identity', 'Digital Signatures', 'Data Security', 'Verification API', 'Compliance'].map((link, idx) => (
-                <li key={idx} className="mb-3">
-                  <motion.a 
-                    href="#" 
-                    className="text-muted text-decoration-none small fw-500"
-                    whileHover={{ color: '#dc2626', x: 5 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {link}
-                  </motion.a>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Column 2 - Solutions */}
-          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
-            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Industries
-            </h6>
-            <ul className="list-unstyled">
-              {['Banking & Finance', 'Insurance', 'Government', 'Education', 'Healthcare'].map((link, idx) => (
-                <li key={idx} className="mb-3">
-                  <motion.a 
-                    href="#" 
-                    className="text-muted text-decoration-none small fw-500"
-                    whileHover={{ color: '#dc2626', x: 5 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {link}
-                  </motion.a>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Column 3 - Developers */}
-          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
-            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Developers
-            </h6>
-            <ul className="list-unstyled">
-              {['API Documentation', 'SDK Downloads', 'Code Samples', 'Webhooks', 'Sandbox'].map((link, idx) => (
-                <li key={idx} className="mb-3">
-                  <motion.a 
-                    href="#" 
-                    className="text-muted text-decoration-none small fw-500"
-                    whileHover={{ color: '#dc2626', x: 5 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {link}
-                  </motion.a>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Column 4 - Company */}
-          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
-            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Company
-            </h6>
-            <ul className="list-unstyled">
-              {['About Us', 'Blog', 'Press Kit', 'Careers', 'Contact'].map((link, idx) => (
-                <li key={idx} className="mb-3">
-                  <motion.a 
-                    href="#" 
-                    className="text-muted text-decoration-none small fw-500"
-                    whileHover={{ color: '#dc2626', x: 5 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {link}
-                  </motion.a>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Column 5 - Legal */}
-          <motion.div className="col-md-6 col-lg-2" variants={itemVariants}>
-            <h6 className="fw-700 mb-5 text-white" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Legal
-            </h6>
-            <ul className="list-unstyled">
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Data Processing', 'Security'].map((link, idx) => (
-                <li key={idx} className="mb-3">
-                  <motion.a 
-                    href="#" 
-                    className="text-muted text-decoration-none small fw-500"
-                    whileHover={{ color: '#dc2626', x: 5 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    {link}
-                  </motion.a>
-                </li>
-              ))}
-            </ul>
           </motion.div>
         </motion.div>
-      </div>
 
-      {/* CONTACT SECTION */}
-      <div className="position-relative py-12" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="container-xl">
-          <motion.div
-            className="row g-6"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { icon: FiMail, title: 'Email', content: 'support@signatura.ph', link: 'mailto:support@signatura.ph' },
-              { icon: FiPhone, title: 'Phone', content: '+63 (2) 1234-5678', link: 'tel:+6321234567' },
-              { icon: FiMapPin, title: 'Address', content: 'Manila, Philippines', link: '#' }
-            ].map((contact, idx) => (
-              <motion.div 
-                key={idx} 
-                className="col-md-6 col-lg-4"
-                variants={itemVariants}
+        {/* Links Section - 3 columns */}
+        <motion.div 
+          className="row g-8 mb-12 pb-10"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '0px 0px -100px 0px' }}
+        >
+          {[
+            { title: 'Product', links: ['Solutions', 'Features', 'Security', 'Pricing'] },
+            { title: 'Company', links: ['About', 'Blog', 'Careers', 'Contact'] },
+            { title: 'Legal', links: ['Privacy', 'Terms', 'Compliance', 'Cookies'] }
+          ].map((column, colIdx) => (
+            <motion.div 
+              key={colIdx} 
+              className="col-md-6 col-lg-4"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ delay: colIdx * 0.15, duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <motion.h6 
+                className="fw-700 text-white mb-4"
+                style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1.5px' }}
+                initial={{ opacity: 0, y: -10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: colIdx * 0.1 }}
               >
-                <motion.a
-                  href={contact.link}
-                  className="d-flex align-items-start gap-4 text-decoration-none p-5 rounded-3"
-                  style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}
-                  whileHover={{ 
-                    background: 'rgba(220,38,38,0.15)',
-                    borderColor: '#dc2626',
-                    y: -8
-                  }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <motion.div
-                    className="p-3 rounded-2 flex-shrink-0"
-                    style={{ background: 'rgba(220,38,38,0.2)' }}
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <contact.icon size={24} style={{ color: '#dc2626' }} />
-                  </motion.div>
-                  <div>
-                    <p className="fw-700 text-white mb-2 small" style={{ textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>
-                      {contact.title}
-                    </p>
-                    <p className="text-muted mb-0">{contact.content}</p>
-                  </div>
-                </motion.a>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </div>
+                {column.title}
+              </motion.h6>
+              <ul className="list-unstyled">
+                {column.links.map((link, idx) => (
+                  <motion.li key={idx} className="mb-3">
+                    <motion.a 
+                      href="#" 
+                      className="text-muted text-decoration-none small fw-500"
+                      initial={{ opacity: 0, x: -15 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: colIdx * 0.1 + idx * 0.08 }}
+                      whileHover={{ 
+                        color: '#dc2626',
+                        x: 8
+                      }}
+                    >
+                      → {link}
+                    </motion.a>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </motion.div>
 
-      {/* BOTTOM SECTION - Social & Copyright */}
-      <div className="container-xl py-10 position-relative">
+        {/* Bottom - Social + Copyright */}
         <motion.div 
           className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-6"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '0px 0px -50px 0px' }}
         >
-          {/* Left - Copyright */}
-          <motion.div {...fadeInUp}>
+          {/* Left */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
             <p className="text-muted small mb-0">
-              &copy; 2025 Signatura. All rights reserved.<br />
-              <span className="text-muted" style={{ fontSize: '12px' }}>Enterprise Digital Identity Platform</span>
+              &copy; 2025 Signatura | Enterprise Digital Identity
             </p>
           </motion.div>
 
           {/* Right - Social Icons */}
           <motion.div 
-            className="d-flex gap-4"
-            variants={containerVariants}
+            className="d-flex gap-3"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
             {[
-              { icon: FiFacebook, link: 'https://www.facebook.com/PHsignatura', label: 'Facebook' },
-              { icon: FiYoutube, link: 'https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg', label: 'YouTube' },
-              { icon: FiTwitter, link: '#', label: 'Twitter' },
-              { icon: FiLinkedin, link: '#', label: 'LinkedIn' },
-              { icon: FiInstagram, link: '#', label: 'Instagram' }
+              { icon: FiFacebook, link: 'https://www.facebook.com/PHsignatura' },
+              { icon: FiYoutube, link: 'https://www.youtube.com/channel/UC8Id2IMHDOVGu51dIbDqZeg' },
+              { icon: FiTwitter, link: '#' },
+              { icon: FiLinkedin, link: '#' },
+              { icon: FiInstagram, link: '#' }
             ].map((social, idx) => (
               <motion.a
                 key={idx}
@@ -607,14 +475,17 @@ const EnhancedFooter = () => {
                   color: '#dc2626',
                   textDecoration: 'none'
                 }}
-                variants={itemVariants}
+                initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1, duration: 0.6 }}
                 whileHover={{
                   background: '#dc2626',
                   color: 'white',
-                  scale: 1.1,
-                  y: -8
+                  scale: 1.15,
+                  y: -10,
+                  boxShadow: '0 15px 40px rgba(220,38,38,0.4)'
                 }}
-                transition={{ type: 'spring', stiffness: 300 }}
               >
                 <social.icon size={20} />
               </motion.a>
@@ -622,40 +493,6 @@ const EnhancedFooter = () => {
           </motion.div>
         </motion.div>
       </div>
-
-      {/* Stats Bar */}
-      <motion.div 
-        className="py-8" 
-        style={{ background: 'rgba(220,38,38,0.1)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <div className="container-xl">
-          <motion.div
-            className="row g-8"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { icon: FiTrendingUp, number: '500+', label: 'Organizations' },
-              { icon: FiAward, number: '10M+', label: 'Verified Identities' },
-              { icon: FiShield, number: '99.99%', label: 'Uptime' },
-              { icon: FiGlobe, number: '50+', label: 'Countries' }
-            ].map((stat, idx) => (
-              <motion.div key={idx} className="col-md-6 col-lg-3 text-center" variants={itemVariants}>
-                <motion.div whileHover={{ scale: 1.1 }} className="mb-2">
-                  <stat.icon size={32} style={{ color: '#dc2626' }} />
-                </motion.div>
-                <p className="fw-900 h5 text-white mb-1">{stat.number}</p>
-                <p className="text-muted small">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.div>
     </footer>
   );
 };
@@ -670,24 +507,13 @@ export default function SignaturaLanding() {
     viewport: { once: true, margin: '0px 0px -100px 0px' }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
   return (
     <div style={{ overflow: 'hidden' }}>
       <Navigation />
 
       {/* ===== HERO SECTION ===== */}
       <section className="py-14 py-lg-16 position-relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 50%, #f3f4f6 100%)',
+        background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 50%, #f5f5f5 100%)',
         minHeight: '900px',
         display: 'flex',
         alignItems: 'center'
@@ -702,24 +528,14 @@ export default function SignaturaLanding() {
         <div className="container-xl position-relative">
           <div className="row align-items-center g-8">
             <motion.div className="col-lg-6" initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-              <motion.span className="d-inline-block mb-4 px-5 py-3 rounded-pill fw-700 small" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-                ✨ Enterprise Security Platform
-              </motion.span>
-              
               <motion.h1 
                 className="mb-5 lh-1" 
-                style={{ 
-                  fontSize: '80px',
-                  fontWeight: 900,
-                  letterSpacing: '-3px',
-                  color: '#111827',
-                  lineHeight: '1.05'
-                }}
+                style={{ fontSize: '80px', fontWeight: 900, letterSpacing: '-3px', color: '#111827', lineHeight: '1.05' }}
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                Your Digital Identity, <span style={{ color: '#dc2626' }}>Secured</span>
+                Your Digital <span style={{ color: '#dc2626' }}>Identity,</span> Secured
               </motion.h1>
               
               <motion.p 
@@ -729,7 +545,7 @@ export default function SignaturaLanding() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Enterprise-grade digital identity, blockchain-backed security, and legally-binding digital signatures. Trusted by 500+ organizations worldwide for secure digital transformation.
+                Enterprise-grade digital identity, blockchain-backed security, and legally-binding digital signatures. Trusted by 500+ organizations worldwide.
               </motion.p>
 
               <motion.div 
@@ -756,14 +572,10 @@ export default function SignaturaLanding() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                {[
-                  { num: '500+', text: 'Organizations', icon: '🏢' },
-                  { num: '10M+', text: 'Verified Identities', icon: '✓' },
-                  { num: '99.99%', text: 'Uptime SLA', icon: '⚡' }
-                ].map((stat, idx) => (
+                {[{ num: '500+', text: 'Organizations' }, { num: '10M+', text: 'Verified' }, { num: '99.99%', text: 'Uptime' }].map((stat, idx) => (
                   <div key={idx}>
-                    <p className="fw-900 h5 mb-1" style={{ color: '#dc2626', fontSize: '24px' }}>{stat.icon} {stat.num}</p>
-                    <p className="text-muted small" style={{ fontSize: '13px' }}>{stat.text}</p>
+                    <p className="fw-900 h5 mb-1" style={{ color: '#dc2626' }}>{stat.num}</p>
+                    <p className="text-muted small">{stat.text}</p>
                   </div>
                 ))}
               </motion.div>
@@ -782,374 +594,44 @@ export default function SignaturaLanding() {
       <section id="features" className="py-14 py-lg-16 position-relative" style={{ background: '#ffffff' }}>
         <div className="container-xl">
           <motion.div className="text-center mb-14" {...fadeInUp}>
-            <motion.span 
-              className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small" 
-              style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
-              Powerful Features
-            </motion.span>
             <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
               Everything You Need
             </h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
-              Comprehensive digital identity and security solutions designed for enterprises that demand the highest standards
+              Comprehensive digital identity and security solutions
             </p>
           </motion.div>
 
           <motion.div 
             className="row g-6"
-            variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
             {[
-              { icon: '🛡️', title: 'Military-Grade Security', desc: 'End-to-end encrypted data protection with blockchain backing', color: '#dc2626' },
-              { icon: '⚡', title: 'Lightning Fast', desc: 'Real-time verification and processing in milliseconds', color: '#dc2626' },
-              { icon: '🌍', title: 'Global Compliance', desc: 'GDPR, eIDAS, and international standards compliant', color: '#dc2626' },
-              { icon: '🔗', title: 'Easy Integration', desc: 'RESTful APIs and SDKs for seamless implementation', color: '#dc2626' },
-              { icon: '📱', title: 'Mobile-First', desc: 'Native iOS & Android apps for on-the-go access', color: '#dc2626' },
-              { icon: '👥', title: '24/7 Support', desc: 'Dedicated enterprise support team always available', color: '#dc2626' },
+              { icon: '🛡️', title: 'Military-Grade Security', desc: 'End-to-end encrypted protection' },
+              { icon: '⚡', title: 'Lightning Fast', desc: 'Real-time verification in milliseconds' },
+              { icon: '🌍', title: 'Global Compliance', desc: 'GDPR, eIDAS, international standards' },
+              { icon: '🔗', title: 'Easy Integration', desc: 'RESTful APIs and SDKs' },
+              { icon: '📱', title: 'Mobile-First', desc: 'Native iOS & Android apps' },
+              { icon: '👥', title: '24/7 Support', desc: 'Dedicated enterprise support' },
             ].map((feature, idx) => (
               <motion.div 
                 key={idx} 
                 className="col-md-6 col-lg-4"
-                variants={{
-                  hidden: { opacity: 0, y: 40 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-                }}
-              >
-                <motion.div
-                  className="p-8 rounded-4 h-100 position-relative overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ 
-                    y: -20, 
-                    boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)',
-                    borderColor: '#dc2626'
-                  }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                >
-                  <motion.div 
-                    className="text-6xl mb-4" 
-                    whileHover={{ scale: 1.2, rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    {feature.icon}
-                  </motion.div>
-                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
-                  <p className="text-muted" style={{ lineHeight: '1.7' }}>{feature.desc}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== SOLUTIONS SECTION ===== */}
-      <section id="solutions" className="py-14 py-lg-16 position-relative" style={{ background: 'linear-gradient(135deg, #fff5f5 0%, #fafafa 100%)' }}>
-        <div className="container-xl">
-          <motion.div className="text-center mb-14" {...fadeInUp}>
-            <span className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}>
-              Our Solutions
-            </span>
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
-              Complete Solutions
-            </h2>
-          </motion.div>
-
-          <div className="row g-6 align-items-center mb-10">
-            <motion.div className="col-lg-6" {...fadeInUp}>
-              <div style={{ height: '500px' }}>
-                <FloatingAnalytics />
-              </div>
-            </motion.div>
-            <motion.div className="col-lg-6" variants={{ hidden: { opacity: 0, x: 40 }, visible: { opacity: 1, x: 0 } }} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ duration: 0.8 }}>
-              <h3 className="h2 fw-bold mb-5" style={{ fontSize: '48px', color: '#111827' }}>Digital Identity & Verification</h3>
-              <div className="d-flex flex-column gap-4 mb-6">
-                {['KYC/Selfie verification', 'Biometric authentication', 'Multi-factor security', 'Real-time verification'].map((item, idx) => (
-                  <motion.div 
-                    key={idx}
-                    className="d-flex align-items-start gap-4"
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <div className="p-2 rounded-2 flex-shrink-0" style={{ background: 'rgba(220, 38, 38, 0.15)' }}>
-                      <FiCheckCircle style={{ color: '#dc2626', fontSize: '24px' }} />
-                    </div>
-                    <div>
-                      <p className="fw-600 mb-1" style={{ color: '#111827' }}>{item}</p>
-                      <p className="text-muted small mb-0">Enterprise-grade verification system</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <a href="#contact" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626' }}>
-                  Learn More <FiArrowRight className="ms-2" />
-                </a>
-              </motion.div>
-            </motion.div>
-          </div>
-
-          <div className="row g-6 align-items-center mb-10">
-            <motion.div className="col-lg-6 order-lg-2" {...fadeInUp}>
-              <div style={{ height: '500px' }}>
-                <FloatingSignature />
-              </div>
-            </motion.div>
-            <motion.div className="col-lg-6 order-lg-1" variants={{ hidden: { opacity: 0, x: -40 }, visible: { opacity: 1, x: 0 } }} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ duration: 0.8 }}>
-              <h3 className="h2 fw-bold mb-5" style={{ fontSize: '48px', color: '#111827' }}>Digital Signatures</h3>
-              <div className="d-flex flex-column gap-4 mb-6">
-                {['Legally binding signatures', 'QR code protection', 'Audit trail tracking', 'Global recognition'].map((item, idx) => (
-                  <motion.div 
-                    key={idx}
-                    className="d-flex align-items-start gap-4"
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <div className="p-2 rounded-2 flex-shrink-0" style={{ background: 'rgba(220, 38, 38, 0.15)' }}>
-                      <FiCheckCircle style={{ color: '#dc2626', fontSize: '24px' }} />
-                    </div>
-                    <div>
-                      <p className="fw-600 mb-1" style={{ color: '#111827' }}>{item}</p>
-                      <p className="text-muted small mb-0">eIDAS and ESIGN compliant</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <a href="#contact" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626' }}>
-                  Get Started <FiArrowRight className="ms-2" />
-                </a>
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SECURITY SECTION ===== */}
-      <section id="security" className="py-14 py-lg-16 position-relative text-white" style={{
-        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
-      }}>
-        <motion.div 
-          className="position-absolute" 
-          style={{ top: '-10%', right: '-10%', width: '700px', height: '700px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)' }}
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 20, repeat: Infinity }}
-        />
-
-        <div className="container-xl position-relative">
-          <motion.div className="text-center mb-14" {...fadeInUp}>
-            <span className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small text-white" style={{ background: 'rgba(255,255,255,0.25)' }}>
-              Blockchain Secured
-            </span>
-            <h2 className="mb-5 lh-1 text-white" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px' }}>
-              Enterprise-Grade Security
-            </h2>
-            <p className="lead text-white opacity-90" style={{ maxWidth: '700px', margin: '0 auto', fontSize: '18px' }}>
-              Military-grade encryption, blockchain technology, and continuous monitoring ensure your data is always protected
-            </p>
-          </motion.div>
-
-          <motion.div 
-            className="row g-6"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { icon: '🔐', title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
-              { icon: '👤', title: 'Biometric Verification', desc: 'Liveness detection & KYC' },
-              { icon: '🔒', title: 'Military Encryption', desc: 'AES-256 & TLS 1.3' },
-              { icon: '⛓️', title: 'Blockchain Ledger', desc: 'Immutable record keeping' },
-              { icon: '📡', title: '24/7 Monitoring', desc: 'Real-time threat detection' },
-              { icon: '🛡️', title: 'Zero Trust Architecture', desc: 'Verify every transaction' },
-            ].map((feature, idx) => (
-              <motion.div 
-                key={idx} 
-                className="col-md-6 col-lg-4"
-                variants={{
-                  hidden: { opacity: 0, y: 40 },
-                  visible: { opacity: 1, y: 0 }
-                }}
-              >
-                <motion.div
-                  className="p-8 rounded-4 text-center h-100"
-                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '2px solid rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
-                  whileHover={{ 
-                    y: -16, 
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    borderColor: 'rgba(255, 255, 255, 0.5)'
-                  }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <p className="text-5xl mb-4">{feature.icon}</p>
-                  <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
-                  <p className="text-white opacity-80 small">{feature.desc}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== INDUSTRIES SECTION ===== */}
-      <section id="industries" className="py-14 py-lg-16 position-relative" style={{ background: '#ffffff' }}>
-        <div className="container-xl">
-          <motion.div className="text-center mb-14" {...fadeInUp}>
-            <span className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}>
-              Industries
-            </span>
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
-              Trusted Worldwide
-            </h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
-              Serving 500+ organizations across banking, insurance, government, and education sectors
-            </p>
-          </motion.div>
-
-          <motion.div 
-            className="row g-6"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { icon: '🏦', title: 'Banking & Finance', subtitle: 'Secure transactions' },
-              { icon: '🏢', title: 'Insurance', subtitle: 'Policy management' },
-              { icon: '🏛️', title: 'Government', subtitle: 'Citizen services' },
-              { icon: '📚', title: 'Education', subtitle: 'Credential verification' },
-            ].map((ind, idx) => (
-              <motion.div 
-                key={idx} 
-                className="col-md-6 col-lg-3"
-                variants={{
-                  hidden: { opacity: 0, scale: 0.8 },
-                  visible: { opacity: 1, scale: 1 }
-                }}
-              >
-                <motion.div
-                  className="p-10 rounded-4 text-center h-100"
-                  style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ 
-                    y: -20, 
-                    boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)',
-                    borderColor: '#dc2626'
-                  }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <p className="text-6xl mb-4">{ind.icon}</p>
-                  <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{ind.title}</h5>
-                  <p className="text-muted small">{ind.subtitle}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== DASHBOARD SECTION ===== */}
-      <section className="py-14 py-lg-16 position-relative" style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f3f4f6 100%)' }}>
-        <div className="container-xl">
-          <motion.div className="text-center mb-14" {...fadeInUp}>
-            <span className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}>
-              Analytics & Insights
-            </span>
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
-              Real-Time Dashboard
-            </h2>
-            <p className="lead text-muted mx-auto" style={{ maxWidth: '700px', fontSize: '18px' }}>
-              Comprehensive analytics and monitoring tools to track all your digital identity operations
-            </p>
-          </motion.div>
-
-          <motion.div {...fadeInUp} style={{ height: '600px' }}>
-            <DashboardIllustration />
-          </motion.div>
-
-          <motion.div 
-            className="row g-6 mt-10"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { title: 'Real-Time Monitoring', desc: 'Track all transactions and events instantly' },
-              { title: 'Advanced Analytics', desc: 'Detailed insights and trend analysis' },
-              { title: 'Custom Reports', desc: 'Generate comprehensive compliance reports' },
-              { title: 'API Access', desc: 'Integrate with your existing systems' },
-            ].map((item, idx) => (
-              <motion.div key={idx} className="col-md-6 col-lg-3" variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0 } }}>
-                <div className="text-center">
-                  <motion.div whileHover={{ scale: 1.1 }} className="mb-3">
-                    <FiTrendingUp style={{ color: '#dc2626', fontSize: '40px' }} />
-                  </motion.div>
-                  <h5 className="fw-700 mb-2" style={{ color: '#111827' }}>{item.title}</h5>
-                  <p className="text-muted small">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== TESTIMONIALS SECTION ===== */}
-      <section className="py-14 py-lg-16 position-relative" style={{ background: '#ffffff' }}>
-        <div className="container-xl">
-          <motion.div className="text-center mb-14" {...fadeInUp}>
-            <span className="d-inline-block mb-5 px-5 py-3 rounded-pill fw-700 small" style={{ background: 'rgba(220, 38, 38, 0.15)', color: '#dc2626' }}>
-              Testimonials
-            </span>
-            <h2 className="mb-5 lh-1" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px', color: '#111827' }}>
-              Trusted by Leaders
-            </h2>
-          </motion.div>
-
-          <motion.div 
-            className="row g-6"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {[
-              { name: 'John Smith', role: 'CEO, FinTech Corp', text: '"Signatura transformed our digital operations completely. The security and ease of use are unmatched."' },
-              { name: 'Maria Garcia', role: 'Head of Compliance', text: '"We achieved full regulatory compliance in weeks. The platform is enterprise-ready out of the box."' },
-              { name: 'David Lee', role: 'CTO, InsureHub', text: '"The API integration was seamless. Customer adoption rates exceeded our expectations by 300%."' },
-            ].map((testimonial, idx) => (
-              <motion.div 
-                key={idx} 
-                className="col-md-6 col-lg-4"
-                variants={{
-                  hidden: { opacity: 0, y: 40 },
-                  visible: { opacity: 1, y: 0 }
-                }}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.08 }}
+                viewport={{ once: true }}
               >
                 <motion.div
                   className="p-8 rounded-4 h-100"
                   style={{ background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', border: '2px solid #fee2e2' }}
-                  whileHover={{ y: -12, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.15)' }}
+                  whileHover={{ y: -20, boxShadow: '0 50px 100px rgba(220, 38, 38, 0.2)', borderColor: '#dc2626' }}
                 >
-                  <div className="d-flex gap-1 mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <FiStar key={i} size={18} style={{ color: '#dc2626', fill: '#dc2626' }} />
-                    ))}
-                  </div>
-                  <p className="mb-5" style={{ fontSize: '16px', color: '#374151', fontStyle: 'italic' }}>{testimonial.text}</p>
-                  <div className="pt-4 border-top" style={{ borderColor: '#fee2e2' }}>
-                    <p className="fw-700 mb-0" style={{ color: '#111827' }}>{testimonial.name}</p>
-                    <p className="text-muted small mb-0">{testimonial.role}</p>
-                  </div>
+                  <div className="text-6xl mb-4">{feature.icon}</div>
+                  <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
+                  <p className="text-muted">{feature.desc}</p>
                 </motion.div>
               </motion.div>
             ))}
@@ -1157,24 +639,17 @@ export default function SignaturaLanding() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA SECTION ===== */}
+      {/* ===== FINAL CTA ===== */}
       <section className="py-14 py-lg-16 position-relative text-white overflow-hidden" style={{
         background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
       }}>
-        <motion.div 
-          className="position-absolute" 
-          style={{ top: '-10%', right: '-10%', width: '700px', height: '700px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.08)' }}
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 20, repeat: Infinity }}
-        />
-
         <div className="container-xl position-relative">
           <motion.div className="text-center" {...fadeInUp}>
             <h2 className="mb-5 lh-1 text-white" style={{ fontSize: '64px', fontWeight: 900, letterSpacing: '-2px' }}>
-              Transform Digitally Today
+              Ready to Transform?
             </h2>
             <p className="lead text-white opacity-90 mx-auto mb-10" style={{ maxWidth: '800px', fontSize: '20px' }}>
-              Join 500+ organizations securing their digital future. Get started in minutes with our intuitive platform.
+              Join 500+ organizations securing their digital future. Get started today.
             </p>
 
             <motion.div 
@@ -1195,21 +670,11 @@ export default function SignaturaLanding() {
                 </Link>
               </motion.div>
             </motion.div>
-
-            <motion.p 
-              className="text-white opacity-75 mt-6 small"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 0.75 }}
-              transition={{ delay: 0.5 }}
-              viewport={{ once: true }}
-            >
-              Free setup • No credit card required • 30-day free trial
-            </motion.p>
           </motion.div>
         </div>
       </section>
 
-      <EnhancedFooter />
+      <SimpleFooter />
     </div>
   );
 }
