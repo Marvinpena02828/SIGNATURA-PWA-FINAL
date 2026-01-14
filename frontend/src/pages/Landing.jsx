@@ -888,30 +888,8 @@ export default function SignaturaLanding() {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 variants={containerVariants}
               >
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -6 }} 
-                  whileTap={{ scale: 0.92 }}
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0 }
-                  }}
-                >
-                  <Link to="/issuer" className="btn btn-lg fw-700 text-white rounded-pill px-10 py-3" style={{ background: '#dc2626', fontSize: '16px', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)' }}>
-                    🔑 Issuer Portal <FiArrowRight className="ms-2" />
-                  </Link>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -6 }} 
-                  whileTap={{ scale: 0.92 }}
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0 }
-                  }}
-                >
-                  <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-10 py-3 border-3" style={{ borderColor: '#dc2626', color: '#dc2626', fontSize: '16px' }}>
-                    👥 Owner Portal <FiArrowRight className="ms-2" />
-                  </Link>
-                </motion.div>
+            
+          
               </motion.div>
 
               <motion.div 
@@ -1393,30 +1371,9 @@ export default function SignaturaLanding() {
               viewport={{ once: true }}
               variants={containerVariants}
             >
-              <motion.div 
-                whileHover={{ scale: 1.12, y: -6 }} 
-                whileTap={{ scale: 0.92 }}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 }
-                }}
-              >
-                <Link to="/issuer" className="btn btn-lg fw-700 text-danger rounded-pill px-12 py-4" style={{ background: 'white', fontSize: '18px', boxShadow: '0 15px 40px rgba(0,0,0,0.3)' }}>
-                  🔑 Issuer Portal <FiArrowRight className="ms-3" size={24} />
-                </Link>
+           >
               </motion.div>
-              <motion.div 
-                whileHover={{ scale: 1.12, y: -6 }} 
-                whileTap={{ scale: 0.92 }}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 }
-                }}
-              >
-                <Link to="/owner" className="btn btn-lg fw-700 rounded-pill px-12 py-4 border-3" style={{ borderColor: 'white', color: 'white', fontSize: '18px' }}>
-                  👥 Owner Portal <FiArrowRight className="ms-3" size={24} />
-                </Link>
-              </motion.div>
+        
             </motion.div>
           </motion.div>
         </div>
