@@ -399,7 +399,7 @@ export default function SignaturaLanding() {
                 {[{ num: '500+', text: 'Organizations' }, { num: '10M+', text: 'Verified' }, { num: '99.99%', text: 'Uptime' }].map((stat) => (
                   <motion.div key={stat.num}>
                     <p className="fw-900 h6 mb-0" style={{ color: '#dc2626', fontSize: '16px' }}>{stat.num}</p>
-                    <p className="text-muted mb-0" style={{ fontSize: '12px' }}>{{stat.text}}</p>
+                  <p className="text-muted mb-0" style={{ fontSize: '12px' }}>{stat.text}</p>
                   </motion.div>
                 ))}
               </motion.div>
