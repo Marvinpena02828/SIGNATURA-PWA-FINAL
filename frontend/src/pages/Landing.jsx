@@ -7,6 +7,182 @@ import {
   FiSparkles, FiZap, FiLock
 } from 'react-icons/fi';
 
+// ===== CUSTOM SVG ICONS (RED & WHITE ONLY) =====
+
+const SecurityIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 10 L85 30 L85 55 Q50 80 15 55 L15 30 Z" stroke="#dc2626" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="50" cy="50" r="15" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <path d="M45 48 L48 51 L56 43" stroke="#dc2626" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const LightningIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M55 10 L30 50 L50 50 L40 90 L70 40 L50 40 Z" fill="#dc2626" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const GlobalIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="35" stroke="#dc2626" strokeWidth="3"/>
+    <path d="M20 35 Q50 25 80 35" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <path d="M20 50 Q50 60 80 50" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <path d="M35 20 Q35 50 35 80" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <path d="M65 20 Q65 50 65 80" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+  </svg>
+);
+
+const IntegrationIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="25" width="25" height="25" rx="3" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <rect x="60" y="25" width="25" height="25" rx="3" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <rect x="15" y="50" width="25" height="25" rx="3" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <line x1="40" y1="37.5" x2="60" y2="37.5" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="40" y1="62.5" x2="60" y2="62.5" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="27.5" cy="37.5" r="2" fill="#dc2626"/>
+    <circle cx="72.5" cy="37.5" r="2" fill="#dc2626"/>
+  </svg>
+);
+
+const MobileIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="28" y="15" width="44" height="70" rx="4" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <rect x="30" y="20" width="40" height="45" fill="none" stroke="#dc2626" strokeWidth="2" opacity="0.5"/>
+    <circle cx="50" cy="75" r="2.5" fill="#dc2626"/>
+  </svg>
+);
+
+const SupportIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="35" r="15" stroke="#dc2626" strokeWidth="3" fill="none"/>
+    <path d="M35 55 Q35 50 50 50 Q65 50 65 55" stroke="#dc2626" strokeWidth="3" fill="none" strokeLinecap="round"/>
+    <path d="M40 60 L35 85 Q50 80 50 80 Q50 80 65 85 L60 60" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="50" cy="70" r="1.5" fill="#dc2626"/>
+  </svg>
+);
+
+const IdentityIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="20" width="70" height="55" rx="3" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <circle cx="35" cy="40" r="12" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <path d="M22 60 Q35 53 48 60" stroke="#dc2626" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    <line x1="55" y1="30" x2="80" y2="30" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="55" y1="42" x2="80" y2="42" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="55" y1="54" x2="80" y2="54" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const SignatureIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 50 Q30 35 50 40 T80 45" stroke="#dc2626" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M25 65 L75 65" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <rect x="20" y="20" width="60" height="60" rx="3" stroke="#dc2626" strokeWidth="2" fill="none" opacity="0.5"/>
+  </svg>
+);
+
+const DataSecurityIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="25" width="60" height="50" rx="3" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <path d="M20 35 L80 35" stroke="#dc2626" strokeWidth="2"/>
+    <circle cx="30" cy="55" r="4" fill="#dc2626"/>
+    <circle cx="50" cy="55" r="4" fill="#dc2626"/>
+    <circle cx="70" cy="55" r="4" fill="#dc2626"/>
+  </svg>
+);
+
+const MFAIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="30" width="70" height="45" rx="3" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <circle cx="30" cy="52" r="6" stroke="#dc2626" strokeWidth="2" fill="none"/>
+    <path d="M50 40 L60 52 L50 64 L40 52 Z" stroke="#dc2626" strokeWidth="2" fill="none"/>
+    <circle cx="75" cy="52" r="6" stroke="#dc2626" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+const BiometricIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="40" r="18" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <path d="M50 20 L50 10" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M65 30 L72 20" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M70 50 L80 50" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M45 75 Q50 60 55 75" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+  </svg>
+);
+
+const EncryptionIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="45" width="60" height="35" rx="3" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <path d="M35 45 L35 30 Q35 20 50 20 Q65 20 65 30 L65 45" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <circle cx="50" cy="62" r="4" fill="#dc2626"/>
+  </svg>
+);
+
+const MonitoringIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="20" width="70" height="50" rx="3" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <path d="M35 70 L65 70" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M45 70 L45 80" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M55 70 L55 80" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M30 40 L50 35 L70 40" stroke="#dc2626" strokeWidth="2" fill="none" strokeLinecap="round"/>
+  </svg>
+);
+
+const LedgerIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M30 20 L30 80 M50 20 L50 80 M70 20 L70 80" stroke="#dc2626" strokeWidth="2" opacity="0.6"/>
+    <path d="M20 30 L80 30 M20 45 L80 45 M20 60 L80 60 M20 75 L80 75" stroke="#dc2626" strokeWidth="2" opacity="0.6"/>
+    <circle cx="30" cy="30" r="3" fill="#dc2626"/>
+    <circle cx="50" cy="45" r="3" fill="#dc2626"/>
+    <circle cx="70" cy="60" r="3" fill="#dc2626"/>
+  </svg>
+);
+
+const ZeroTrustIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="30" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <circle cx="50" cy="50" r="20" stroke="#dc2626" strokeWidth="2" fill="none" opacity="0.6"/>
+    <circle cx="50" cy="50" r="10" stroke="#dc2626" strokeWidth="2" fill="none"/>
+    <circle cx="50" cy="50" r="3" fill="#dc2626"/>
+  </svg>
+);
+
+const BankingIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 50 L50 25 L80 50" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect x="15" y="50" width="70" height="30" rx="2" stroke="#dc2626" strokeWidth="2.5" fill="none"/>
+    <line x1="15" y1="60" x2="85" y2="60" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+    <line x1="30" y1="50" x2="30" y2="80" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+    <line x1="50" y1="50" x2="50" y2="80" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+    <line x1="70" y1="50" x2="70" y2="80" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+  </svg>
+);
+
+const InsuranceIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 15 L30 25 L30 50 Q30 70 50 85 Q70 70 70 50 L70 25 Z" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M40 50 L48 58 L62 42" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const GovernmentIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 15 L70 30 L70 80 L30 80 L30 30 Z" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M50 15 L50 5 L45 10 M50 15 L55 10" stroke="#dc2626" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    <line x1="30" y1="40" x2="70" y2="40" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+    <line x1="30" y1="55" x2="70" y2="55" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+    <line x1="30" y1="70" x2="70" y2="70" stroke="#dc2626" strokeWidth="1.5" opacity="0.6"/>
+  </svg>
+);
+
+const EducationIcon = ({ size = 48 }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 50 L50 30 L85 50 L80 50 L80 75 L20 75 L20 50 Z" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M35 50 L35 70 M50 50 L50 70 M65 50 L65 70" stroke="#dc2626" strokeWidth="2" opacity="0.6"/>
+    <circle cx="50" cy="40" r="3" fill="#dc2626"/>
+  </svg>
+);
+
 // ===== ENHANCED FLOATING SHIELD WITH PARALLAX =====
 
 const FloatingShield = () => {
@@ -593,6 +769,7 @@ const PremiumFooter = () => {
 // ===== FEATURE CARD WITH ENHANCED ANIMATION =====
 
 const FeatureCard = ({ feature, idx }) => {
+  const IconComponent = feature.icon;
   return (
     <motion.div 
       className="col-md-6 col-lg-4"
@@ -614,11 +791,11 @@ const FeatureCard = ({ feature, idx }) => {
         transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
       >
         <motion.div 
-          className="text-6xl mb-4"
-          animate={{ rotate: [0, 10, -10, 0] }}
+          className="mb-4"
+          animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 4, repeat: Infinity, delay: idx * 0.2 }}
         >
-          {feature.icon}
+          <IconComponent size={64} />
         </motion.div>
         <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '20px' }}>{feature.title}</h5>
         <p className="text-muted" style={{ fontSize: '15px' }}>{feature.desc}</p>
@@ -797,12 +974,12 @@ export default function SignaturaLanding() {
             variants={containerVariants}
           >
             {[
-              { icon: '🛡️', title: 'Military-Grade Security', desc: 'End-to-end encrypted protection' },
-              { icon: '⚡', title: 'Lightning Fast', desc: 'Real-time verification in milliseconds' },
-              { icon: '🌍', title: 'Global Compliance', desc: 'GDPR, eIDAS, international standards' },
-              { icon: '🔗', title: 'Easy Integration', desc: 'RESTful APIs and SDKs' },
-              { icon: '📱', title: 'Mobile-First', desc: 'Native iOS & Android apps' },
-              { icon: '👥', title: '24/7 Support', desc: 'Dedicated enterprise support' },
+              { icon: SecurityIcon, title: 'Military-Grade Security', desc: 'End-to-end encrypted protection' },
+              { icon: LightningIcon, title: 'Lightning Fast', desc: 'Real-time verification in milliseconds' },
+              { icon: GlobalIcon, title: 'Global Compliance', desc: 'GDPR, eIDAS, international standards' },
+              { icon: IntegrationIcon, title: 'Easy Integration', desc: 'RESTful APIs and SDKs' },
+              { icon: MobileIcon, title: 'Mobile-First', desc: 'Native iOS & Android apps' },
+              { icon: SupportIcon, title: '24/7 Support', desc: 'Dedicated enterprise support' },
             ].map((feature, idx) => (
               <FeatureCard key={idx} feature={feature} idx={idx} />
             ))}
@@ -830,9 +1007,9 @@ export default function SignaturaLanding() {
             variants={containerVariants}
           >
             {[
-              { emoji: '🆔', title: 'Digital Identity', desc: 'KYC verification, biometric authentication, multi-factor security', features: ['Selfie verification', 'Liveness detection', 'Real-time KYC', 'Secure storage'] },
-              { emoji: '✍️', title: 'Digital Signatures', desc: 'Legally binding signatures with QR protection and audit trails', features: ['Legal compliance', 'QR codes', 'Audit logs', 'Global recognition'] },
-              { emoji: '🔐', title: 'Data Security', desc: 'Military-grade encryption for sensitive documents and data', features: ['AES-256 encryption', 'TLS 1.3', 'Zero knowledge', 'Compliance ready'] },
+              { icon: IdentityIcon, title: 'Digital Identity', desc: 'KYC verification, biometric authentication, multi-factor security', features: ['Selfie verification', 'Liveness detection', 'Real-time KYC', 'Secure storage'] },
+              { icon: SignatureIcon, title: 'Digital Signatures', desc: 'Legally binding signatures with QR protection and audit trails', features: ['Legal compliance', 'QR codes', 'Audit logs', 'Global recognition'] },
+              { icon: DataSecurityIcon, title: 'Data Security', desc: 'Military-grade encryption for sensitive documents and data', features: ['AES-256 encryption', 'TLS 1.3', 'Zero knowledge', 'Compliance ready'] },
             ].map((solution, idx) => (
               <motion.div 
                 key={idx} 
@@ -854,11 +1031,11 @@ export default function SignaturaLanding() {
                   transition={{ duration: 0.3, type: "spring" }}
                 >
                   <motion.div 
-                    style={{ fontSize: '48px', marginBottom: '20px' }}
                     whileHover={{ scale: 1.3, rotate: 15 }}
                     transition={{ duration: 0.3 }}
+                    className="mb-4"
                   >
-                    {solution.emoji}
+                    <solution.icon size={80} />
                   </motion.div>
                   <h5 className="fw-700 mb-3" style={{ color: '#111827', fontSize: '22px' }}>{solution.title}</h5>
                   <p className="text-muted mb-5" style={{ fontSize: '15px' }}>{solution.desc}</p>
@@ -923,12 +1100,12 @@ export default function SignaturaLanding() {
             variants={containerVariants}
           >
             {[
-              { icon: '🔐', title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
-              { icon: '👤', title: 'Biometric Verification', desc: 'Liveness detection & KYC' },
-              { icon: '🔒', title: 'Military Encryption', desc: 'AES-256 & TLS 1.3' },
-              { icon: '📡', title: '24/7 Monitoring', desc: 'Real-time threat detection' },
-              { icon: '⛓️', title: 'Immutable Ledger', desc: 'Blockchain-backed records' },
-              { icon: '🛡️', title: 'Zero Trust', desc: 'Verify every transaction' },
+              { icon: MFAIcon, title: 'Multi-Factor Auth', desc: 'Multiple verification layers' },
+              { icon: BiometricIcon, title: 'Biometric Verification', desc: 'Liveness detection & KYC' },
+              { icon: EncryptionIcon, title: 'Military Encryption', desc: 'AES-256 & TLS 1.3' },
+              { icon: MonitoringIcon, title: '24/7 Monitoring', desc: 'Real-time threat detection' },
+              { icon: LedgerIcon, title: 'Immutable Ledger', desc: 'Blockchain-backed records' },
+              { icon: ZeroTrustIcon, title: 'Zero Trust', desc: 'Verify every transaction' },
             ].map((feature, idx) => (
               <motion.div 
                 key={idx} 
@@ -949,13 +1126,13 @@ export default function SignaturaLanding() {
                   }}
                   transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <motion.p 
-                    className="text-5xl mb-4"
+                  <motion.div 
+                    className="mb-4"
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 3, repeat: Infinity, delay: idx * 0.15 }}
                   >
-                    {feature.icon}
-                  </motion.p>
+                    <feature.icon size={64} />
+                  </motion.div>
                   <h5 className="fw-700 mb-2 text-white">{feature.title}</h5>
                   <p className="text-white opacity-80 small">{feature.desc}</p>
                 </motion.div>
@@ -985,10 +1162,10 @@ export default function SignaturaLanding() {
             variants={containerVariants}
           >
             {[
-              { icon: '🏦', title: 'Banking & Finance', desc: 'Secure transactions and compliance' },
-              { icon: '🏢', title: 'Insurance', desc: 'Policy management and claims' },
-              { icon: '🏛️', title: 'Government', desc: 'Citizen services and digital ID' },
-              { icon: '📚', title: 'Education', desc: 'Credential verification and transcripts' },
+              { icon: BankingIcon, title: 'Banking & Finance', desc: 'Secure transactions and compliance' },
+              { icon: InsuranceIcon, title: 'Insurance', desc: 'Policy management and claims' },
+              { icon: GovernmentIcon, title: 'Government', desc: 'Citizen services and digital ID' },
+              { icon: EducationIcon, title: 'Education', desc: 'Credential verification and transcripts' },
             ].map((industry, idx) => (
               <motion.div 
                 key={idx} 
@@ -1009,13 +1186,13 @@ export default function SignaturaLanding() {
                   }}
                   transition={{ duration: 0.3, type: "spring" }}
                 >
-                  <motion.p 
-                    className="text-6xl mb-4"
+                  <motion.div 
+                    className="mb-4"
                     animate={{ rotateY: [0, 360] }}
                     transition={{ duration: 4, repeat: Infinity, delay: idx * 0.3 }}
                   >
-                    {industry.icon}
-                  </motion.p>
+                    <industry.icon size={80} />
+                  </motion.div>
                   <h5 className="fw-700 mb-2" style={{ color: '#111827', fontSize: '22px' }}>{industry.title}</h5>
                   <p className="text-muted small">{industry.desc}</p>
                 </motion.div>
