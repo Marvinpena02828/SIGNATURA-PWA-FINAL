@@ -1371,9 +1371,22 @@ export default function SignaturaLanding() {
               viewport={{ once: true }}
               variants={containerVariants}
             >
-           >
-              </motion.div>
-        
+              <motion.button 
+                className="btn fw-700 text-white rounded-pill px-8 py-3" 
+                style={{ background: 'white', color: '#dc2626', fontSize: '16px' }}
+                whileHover={{ scale: 1.08, boxShadow: '0 10px 30px rgba(255,255,255,0.3)' }} 
+                whileTap={{ scale: 0.92 }}
+              >
+                Start Free Trial
+              </motion.button>
+              <motion.button 
+                className="btn fw-700 text-white rounded-pill px-8 py-3" 
+                style={{ background: 'transparent', border: '2px solid white', color: 'white', fontSize: '16px' }}
+                whileHover={{ scale: 1.08, background: 'white', color: '#dc2626' }} 
+                whileTap={{ scale: 0.92 }}
+              >
+                Schedule Demo
+              </motion.button>
             </motion.div>
           </motion.div>
         </div>
