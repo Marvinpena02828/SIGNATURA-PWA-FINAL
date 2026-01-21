@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiX, FiLogOut, FiPlus, FiEye, FiEyeOff, FiUpload } from 'react-icons/fi';
+import { FiX, FiLogOut, FiPlus, FiUpload } from 'react-icons/fi';
 
 export default function AdminPortal() {
   const navigate = useNavigate();
@@ -10,7 +10,6 @@ export default function AdminPortal() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  // State
   const [issuers, setIssuers] = useState([]);
   const [stats, setStats] = useState({
     totalIssuers: 0,
@@ -21,12 +20,9 @@ export default function AdminPortal() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showAddIssuerModal, setShowAddIssuerModal] = useState(false);
-  const [businessType, setBusinessType] = useState('corporation');
   const [logoPreview, setLogoPreview] = useState(null);
   const [generatedSignaturaId, setGeneratedSignaturaId] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
     businessType: 'corporation',
     registeredName: '',
@@ -58,19 +54,18 @@ export default function AdminPortal() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch issuers
+
       const issuersRes = await fetch('/api/users?role=issuer');
       const issuersData = await issuersRes.json();
-      
+
       if (issuersData.success) {
         const issuersList = issuersData.data || [];
         setIssuers(issuersList);
         setStats({
           totalIssuers: issuersList.length,
-          totalSubscribers: issuersList.reduce((sum, i) => sum + (i.subscriber_count || 0), 0),
-          totalDocuments: issuersList.reduce((sum, i) => sum + (i.document_count || 0), 0),
-          totalIssued: issuersList.reduce((sum, i) => sum + (i.issued_count || 0), 0),
+          totalSubscribers: 0,
+          totalDocuments: 0,
+          totalIssued: 0,
         });
       }
     } catch (err) {
@@ -109,9 +104,7 @@ export default function AdminPortal() {
       personPhone: '',
       logoFile: null,
     });
-    setBusinessType('corporation');
     setLogoPreview(null);
-    setShowPassword(false);
     setShowAddIssuerModal(true);
   };
 
@@ -122,13 +115,7 @@ export default function AdminPortal() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'businessType') {
-      setBusinessType(value);
-      setFormData({ ...formData, businessType: value });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleLogoChange = (e) => {
@@ -167,7 +154,7 @@ export default function AdminPortal() {
       return;
     }
 
-    if (businessType === 'sole_proprietor') {
+    if (formData.businessType === 'sole_proprietor') {
       if (!formData.proprietorFirstName.trim() || !formData.proprietorLastName.trim()) {
         toast.error('Proprietor first and last name are required');
         return;
@@ -187,20 +174,18 @@ export default function AdminPortal() {
     try {
       setSubmitting(true);
 
-      // Prepare logo base64 if exists
       let logoBase64 = null;
       if (formData.logoFile) {
         logoBase64 = await new Promise((resolve) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(formData.logoFile);
         });
       }
 
-      // Generate password
+      // Generate temp password
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
 
-      // Create issuer account
       const payload = {
         endpoint: 'create-issuer',
         businessType: formData.businessType,
@@ -224,29 +209,40 @@ export default function AdminPortal() {
         logoBase64: logoBase64,
       };
 
+      console.log('📤 Sending payload:', payload);
+
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
 
+      console.log('📥 Response status:', res.status);
+      console.log('📥 Response headers:', res.headers);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`API Error: ${res.status} - ${errorText}`);
+      }
+
       const data = await res.json();
+      console.log('✅ Response data:', data);
 
       if (data.success) {
-        toast.success('✅ Issuer account created successfully!');
-        toast.success(`📧 Login credentials sent to ${formData.personEmail}`);
-        
-        // Refresh issuers list
+        toast.success('✅ Issuer account created!');
+        toast.success(`📧 Credentials sent to ${formData.personEmail}`);
+
         fetchData();
-        
-        // Close modal
         handleCloseModal();
       } else {
         toast.error(data.error || 'Failed to create account');
       }
     } catch (err) {
-      console.error('Error creating issuer:', err);
-      toast.error('Error creating account');
+      console.error('❌ Error creating issuer:', err);
+      toast.error(`Error: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -294,7 +290,6 @@ export default function AdminPortal() {
       <main className="max-w-7xl mx-auto px-8 py-12">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {/* Document Issuers - Orange */}
           <div className="bg-white rounded-xl border-4 border-orange-400 p-8 shadow-md hover:shadow-lg transition">
             <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Document Issuers</h3>
             <p className="text-5xl font-bold text-orange-600 mt-3">{stats.totalIssuers}</p>
@@ -303,7 +298,6 @@ export default function AdminPortal() {
             </button>
           </div>
 
-          {/* Subscribers - Green */}
           <div className="bg-white rounded-xl border-4 border-green-400 p-8 shadow-md hover:shadow-lg transition">
             <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Subscribers</h3>
             <p className="text-5xl font-bold text-green-600 mt-3">{stats.totalSubscribers}</p>
@@ -312,7 +306,6 @@ export default function AdminPortal() {
             </button>
           </div>
 
-          {/* Documents - Purple */}
           <div className="bg-white rounded-xl border-4 border-purple-400 p-8 shadow-md hover:shadow-lg transition">
             <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Documents</h3>
             <p className="text-5xl font-bold text-purple-600 mt-3">{stats.totalDocuments}</p>
@@ -321,7 +314,6 @@ export default function AdminPortal() {
             </button>
           </div>
 
-          {/* Issued Documents - Blue */}
           <div className="bg-white rounded-xl border-4 border-blue-400 p-8 shadow-md hover:shadow-lg transition">
             <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Issued Documents</h3>
             <p className="text-5xl font-bold text-blue-600 mt-3">{stats.totalIssued.toLocaleString()}</p>
@@ -339,8 +331,8 @@ export default function AdminPortal() {
           <FiPlus /> ADD DOCUMENT ISSUER
         </button>
 
-        {/* Issuers Table - Desktop View */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden hidden md:block">
+        {/* Issuers Table */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="px-8 py-6 border-b-4 border-blue-900 bg-blue-900 text-white">
             <h2 className="text-2xl font-bold">LIST OF DOCUMENT ISSUERS</h2>
           </div>
@@ -383,32 +375,6 @@ export default function AdminPortal() {
             </div>
           )}
         </div>
-
-        {/* Issuers Cards - Mobile View */}
-        <div className="md:hidden space-y-4">
-          {issuers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <p>No issuers added yet. Click "ADD DOCUMENT ISSUER" to create one.</p>
-            </div>
-          ) : (
-            issuers.map((issuer) => (
-              <div key={issuer.id} className="bg-white rounded-lg border-2 border-gray-300 p-4 shadow">
-                <div className="font-bold text-gray-900">{issuer.signatura_id}</div>
-                <div className="text-sm text-gray-600 mt-1">{issuer.organization_name}</div>
-                <div className="text-sm text-gray-600 mt-1">{issuer.address || 'N/A'}</div>
-                <div className="text-sm font-semibold text-gray-900 mt-2">Docs: {issuer.document_count || 0}</div>
-                <div className="flex gap-2 mt-4">
-                  <button className="flex-1 px-3 py-2 bg-orange-500 text-white rounded text-xs font-bold hover:bg-orange-600">
-                    UPDATE
-                  </button>
-                  <button className="flex-1 px-3 py-2 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-600">
-                    ADD DOC
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </main>
 
       {/* Add Issuer Modal */}
@@ -431,15 +397,17 @@ export default function AdminPortal() {
               <div className="grid grid-cols-2 gap-12">
                 {/* Left Column */}
                 <div className="space-y-6">
-                  {/* Business Information Section */}
+                  {/* Business Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Business Information</h3>
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
+                      Business Information
+                    </h3>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">Business Type *</label>
                       <select
                         name="businessType"
-                        value={businessType}
+                        value={formData.businessType}
                         onChange={handleFormChange}
                         className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none bg-white font-semibold"
                       >
@@ -447,7 +415,6 @@ export default function AdminPortal() {
                         <option value="partnership">Partnership</option>
                         <option value="sole_proprietor">Sole Proprietor</option>
                       </select>
-                      <p className="text-xs text-red-600 mt-1 font-semibold">Dropdown: Corporation, Partnership, Sole Proprietor</p>
                     </div>
 
                     <div>
@@ -486,7 +453,7 @@ export default function AdminPortal() {
                       />
                     </div>
 
-                    {businessType !== 'sole_proprietor' && (
+                    {formData.businessType !== 'sole_proprietor' && (
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
                         <input
@@ -500,11 +467,10 @@ export default function AdminPortal() {
                     )}
                   </div>
 
-                  {/* Sole Proprietor Data (Conditional) */}
-                  {businessType === 'sole_proprietor' && (
+                  {/* Sole Proprietor */}
+                  {formData.businessType === 'sole_proprietor' && (
                     <div className="space-y-4 border-l-4 border-red-600 pl-4 py-4">
                       <h3 className="text-lg font-bold text-gray-900 uppercase">Sole Proprietor Data</h3>
-                      <p className="text-xs text-red-600 font-semibold">*These fields will only appear if dropdown is sole proprietor</p>
 
                       <input
                         type="text"
@@ -555,35 +521,27 @@ export default function AdminPortal() {
                     </div>
                   )}
 
-                  {/* Logo Section */}
+                  {/* Logo */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Business Logo</h3>
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
+                      Business Logo
+                    </h3>
 
                     <div className="flex gap-4 items-start">
                       {logoPreview && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={logoPreview}
-                            alt="Logo Preview"
-                            className="h-24 w-24 object-contain border-2 border-gray-400 rounded p-2 bg-gray-50"
-                          />
-                        </div>
+                        <img
+                          src={logoPreview}
+                          alt="Logo Preview"
+                          className="h-24 w-24 object-contain border-2 border-gray-400 rounded p-2 bg-gray-50"
+                        />
                       )}
 
-                      <div className="flex-1">
-                        <label className="block">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoChange}
-                            className="hidden"
-                          />
-                          <span className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 cursor-pointer transition flex items-center gap-2 w-fit">
-                            <FiUpload /> Add Logo
-                          </span>
-                        </label>
-                        <p className="text-xs text-gray-600 mt-2">Max: 5MB (JPG, PNG)</p>
-                      </div>
+                      <label className="block">
+                        <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                        <span className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 cursor-pointer transition flex items-center gap-2 w-fit">
+                          <FiUpload /> Add Logo
+                        </span>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -592,79 +550,69 @@ export default function AdminPortal() {
                 <div className="space-y-6">
                   {/* Authorized Personnel */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Authorized Personnel</h3>
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
+                      Authorized Personnel
+                    </h3>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">First Name *</label>
-                      <input
-                        type="text"
-                        name="personFirstName"
-                        value={formData.personFirstName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                        required
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="personFirstName"
+                      placeholder="First Name *"
+                      value={formData.personFirstName}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      required
+                    />
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Middle Name</label>
-                      <input
-                        type="text"
-                        name="personMiddleName"
-                        value={formData.personMiddleName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="personMiddleName"
+                      placeholder="Middle Name"
+                      value={formData.personMiddleName}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                    />
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Last Name *</label>
-                      <input
-                        type="text"
-                        name="personLastName"
-                        value={formData.personLastName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                        required
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="personLastName"
+                      placeholder="Last Name *"
+                      value={formData.personLastName}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      required
+                    />
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Email *</label>
-                      <input
-                        type="email"
-                        name="personEmail"
-                        value={formData.personEmail}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                        required
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      name="personEmail"
+                      placeholder="Email *"
+                      value={formData.personEmail}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      required
+                    />
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Viber #</label>
-                      <input
-                        type="text"
-                        name="personViber"
-                        value={formData.personViber}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="personViber"
+                      placeholder="Viber #"
+                      value={formData.personViber}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                    />
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Handphone #</label>
-                      <input
-                        type="text"
-                        name="personPhone"
-                        value={formData.personPhone}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="personPhone"
+                      placeholder="Handphone #"
+                      value={formData.personPhone}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                    />
                   </div>
 
-                  {/* LOG-IN CREDENTIALS */}
+                  {/* Credentials */}
                   <div className="bg-gray-100 rounded-lg p-6 space-y-4 border-2 border-gray-400">
                     <h3 className="text-lg font-bold text-gray-900 uppercase">LOG-IN CREDENTIALS</h3>
 
@@ -680,13 +628,6 @@ export default function AdminPortal() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Bottom Note */}
-              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                <p className="text-xs text-yellow-800 font-semibold">
-                  ⚠️ After create issuer button - save to database and send login credential to authorized personnel email address
-                </p>
               </div>
 
               {/* Buttons */}
