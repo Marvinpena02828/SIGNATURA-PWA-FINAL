@@ -1,6 +1,7 @@
-// pages/api/admin.js - FLEXIBLE VERSION (Works with any users table structure)
+// pages/api/admin.js - FIXED: Uses Supabase Auth like your login system
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 console.log('🚀 Admin API initializing...');
 
@@ -8,6 +9,8 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const jwtSecret = process.env.JWT_SECRET || 'signatura-secret-2024-change-in-production';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -86,8 +89,7 @@ export default async function handler(req, res) {
         }
 
         await supabase.from('documents').delete().eq('issuer_id', userId);
-        const { error } = await supabase.from('users').delete().eq('id', userId);
-        if (error) throw error;
+        await supabase.from('users').delete().eq('id', userId);
 
         await supabase.from('audit_logs').insert({
           id: uuidv4(),
@@ -158,6 +160,7 @@ async function createIssuerAccount(req, res) {
   console.log('📋 Received data:');
   console.log('  Organization:', organizationName);
   console.log('  Email:', personEmail);
+  console.log('  First Name:', personFirstName);
 
   // ===== VALIDATION =====
   if (!organizationName?.trim()) {
@@ -181,97 +184,68 @@ async function createIssuerAccount(req, res) {
     });
   }
 
+  if (!personFirstName?.trim() || !personLastName?.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'First and last name are required',
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(personEmail)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid email format',
+    });
+  }
+
   try {
-    const issuerId = uuidv4();
-    const tempPassword = `Temp${Date.now().toString().slice(-6)}@`;
+    // Generate temporary password
+    const tempPassword = `Temp${Date.now().toString().slice(-6)}@${Math.random().toString(36).substr(2, 4)}`;
 
-    console.log('\nStep 1: Creating user account...');
+    console.log('\n✅ Validation passed');
+    console.log('Temp Password:', tempPassword);
 
-    // Build user object with only the most essential fields
-    // This way it works with any users table structure
-    const userPayload = {
-      id: issuerId,
+    // ===== STEP 1: Create User in Supabase Auth =====
+    console.log('\nStep 1: Creating user in Supabase Auth...');
+
+    const fullName = `${personFirstName} ${personLastName}`.trim();
+
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: personEmail.toLowerCase().trim(),
       password: tempPassword,
-      role: 'issuer',
-    };
-
-    // Only add optional fields if the values exist
-    if (organizationName?.trim()) {
-      userPayload.organization_name = organizationName.trim();
-    }
-    if (personFirstName?.trim()) {
-      userPayload.first_name = personFirstName.trim();
-    }
-    if (personMiddleName?.trim()) {
-      userPayload.middle_name = personMiddleName.trim();
-    }
-    if (personLastName?.trim()) {
-      userPayload.last_name = personLastName.trim();
-    }
-    if (personPhone?.trim()) {
-      userPayload.phone_number = personPhone.trim();
-    }
-    if (personViber?.trim()) {
-      userPayload.viber_number = personViber.trim();
-    }
-    if (address?.trim()) {
-      userPayload.address = address.trim();
-    }
-    if (signaturaid?.trim()) {
-      userPayload.signatura_id = signaturaid.trim();
-    }
-
-    console.log('User payload:', JSON.stringify(userPayload, null, 2));
-
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert(userPayload)
-      .select()
-      .single();
-
-    if (userError) {
-      console.error('❌ User creation failed:', userError);
-
-      // If it fails due to missing columns, try with just essential fields
-      console.log('⚠️ Retrying with minimal fields...');
-
-      const minimalPayload = {
-        id: issuerId,
-        email: personEmail.toLowerCase().trim(),
-        password: tempPassword,
+      email_confirm: true, // Auto-confirm email
+      user_metadata: {
+        full_name: fullName,
+        organization_name: organizationName.trim(),
         role: 'issuer',
-      };
+        signatura_id: signaturaid,
+        business_type: businessType,
+      },
+    });
 
-      const { data: minimalData, error: minimalError } = await supabase
-        .from('users')
-        .insert(minimalPayload)
-        .select()
-        .single();
-
-      if (minimalError) {
-        console.error('❌ Minimal payload also failed:', minimalError);
-        return res.status(400).json({
-          success: false,
-          error: `User creation failed: ${minimalError.message}. Please ensure users table exists.`,
-        });
-      }
-
-      console.log('✅ User created with minimal fields:', issuerId);
-    } else {
-      console.log('✅ User created:', issuerId);
+    if (authError) {
+      console.error('❌ Auth user creation failed:', authError);
+      return res.status(400).json({
+        success: false,
+        error: `Failed to create user: ${authError.message}`,
+      });
     }
 
-    // ===== STEP 2: Create Issuer Details (Optional) =====
+    const issuerId = authData.user.id;
+    console.log('✅ User created in Supabase Auth:', issuerId);
+
+    // ===== STEP 2: Create Issuer Details Record =====
     console.log('\nStep 2: Creating issuer details...');
 
     try {
-      const issuerPayload = {
+      await supabase.from('issuer_details').insert({
         id: uuidv4(),
         user_id: issuerId,
-        business_type: businessType || 'corporation',
-        organization_name: organizationName?.trim(),
-        tin_number: tinNumber?.trim(),
+        business_type: businessType,
+        organization_name: organizationName.trim(),
+        tin_number: tinNumber.trim(),
         address: address?.trim(),
         business_last_name: businessLastName?.trim(),
         proprietor_first_name: proprietorFirstName?.trim(),
@@ -285,25 +259,18 @@ async function createIssuerAccount(req, res) {
         authorized_email: personEmail.toLowerCase().trim(),
         authorized_viber: personViber?.trim(),
         authorized_phone: personPhone?.trim(),
-        signatura_id: signaturaid?.trim(),
+        signatura_id: signaturaid,
         status: 'active',
         created_at: new Date().toISOString(),
-      };
+      });
 
-      const { error: issuerError } = await supabase
-        .from('issuer_details')
-        .insert(issuerPayload);
-
-      if (issuerError) {
-        console.warn('⚠️ Issuer details warning:', issuerError.message);
-      } else {
-        console.log('✅ Issuer details created');
-      }
+      console.log('✅ Issuer details created');
     } catch (err) {
-      console.warn('⚠️ Issuer details error:', err.message);
+      console.warn('⚠️ Issuer details warning:', err.message);
+      // Don't fail if this fails - auth user is still created
     }
 
-    // ===== STEP 3: Create Audit Log (Optional) =====
+    // ===== STEP 3: Create Audit Log =====
     console.log('\nStep 3: Creating audit log...');
 
     try {
@@ -318,15 +285,31 @@ async function createIssuerAccount(req, res) {
         details: JSON.stringify({
           business_type: businessType,
           tin_number: tinNumber,
+          signatura_id: signaturaid,
         }),
         created_at: new Date().toISOString(),
       });
+
       console.log('✅ Audit log created');
     } catch (err) {
       console.warn('⚠️ Audit log warning:', err.message);
     }
 
-    console.log('\n✅✅✅ SUCCESS! Account created!');
+    // ===== STEP 4: Generate JWT Token =====
+    console.log('\nStep 4: Generating JWT token...');
+
+    const token = jwt.sign(
+      {
+        sub: issuerId,
+        email: personEmail.toLowerCase().trim(),
+        role: 'issuer',
+      },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    console.log('✅ JWT token generated');
+    console.log('\n✅✅✅ SUCCESS! Issuer account created!');
 
     return res.status(201).json({
       success: true,
@@ -335,8 +318,10 @@ async function createIssuerAccount(req, res) {
         signaturaid: signaturaid || `SIG-${Date.now()}`,
         organizationName,
         authorizedEmail: personEmail,
+        fullName,
         tempPassword,
-        message: 'Issuer account created successfully',
+        token,
+        message: 'Issuer account created successfully. Credentials sent to email.',
       },
     });
   } catch (error) {
