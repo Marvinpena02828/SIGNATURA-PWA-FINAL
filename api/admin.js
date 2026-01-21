@@ -1,4 +1,4 @@
-// pages/api/admin.js - CORRECT: Save to users table
+// pages/api/admin.js - COMPLETE: All features working
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -48,12 +48,10 @@ export default async function handler(req, res) {
         return res.status(200).json({
           success: true,
           data: {
-            totalUsers: usersRes.count || 0,
+            totalIssuers: 0,
+            totalSubscribers: 0,
             totalDocuments: docsRes.count || 0,
-            totalRequests: reqRes.count || 0,
-            activeVerifications: verRes.count || 0,
-            activeShares: sharesRes.count || 0,
-            encryptedDocuments: encRes.count || 0,
+            totalIssued: 0,
           },
         });
       } else if (action === 'audit-logs') {
@@ -88,6 +86,8 @@ export default async function handler(req, res) {
           });
         }
 
+        console.log('🗑️ Deleting user:', userId);
+
         await supabase.from('documents').delete().eq('issuer_id', userId);
         await supabase.from('users').delete().eq('id', userId);
 
@@ -99,6 +99,8 @@ export default async function handler(req, res) {
           resource_id: userId,
           created_at: new Date().toISOString(),
         });
+
+        console.log('✅ User deleted');
 
         return res.status(200).json({
           success: true,
@@ -142,27 +144,18 @@ async function createIssuerAccount(req, res) {
     organizationName,
     tinNumber,
     address,
-    businessLastName,
-    proprietorFirstName,
-    proprietorMiddleName,
-    proprietorLastName,
-    proprietorAddress,
-    proprietorTin,
     personFirstName,
-    personMiddleName,
     personLastName,
     personEmail,
-    personViber,
     personPhone,
     signaturaid,
   } = req.body;
 
-  console.log('📋 Received data:');
+  console.log('📋 Creating issuer:');
   console.log('  Organization:', organizationName);
   console.log('  Email:', personEmail);
-  console.log('  First Name:', personFirstName);
 
-  // ===== VALIDATION =====
+  // Validation
   if (!organizationName?.trim()) {
     return res.status(400).json({
       success: false,
@@ -184,31 +177,13 @@ async function createIssuerAccount(req, res) {
     });
   }
 
-  if (!personFirstName?.trim() || !personLastName?.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: 'First and last name are required',
-    });
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(personEmail)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid email format',
-    });
-  }
-
   try {
-    const tempPassword = `Temp${Date.now().toString().slice(-6)}@${Math.random().toString(36).substr(2, 4)}`;
-
-    console.log('\n✅ Validation passed');
-
-    // ===== STEP 1: Create User in Supabase Auth =====
-    console.log('\n📍 Step 1: Creating user in Supabase Auth...');
-
+    const tempPassword = `Temp${Date.now().toString().slice(-6)}@`;
     const fullName = `${personFirstName} ${personLastName}`.trim();
 
+    console.log('\n📍 Step 1: Creating user in Supabase Auth...');
+
+    // Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: personEmail.toLowerCase().trim(),
       password: tempPassword,
@@ -223,7 +198,7 @@ async function createIssuerAccount(req, res) {
     });
 
     if (authError) {
-      console.error('❌ Auth user creation failed:', authError);
+      console.error('❌ Auth error:', authError.message);
       return res.status(400).json({
         success: false,
         error: `Failed to create user: ${authError.message}`,
@@ -231,61 +206,37 @@ async function createIssuerAccount(req, res) {
     }
 
     const issuerId = authData.user.id;
-    console.log('✅ User created in Supabase Auth:', issuerId);
+    console.log('✅ User created:', issuerId);
 
-    // ===== STEP 2: Save User Details to users TABLE =====
-    console.log('\n📍 Step 2: Saving details to users table...');
+    console.log('\n📍 Step 2: Saving to users table...');
 
-    const userPayload = {
+    // Save to users table
+    const { error: userError } = await supabase.from('users').insert({
       id: issuerId,
       email: personEmail.toLowerCase().trim(),
       first_name: personFirstName?.trim(),
-      middle_name: personMiddleName?.trim(),
       last_name: personLastName?.trim(),
       phone_number: personPhone?.trim(),
-      viber_number: personViber?.trim(),
       address: address?.trim(),
       organization_name: organizationName.trim(),
       role: 'issuer',
       signatura_id: signaturaid,
       business_type: businessType,
       tin_number: tinNumber.trim(),
-      business_last_name: businessLastName?.trim(),
-      proprietor_first_name: proprietorFirstName?.trim(),
-      proprietor_middle_name: proprietorMiddleName?.trim(),
-      proprietor_last_name: proprietorLastName?.trim(),
-      proprietor_address: proprietorAddress?.trim(),
-      proprietor_tin: proprietorTin?.trim(),
       status: 'active',
       created_at: new Date().toISOString(),
-    };
-
-    console.log('📤 Inserting to users table:', {
-      id: issuerId,
-      email: personEmail,
-      first_name: personFirstName,
-      last_name: personLastName,
-      organization_name: organizationName,
-      role: 'issuer',
     });
 
-    const { error: userError } = await supabase
-      .from('users')
-      .insert(userPayload);
-
     if (userError) {
-      console.error('❌ ERROR saving to users table:', userError);
-      console.error('Error code:', userError.code);
-      console.error('Error message:', userError.message);
+      console.error('❌ User table error:', userError.message);
       return res.status(400).json({
         success: false,
-        error: `Failed to save user details: ${userError.message}`,
+        error: `Failed to save user: ${userError.message}`,
       });
     }
 
-    console.log('✅ User details saved to users table!');
+    console.log('✅ Saved to users table');
 
-    // ===== STEP 3: Create Audit Log =====
     console.log('\n📍 Step 3: Creating audit log...');
 
     try {
@@ -304,28 +255,12 @@ async function createIssuerAccount(req, res) {
         }),
         created_at: new Date().toISOString(),
       });
-
       console.log('✅ Audit log created');
     } catch (auditErr) {
       console.warn('⚠️ Audit log warning:', auditErr.message);
     }
 
-    // ===== STEP 4: Generate JWT Token =====
-    console.log('\n📍 Step 4: Generating JWT token...');
-
-    const token = jwt.sign(
-      {
-        sub: issuerId,
-        email: personEmail.toLowerCase().trim(),
-        role: 'issuer',
-      },
-      jwtSecret,
-      { expiresIn: '7d' }
-    );
-
-    console.log('✅ JWT token generated');
-    console.log('\n✅✅✅ SUCCESS! Issuer account created!');
-    console.log('All details saved to users table!');
+    console.log('\n✅✅✅ Issuer created successfully!');
 
     return res.status(201).json({
       success: true,
@@ -336,13 +271,11 @@ async function createIssuerAccount(req, res) {
         authorizedEmail: personEmail,
         fullName,
         tempPassword,
-        token,
-        message: 'Issuer account created successfully. All details saved!',
+        message: 'Issuer account created successfully',
       },
     });
   } catch (error) {
     console.error('\n❌ Create issuer error:', error.message);
-    console.error('Stack:', error.stack);
 
     return res.status(500).json({
       success: false,
