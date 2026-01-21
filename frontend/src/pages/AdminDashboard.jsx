@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiX, FiLogOut, FiPlus, FiUpload } from 'react-icons/fi';
+import { FiX, FiLogOut, FiPlus, FiUpload, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 export default function AdminPortal() {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ export default function AdminPortal() {
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
+  // State
   const [issuers, setIssuers] = useState([]);
   const [stats, setStats] = useState({
     totalIssuers: 0,
@@ -19,30 +20,44 @@ export default function AdminPortal() {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showAddIssuerModal, setShowAddIssuerModal] = useState(false);
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [generatedSignaturaId, setGeneratedSignaturaId] = useState('');
 
-  const [formData, setFormData] = useState({
+  // Modals
+  const [showAddIssuer, setShowAddIssuer] = useState(false);
+  const [showUpdateIssuer, setShowUpdateIssuer] = useState(false);
+  const [showAddDocument, setShowAddDocument] = useState(false);
+  const [showViewList, setShowViewList] = useState(false);
+  const [viewListType, setViewListType] = useState(null);
+
+  // Selected Issuer
+  const [selectedIssuer, setSelectedIssuer] = useState(null);
+
+  // Form Data
+  const [addIssuerForm, setAddIssuerForm] = useState({
     businessType: 'corporation',
     registeredName: '',
     tinNumber: '',
     registeredAddress: '',
-    businessLastName: '',
-    proprietorFirstName: '',
-    proprietorMiddleName: '',
-    proprietorLastName: '',
-    proprietorAddress: '',
-    proprietorTin: '',
     personFirstName: '',
-    personMiddleName: '',
     personLastName: '',
     personEmail: '',
-    personViber: '',
     personPhone: '',
-    logoFile: null,
   });
 
+  const [updateForm, setUpdateForm] = useState({
+    registeredName: '',
+    registeredAddress: '',
+    tinNumber: '',
+  });
+
+  const [documentForm, setDocumentForm] = useState({
+    documentName: '',
+    documentType: 'certificate',
+  });
+
+  const [generatedSignaturaId, setGeneratedSignaturaId] = useState('');
+  const [logoPreview, setLogoPreview] = useState(null);
+
+  // Fetch Data
   useEffect(() => {
     if (role !== 'admin') {
       navigate('/');
@@ -55,18 +70,20 @@ export default function AdminPortal() {
     try {
       setLoading(true);
 
+      // Get stats
+      const statsRes = await fetch('/api/admin?action=stats');
+      const statsData = await statsRes.json();
+
+      if (statsData.success) {
+        setStats(statsData.data || {});
+      }
+
+      // Get issuers list
       const issuersRes = await fetch('/api/users?role=issuer');
       const issuersData = await issuersRes.json();
 
       if (issuersData.success) {
-        const issuersList = issuersData.data || [];
-        setIssuers(issuersList);
-        setStats({
-          totalIssuers: issuersList.length,
-          totalSubscribers: 0,
-          totalDocuments: 0,
-          totalIssued: 0,
-        });
+        setIssuers(issuersData.data || []);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -76,192 +93,225 @@ export default function AdminPortal() {
     }
   };
 
-  const generateSignaturaId = () => {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substr(2, 5).toUpperCase();
-    return `SIG-${timestamp}-${random}`;
-  };
-
-  const handleOpenAddIssuerModal = () => {
-    const newId = generateSignaturaId();
-    setGeneratedSignaturaId(newId);
-    setFormData({
+  // ===== ADD ISSUER =====
+  const handleOpenAddIssuer = () => {
+    setGeneratedSignaturaId(`SIG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`);
+    setAddIssuerForm({
       businessType: 'corporation',
       registeredName: '',
       tinNumber: '',
       registeredAddress: '',
-      businessLastName: '',
-      proprietorFirstName: '',
-      proprietorMiddleName: '',
-      proprietorLastName: '',
-      proprietorAddress: '',
-      proprietorTin: '',
       personFirstName: '',
-      personMiddleName: '',
       personLastName: '',
       personEmail: '',
-      personViber: '',
       personPhone: '',
-      logoFile: null,
     });
     setLogoPreview(null);
-    setShowAddIssuerModal(true);
+    setShowAddIssuer(true);
   };
 
-  const handleCloseModal = () => {
-    setShowAddIssuerModal(false);
-    setLogoPreview(null);
-  };
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Logo must be less than 5MB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result);
-        setFormData({ ...formData, logoFile: file });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCreateIssuerAccount = async (e) => {
+  const handleCreateIssuer = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.registeredName.trim()) {
-      toast.error('Registered name is required');
+    if (!addIssuerForm.registeredName.trim()) {
+      toast.error('Registered name required');
       return;
     }
 
-    if (!formData.tinNumber.trim()) {
-      toast.error('TIN number is required');
+    if (!addIssuerForm.tinNumber.trim()) {
+      toast.error('TIN number required');
       return;
     }
 
-    if (!formData.registeredAddress.trim()) {
-      toast.error('Registered address is required');
-      return;
-    }
-
-    if (formData.businessType === 'sole_proprietor') {
-      if (!formData.proprietorFirstName.trim() || !formData.proprietorLastName.trim()) {
-        toast.error('Proprietor first and last name are required');
-        return;
-      }
-    }
-
-    if (!formData.personFirstName.trim() || !formData.personLastName.trim()) {
-      toast.error('Authorized personnel first and last name are required');
-      return;
-    }
-
-    if (!formData.personEmail.trim()) {
-      toast.error('Authorized personnel email is required');
+    if (!addIssuerForm.personEmail.trim()) {
+      toast.error('Email required');
       return;
     }
 
     try {
       setSubmitting(true);
 
-      let logoBase64 = null;
-      if (formData.logoFile) {
-        logoBase64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(formData.logoFile);
-        });
-      }
-
-      // Generate temp password
-      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
-
       const payload = {
         endpoint: 'create-issuer',
-        businessType: formData.businessType,
-        organizationName: formData.registeredName,
-        tinNumber: formData.tinNumber,
-        address: formData.registeredAddress,
-        businessLastName: formData.businessLastName,
-        proprietorFirstName: formData.proprietorFirstName,
-        proprietorMiddleName: formData.proprietorMiddleName,
-        proprietorLastName: formData.proprietorLastName,
-        proprietorAddress: formData.proprietorAddress,
-        proprietorTin: formData.proprietorTin,
-        personFirstName: formData.personFirstName,
-        personMiddleName: formData.personMiddleName,
-        personLastName: formData.personLastName,
-        personEmail: formData.personEmail,
-        personViber: formData.personViber,
-        personPhone: formData.personPhone,
+        businessType: addIssuerForm.businessType,
+        organizationName: addIssuerForm.registeredName,
+        tinNumber: addIssuerForm.tinNumber,
+        address: addIssuerForm.registeredAddress,
+        personFirstName: addIssuerForm.personFirstName,
+        personLastName: addIssuerForm.personLastName,
+        personEmail: addIssuerForm.personEmail,
+        personPhone: addIssuerForm.personPhone,
         signaturaid: generatedSignaturaId,
-        tempPassword: tempPassword,
-        logoBase64: logoBase64,
       };
-
-      console.log('📤 Sending payload:', payload);
 
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      console.log('📥 Response status:', res.status);
-      console.log('📥 Response headers:', res.headers);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(`API Error: ${res.status} - ${errorText}`);
-      }
-
       const data = await res.json();
-      console.log('✅ Response data:', data);
 
       if (data.success) {
         toast.success('✅ Issuer account created!');
-        toast.success(`📧 Credentials sent to ${formData.personEmail}`);
-
+        setShowAddIssuer(false);
         fetchData();
-        handleCloseModal();
       } else {
         toast.error(data.error || 'Failed to create account');
       }
     } catch (err) {
-      console.error('❌ Error creating issuer:', err);
-      toast.error(`Error: ${err.message}`);
+      console.error('Error:', err);
+      toast.error('Error creating account');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // ===== UPDATE ISSUER =====
+  const handleOpenUpdateIssuer = (issuer) => {
+    setSelectedIssuer(issuer);
+    setUpdateForm({
+      registeredName: issuer.organization_name || '',
+      registeredAddress: issuer.address || '',
+      tinNumber: issuer.tin_number || '',
+    });
+    setShowUpdateIssuer(true);
+  };
+
+  const handleUpdateIssuer = async (e) => {
+    e.preventDefault();
+
+    if (!updateForm.registeredName.trim()) {
+      toast.error('Name required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedIssuer.id,
+          organization_name: updateForm.registeredName,
+          address: updateForm.registeredAddress,
+          tin_number: updateForm.tinNumber,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('✅ Issuer updated!');
+        setShowUpdateIssuer(false);
+        fetchData();
+      } else {
+        toast.error(data.error || 'Failed to update');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error updating issuer');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ===== ADD DOCUMENT =====
+  const handleOpenAddDocument = (issuer) => {
+    setSelectedIssuer(issuer);
+    setDocumentForm({
+      documentName: '',
+      documentType: 'certificate',
+    });
+    setShowAddDocument(true);
+  };
+
+  const handleAddDocument = async (e) => {
+    e.preventDefault();
+
+    if (!documentForm.documentName.trim()) {
+      toast.error('Document name required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'create-document',
+          title: documentForm.documentName,
+          document_type: documentForm.documentType,
+          issuer_id: selectedIssuer.id,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('✅ Document created!');
+        setShowAddDocument(false);
+        fetchData();
+      } else {
+        toast.error(data.error || 'Failed to create document');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error creating document');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ===== VIEW LIST =====
+  const handleViewList = (type) => {
+    setViewListType(type);
+    setShowViewList(true);
+  };
+
+  const handleDeleteIssuer = async (issuerId) => {
+    if (!window.confirm('Delete this issuer account?')) return;
+
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete-user',
+          userId: issuerId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('✅ Issuer deleted');
+        fetchData();
+      } else {
+        toast.error(data.error || 'Failed to delete');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error deleting issuer');
     }
   };
 
   const handleLogout = () => {
     clearAuth();
     localStorage.clear();
-    sessionStorage.clear();
     navigate('/');
     toast.success('Logged out!');
   };
 
-  if (loading && issuers.length === 0) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
-          <p className="mt-4 text-gray-600 font-semibold">Loading admin panel...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -270,54 +320,62 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-8 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900">🔐 ADMIN PORTAL</h1>
-            <p className="text-gray-600 text-sm mt-1">{user?.email}</p>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">🔐 ADMIN PORTAL</h1>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-5 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition font-semibold"
+            className="flex items-center gap-2 px-5 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-semibold"
           >
-            <FiLogOut />
-            Logout
+            <FiLogOut /> Logout
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="max-w-7xl mx-auto px-8 py-12">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white rounded-xl border-4 border-orange-400 p-8 shadow-md hover:shadow-lg transition">
-            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Document Issuers</h3>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-xl border-4 border-orange-400 p-8 shadow-md">
+            <h3 className="text-gray-700 font-bold text-sm uppercase">Document Issuers</h3>
             <p className="text-5xl font-bold text-orange-600 mt-3">{stats.totalIssuers}</p>
-            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+            <button
+              onClick={() => handleViewList('issuers')}
+              className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600"
+            >
               VIEW
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border-4 border-green-400 p-8 shadow-md hover:shadow-lg transition">
-            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Subscribers</h3>
+          <div className="bg-white rounded-xl border-4 border-green-400 p-8 shadow-md">
+            <h3 className="text-gray-700 font-bold text-sm uppercase">Subscribers</h3>
             <p className="text-5xl font-bold text-green-600 mt-3">{stats.totalSubscribers}</p>
-            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+            <button
+              onClick={() => handleViewList('subscribers')}
+              className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600"
+            >
               VIEW
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border-4 border-purple-400 p-8 shadow-md hover:shadow-lg transition">
-            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Documents</h3>
+          <div className="bg-white rounded-xl border-4 border-purple-400 p-8 shadow-md">
+            <h3 className="text-gray-700 font-bold text-sm uppercase">Documents</h3>
             <p className="text-5xl font-bold text-purple-600 mt-3">{stats.totalDocuments}</p>
-            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+            <button
+              onClick={() => handleViewList('documents')}
+              className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600"
+            >
               VIEW
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border-4 border-blue-400 p-8 shadow-md hover:shadow-lg transition">
-            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Issued Documents</h3>
-            <p className="text-5xl font-bold text-blue-600 mt-3">{stats.totalIssued.toLocaleString()}</p>
-            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+          <div className="bg-white rounded-xl border-4 border-blue-400 p-8 shadow-md">
+            <h3 className="text-gray-700 font-bold text-sm uppercase">Issued Documents</h3>
+            <p className="text-5xl font-bold text-blue-600 mt-3">{stats.totalIssued}</p>
+            <button
+              onClick={() => handleViewList('issued')}
+              className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600"
+            >
               VIEW
             </button>
           </div>
@@ -325,13 +383,13 @@ export default function AdminPortal() {
 
         {/* Add Button */}
         <button
-          onClick={handleOpenAddIssuerModal}
-          className="mb-8 px-8 py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2 text-lg shadow-md hover:shadow-lg"
+          onClick={handleOpenAddIssuer}
+          className="mb-8 px-8 py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 flex items-center gap-2 text-lg shadow-md"
         >
           <FiPlus /> ADD DOCUMENT ISSUER
         </button>
 
-        {/* Issuers Table */}
+        {/* Table */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="px-8 py-6 border-b-4 border-blue-900 bg-blue-900 text-white">
             <h2 className="text-2xl font-bold">LIST OF DOCUMENT ISSUERS</h2>
@@ -339,33 +397,45 @@ export default function AdminPortal() {
 
           {issuers.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
-              <p className="text-lg">No issuers added yet. Click "ADD DOCUMENT ISSUER" to create one.</p>
+              <p>No issuers. Click "ADD DOCUMENT ISSUER" to create one.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-blue-900 text-white">
                   <tr>
-                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">SIGNATURA ID</th>
-                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">REGISTERED NAME</th>
-                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">ADDRESS</th>
-                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">DIGITAL DOCUMENTS</th>
-                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">ACTION</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold">SIGNATURA ID</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold">REGISTERED NAME</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold">ADDRESS</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold">DIGITAL DOCUMENTS</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {issuers.map((issuer) => (
-                    <tr key={issuer.id} className="hover:bg-gray-50 transition">
-                      <td className="px-8 py-5 text-sm font-mono font-bold text-gray-900">{issuer.signatura_id || 'N/A'}</td>
-                      <td className="px-8 py-5 text-sm text-gray-900 font-semibold">{issuer.organization_name}</td>
-                      <td className="px-8 py-5 text-sm text-gray-600">{issuer.address || 'N/A'}</td>
-                      <td className="px-8 py-5 text-sm text-gray-600 font-semibold">{issuer.document_count || 0}</td>
+                    <tr key={issuer.id} className="hover:bg-gray-50">
+                      <td className="px-8 py-5 text-sm font-mono font-bold">{issuer.signatura_id || 'N/A'}</td>
+                      <td className="px-8 py-5 text-sm font-semibold">{issuer.organization_name}</td>
+                      <td className="px-8 py-5 text-sm">{issuer.address || 'N/A'}</td>
+                      <td className="px-8 py-5 text-sm">{issuer.document_count || 0}</td>
                       <td className="px-8 py-5 text-sm flex gap-2">
-                        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition">
-                          UPDATE
+                        <button
+                          onClick={() => handleOpenUpdateIssuer(issuer)}
+                          className="px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 flex items-center gap-1"
+                        >
+                          <FiEdit2 size={14} /> UPDATE
                         </button>
-                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition">
-                          ADD DOCUMENT
+                        <button
+                          onClick={() => handleOpenAddDocument(issuer)}
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600"
+                        >
+                          + ADD DOCUMENT
+                        </button>
+                        <button
+                          onClick={() => handleDeleteIssuer(issuer.id)}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold hover:bg-red-600"
+                        >
+                          <FiTrash2 size={14} />
                         </button>
                       </td>
                     </tr>
@@ -377,277 +447,281 @@ export default function AdminPortal() {
         </div>
       </main>
 
+      {/* ===== MODALS ===== */}
+
       {/* Add Issuer Modal */}
-      {showAddIssuerModal && (
+      {showAddIssuer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
-            {/* Modal Header */}
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-purple-600 text-white px-8 py-6 flex justify-between items-center border-b-4 border-purple-800">
-              <h2 className="text-2xl font-bold uppercase tracking-wide">ADD DOCUMENT ISSUER</h2>
-              <button
-                onClick={handleCloseModal}
-                className="p-2 hover:bg-purple-700 rounded transition"
-              >
+              <h2 className="text-2xl font-bold">ADD DOCUMENT ISSUER</h2>
+              <button onClick={() => setShowAddIssuer(false)} className="p-2 hover:bg-purple-700 rounded">
                 <FiX size={24} />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <form onSubmit={handleCreateIssuerAccount} className="p-8 space-y-8">
-              <div className="grid grid-cols-2 gap-12">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Business Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
-                      Business Information
-                    </h3>
+            <form onSubmit={handleCreateIssuer} className="p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Business Type *</label>
+                <select
+                  value={addIssuerForm.businessType}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, businessType: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                >
+                  <option value="corporation">Corporation</option>
+                  <option value="partnership">Partnership</option>
+                  <option value="sole_proprietor">Sole Proprietor</option>
+                </select>
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Business Type *</label>
-                      <select
-                        name="businessType"
-                        value={formData.businessType}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none bg-white font-semibold"
-                      >
-                        <option value="corporation">Corporation</option>
-                        <option value="partnership">Partnership</option>
-                        <option value="sole_proprietor">Sole Proprietor</option>
-                      </select>
-                    </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Registered Name *</label>
+                <input
+                  type="text"
+                  value={addIssuerForm.registeredName}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, registeredName: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                  required
+                />
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Registered Name *</label>
-                      <input
-                        type="text"
-                        name="registeredName"
-                        value={formData.registeredName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        required
-                      />
-                    </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">TIN Number *</label>
+                <input
+                  type="text"
+                  value={addIssuerForm.tinNumber}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, tinNumber: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                  required
+                />
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">TIN Number *</label>
-                      <input
-                        type="text"
-                        name="tinNumber"
-                        value={formData.tinNumber}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        required
-                      />
-                    </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Address *</label>
+                <input
+                  type="text"
+                  value={addIssuerForm.registeredAddress}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, registeredAddress: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                  required
+                />
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Registered Address *</label>
-                      <input
-                        type="text"
-                        name="registeredAddress"
-                        value={formData.registeredAddress}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        required
-                      />
-                    </div>
-
-                    {formData.businessType !== 'sole_proprietor' && (
-                      <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
-                        <input
-                          type="text"
-                          name="businessLastName"
-                          value={formData.businessLastName}
-                          onChange={handleFormChange}
-                          className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Sole Proprietor */}
-                  {formData.businessType === 'sole_proprietor' && (
-                    <div className="space-y-4 border-l-4 border-red-600 pl-4 py-4">
-                      <h3 className="text-lg font-bold text-gray-900 uppercase">Sole Proprietor Data</h3>
-
-                      <input
-                        type="text"
-                        name="proprietorFirstName"
-                        placeholder="First Name *"
-                        value={formData.proprietorFirstName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        required
-                      />
-
-                      <input
-                        type="text"
-                        name="proprietorMiddleName"
-                        placeholder="Middle Name"
-                        value={formData.proprietorMiddleName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                      />
-
-                      <input
-                        type="text"
-                        name="proprietorLastName"
-                        placeholder="Last Name *"
-                        value={formData.proprietorLastName}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                        required
-                      />
-
-                      <input
-                        type="text"
-                        name="proprietorAddress"
-                        placeholder="Address"
-                        value={formData.proprietorAddress}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                      />
-
-                      <input
-                        type="text"
-                        name="proprietorTin"
-                        placeholder="TIN Number"
-                        value={formData.proprietorTin}
-                        onChange={handleFormChange}
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
-                      />
-                    </div>
-                  )}
-
-                  {/* Logo */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
-                      Business Logo
-                    </h3>
-
-                    <div className="flex gap-4 items-start">
-                      {logoPreview && (
-                        <img
-                          src={logoPreview}
-                          alt="Logo Preview"
-                          className="h-24 w-24 object-contain border-2 border-gray-400 rounded p-2 bg-gray-50"
-                        />
-                      )}
-
-                      <label className="block">
-                        <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
-                        <span className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 cursor-pointer transition flex items-center gap-2 w-fit">
-                          <FiUpload /> Add Logo
-                        </span>
-                      </label>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">First Name *</label>
+                  <input
+                    type="text"
+                    value={addIssuerForm.personFirstName}
+                    onChange={(e) => setAddIssuerForm({ ...addIssuerForm, personFirstName: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                    required
+                  />
                 </div>
 
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Authorized Personnel */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">
-                      Authorized Personnel
-                    </h3>
-
-                    <input
-                      type="text"
-                      name="personFirstName"
-                      placeholder="First Name *"
-                      value={formData.personFirstName}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      required
-                    />
-
-                    <input
-                      type="text"
-                      name="personMiddleName"
-                      placeholder="Middle Name"
-                      value={formData.personMiddleName}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                    />
-
-                    <input
-                      type="text"
-                      name="personLastName"
-                      placeholder="Last Name *"
-                      value={formData.personLastName}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      required
-                    />
-
-                    <input
-                      type="email"
-                      name="personEmail"
-                      placeholder="Email *"
-                      value={formData.personEmail}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                      required
-                    />
-
-                    <input
-                      type="text"
-                      name="personViber"
-                      placeholder="Viber #"
-                      value={formData.personViber}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                    />
-
-                    <input
-                      type="text"
-                      name="personPhone"
-                      placeholder="Handphone #"
-                      value={formData.personPhone}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
-                    />
-                  </div>
-
-                  {/* Credentials */}
-                  <div className="bg-gray-100 rounded-lg p-6 space-y-4 border-2 border-gray-400">
-                    <h3 className="text-lg font-bold text-gray-900 uppercase">LOG-IN CREDENTIALS</h3>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">SIGNATURA ID</label>
-                      <input
-                        type="text"
-                        value={generatedSignaturaId}
-                        disabled
-                        className="w-full px-4 py-3 border-2 border-gray-400 rounded bg-gray-200 cursor-not-allowed font-mono font-bold"
-                      />
-                      <p className="text-xs text-red-600 mt-2 font-semibold">SIGNATURA ID is system generated</p>
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Last Name *</label>
+                  <input
+                    type="text"
+                    value={addIssuerForm.personLastName}
+                    onChange={(e) => setAddIssuerForm({ ...addIssuerForm, personLastName: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                    required
+                  />
                 </div>
               </div>
 
-              {/* Buttons */}
-              <div className="flex gap-4 pt-8 border-t-2 border-gray-300">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
+                <input
+                  type="email"
+                  value={addIssuerForm.personEmail}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, personEmail: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Phone</label>
+                <input
+                  type="text"
+                  value={addIssuerForm.personPhone}
+                  onChange={(e) => setAddIssuerForm({ ...addIssuerForm, personPhone: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="bg-gray-100 p-4 rounded">
+                <label className="block text-xs font-bold text-gray-700 mb-2">SIGNATURA ID (Auto-generated)</label>
+                <input
+                  type="text"
+                  value={generatedSignaturaId}
+                  disabled
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded bg-gray-200 cursor-not-allowed font-mono"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t-2">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition disabled:opacity-50"
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Creating Account...' : 'Create Issuer Account'}
+                  {submitting ? 'Creating...' : 'Create Issuer Account'}
                 </button>
                 <button
                   type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-bold text-lg hover:bg-gray-500 transition"
+                  onClick={() => setShowAddIssuer(false)}
+                  className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-bold text-lg hover:bg-gray-500"
                 >
                   Cancel
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Issuer Modal */}
+      {showUpdateIssuer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl">
+            <div className="bg-blue-600 text-white px-8 py-6 flex justify-between items-center border-b-4 border-blue-800">
+              <h2 className="text-2xl font-bold">UPDATE ISSUER</h2>
+              <button onClick={() => setShowUpdateIssuer(false)} className="p-2 hover:bg-blue-700 rounded">
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateIssuer} className="p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Registered Name</label>
+                <input
+                  type="text"
+                  value={updateForm.registeredName}
+                  onChange={(e) => setUpdateForm({ ...updateForm, registeredName: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">TIN Number</label>
+                <input
+                  type="text"
+                  value={updateForm.tinNumber}
+                  onChange={(e) => setUpdateForm({ ...updateForm, tinNumber: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Address</label>
+                <input
+                  type="text"
+                  value={updateForm.registeredAddress}
+                  onChange={(e) => setUpdateForm({ ...updateForm, registeredAddress: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Updating...' : 'Update'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUpdateIssuer(false)}
+                  className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Document Modal */}
+      {showAddDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl">
+            <div className="bg-green-600 text-white px-8 py-6 flex justify-between items-center border-b-4 border-green-800">
+              <h2 className="text-2xl font-bold">ADD DOCUMENT</h2>
+              <button onClick={() => setShowAddDocument(false)} className="p-2 hover:bg-green-700 rounded">
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDocument} className="p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Document Name *</label>
+                <input
+                  type="text"
+                  value={documentForm.documentName}
+                  onChange={(e) => setDocumentForm({ ...documentForm, documentName: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-green-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Document Type</label>
+                <select
+                  value={documentForm.documentType}
+                  onChange={(e) => setDocumentForm({ ...documentForm, documentType: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-green-600 focus:outline-none"
+                >
+                  <option value="certificate">Certificate</option>
+                  <option value="diploma">Diploma</option>
+                  <option value="license">License</option>
+                  <option value="credential">Credential</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Adding...' : 'Add Document'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddDocument(false)}
+                  className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View List Modal */}
+      {showViewList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-indigo-600 text-white px-8 py-6 flex justify-between items-center border-b-4 border-indigo-800">
+              <h2 className="text-2xl font-bold capitalize">{viewListType} List</h2>
+              <button onClick={() => setShowViewList(false)} className="p-2 hover:bg-indigo-700 rounded">
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="p-8">
+              <div className="text-center text-gray-600">
+                <p className="text-lg">Showing {viewListType} data</p>
+                <p className="text-sm text-gray-500 mt-2">This view can be customized to show filtered lists</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
