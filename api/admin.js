@@ -1,25 +1,44 @@
-// pages/api/admin.js - Production-Ready Admin Operations
+// pages/api/admin.js - DEBUG VERSION with Verbose Logging
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
+console.log('🚀 Admin API loading...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log('GMAIL_USER exists:', !!process.env.GMAIL_USER);
+
 // ===== INITIALIZE SUPABASE =====
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabase = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ CRITICAL: Missing Supabase credentials in environment!');
-  console.error('Required: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+try {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL environment variable is not defined!');
+  }
+  if (!supabaseKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not defined!');
+  }
+
+  console.log('✅ Supabase URL:', supabaseUrl.substring(0, 30) + '...');
+  console.log('✅ Supabase Key:', supabaseKey.substring(0, 20) + '...');
+
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase client created successfully');
+} catch (err) {
+  console.error('❌ CRITICAL: Failed to initialize Supabase:', err.message);
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ===== INITIALIZE EMAIL =====
 let emailTransporter = null;
 
-if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
-  try {
+try {
+  if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
+    console.log('📧 Initializing email transporter...');
     emailTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -27,16 +46,23 @@ if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
         pass: process.env.GMAIL_PASSWORD,
       },
     });
-    console.log('✅ Email transporter initialized');
-  } catch (err) {
-    console.warn('⚠️ Failed to initialize email:', err.message);
+    console.log('✅ Email transporter initialized with:', process.env.GMAIL_USER);
+  } else {
+    console.warn('⚠️ Gmail credentials missing - email will be skipped');
   }
-} else {
-  console.warn('⚠️ Gmail credentials not found - email notifications will be skipped');
+} catch (err) {
+  console.error('❌ Email initialization error:', err.message);
 }
 
 // ===== MAIN HANDLER =====
 export default async function handler(req, res) {
+  console.log('\n' + '='.repeat(60));
+  console.log('📨 API Request Received');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Body keys:', Object.keys(req.body || {}));
+  console.log('='.repeat(60) + '\n');
+
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -50,6 +76,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const { action } = req.query;
+      console.log('GET action:', action);
 
       if (action === 'stats') {
         const [usersRes, docsRes, reqRes, verRes, sharesRes, encRes] = await Promise.all([
@@ -73,159 +100,156 @@ export default async function handler(req, res) {
           },
         });
       }
-      else if (action === 'audit-logs') {
-        const { data, error } = await supabase
-          .from('audit_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        if (error) throw error;
-
-        return res.status(200).json({ success: true, data: data || [] });
-      }
     }
     else if (req.method === 'POST') {
       const { action, endpoint, userId } = req.body;
+      console.log('POST endpoint:', endpoint, 'action:', action);
 
-      // Delete User
-      if (action === 'delete-user') {
-        console.log('🗑️ Deleting user:', userId);
-        
-        await supabase.from('documents').delete().eq('issuer_id', userId);
-        const { error } = await supabase.from('users').delete().eq('id', userId);
-        if (error) throw error;
-
-        await supabase.from('audit_logs').insert({
-          id: uuidv4(),
-          actor_id: userId,
-          action: 'user_deleted',
-          resource_type: 'user',
-          resource_id: userId,
-          created_at: new Date().toISOString(),
-        });
-
-        console.log('✅ User deleted:', userId);
-        return res.status(200).json({ success: true, message: 'User deleted' });
-      }
-
-      // Create Issuer Account
-      else if (endpoint === 'create-issuer') {
-        console.log('📋 Processing create-issuer request...');
+      if (endpoint === 'create-issuer') {
+        console.log('🎯 Routing to createIssuerAccount function...');
         return await createIssuerAccount(req, res);
       }
 
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid action or endpoint' 
-      });
+      return res.status(400).json({ success: false, error: 'Invalid action or endpoint' });
     }
 
-    return res.status(400).json({ 
-      success: false,
-      error: 'Invalid request method' 
-    });
+    return res.status(400).json({ success: false, error: 'Invalid request method' });
   } catch (error) {
-    console.error('❌ Admin API Error:', error.message);
+    console.error('\n' + '❌'.repeat(30));
+    console.error('❌ UNHANDLED ERROR IN HANDLER');
+    console.error('Error Type:', error.constructor.name);
+    console.error('Error Message:', error.message);
     console.error('Stack:', error.stack);
-    
+    console.error('❌'.repeat(30) + '\n');
+
     return res.status(500).json({
       success: false,
-      error: error.message || 'Operation failed',
-      timestamp: new Date().toISOString(),
+      error: error.message,
+      errorType: error.constructor.name,
     });
   }
 }
 
 // ===== CREATE ISSUER ACCOUNT =====
 async function createIssuerAccount(req, res) {
-  const {
-    businessType,
-    organizationName,
-    tinNumber,
-    address,
-    businessLastName,
-    proprietorFirstName,
-    proprietorMiddleName,
-    proprietorLastName,
-    proprietorAddress,
-    proprietorTin,
-    personFirstName,
-    personMiddleName,
-    personLastName,
-    personEmail,
-    personViber,
-    personPhone,
-    signaturaid,
-    tempPassword,
-    logoBase64,
-  } = req.body;
-
-  console.log('📋 Creating issuer account...', { 
-    organizationName, 
-    personEmail,
-    businessType 
-  });
-
-  // ===== VALIDATION =====
-  const validationError = validateIssuerInput({
-    organizationName,
-    tinNumber,
-    address,
-    businessType,
-    proprietorFirstName,
-    proprietorLastName,
-    personFirstName,
-    personLastName,
-    personEmail,
-  });
-
-  if (validationError) {
-    console.warn('⚠️ Validation failed:', validationError);
-    return res.status(400).json({
-      success: false,
-      error: validationError,
-    });
-  }
+  console.log('\n' + '█'.repeat(60));
+  console.log('█ CREATE ISSUER ACCOUNT STARTED');
+  console.log('█'.repeat(60));
 
   try {
-    const issuerId = uuidv4();
-    const hashedPassword = crypto.createHash('sha256').update(tempPassword).digest('hex');
+    const body = req.body;
+    console.log('Request body received with keys:', Object.keys(body));
 
-    // ===== STEP 1: Create User Account =====
-    console.log('✅ Step 1/5: Creating user account...');
+    const {
+      businessType,
+      organizationName,
+      tinNumber,
+      address,
+      businessLastName,
+      proprietorFirstName,
+      proprietorMiddleName,
+      proprietorLastName,
+      proprietorAddress,
+      proprietorTin,
+      personFirstName,
+      personMiddleName,
+      personLastName,
+      personEmail,
+      personViber,
+      personPhone,
+      signaturaid,
+      tempPassword,
+      logoBase64,
+    } = body;
+
+    console.log('📋 Extracted variables:');
+    console.log('  - organizationName:', organizationName);
+    console.log('  - personEmail:', personEmail);
+    console.log('  - businessType:', businessType);
+    console.log('  - tinNumber:', tinNumber);
+    console.log('  - signaturaid:', signaturaid);
+    console.log('  - logoBase64 present:', !!logoBase64);
+
+    // ===== VALIDATION =====
+    console.log('\n🔍 Validating input...');
+    if (!organizationName?.trim()) {
+      throw new Error('Organization name is required');
+    }
+    console.log('  ✅ Organization name valid');
+
+    if (!tinNumber?.trim()) {
+      throw new Error('TIN number is required');
+    }
+    console.log('  ✅ TIN number valid');
+
+    if (!address?.trim()) {
+      throw new Error('Address is required');
+    }
+    console.log('  ✅ Address valid');
+
+    if (!personEmail?.trim()) {
+      throw new Error('Email is required');
+    }
+    console.log('  ✅ Email valid');
+
+    if (businessType === 'sole_proprietor') {
+      if (!proprietorFirstName?.trim() || !proprietorLastName?.trim()) {
+        throw new Error('Proprietor name is required for sole proprietor');
+      }
+      console.log('  ✅ Proprietor info valid');
+    }
+
+    console.log('✅ All validation passed!\n');
+
+    // ===== STEP 1: Create User =====
+    console.log('Step 1/5: Creating user account...');
+    console.log('  - ID: generating...');
+    const issuerId = uuidv4();
+    console.log('  - ID:', issuerId);
+
+    console.log('  - Password: hashing...');
+    const hashedPassword = crypto.createHash('sha256').update(tempPassword).digest('hex');
+    console.log('  - Password hashed: ✅');
+
+    console.log('  - Inserting into users table...');
+    const userPayload = {
+      id: issuerId,
+      email: personEmail.toLowerCase().trim(),
+      password: hashedPassword,
+      role: 'issuer',
+      organization_name: organizationName.trim(),
+      first_name: personFirstName?.trim() || null,
+      middle_name: personMiddleName?.trim() || null,
+      last_name: personLastName?.trim() || null,
+      phone_number: personPhone?.trim() || null,
+      viber_number: personViber?.trim() || null,
+      address: address.trim(),
+      signatura_id: signaturaid,
+      created_at: new Date().toISOString(),
+    };
+
+    console.log('  - User Payload:', JSON.stringify(userPayload, null, 2));
+
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .insert({
-        id: issuerId,
-        email: personEmail.toLowerCase().trim(),
-        password: hashedPassword,
-        role: 'issuer',
-        organization_name: organizationName.trim(),
-        first_name: personFirstName?.trim() || null,
-        middle_name: personMiddleName?.trim() || null,
-        last_name: personLastName?.trim() || null,
-        phone_number: personPhone?.trim() || null,
-        viber_number: personViber?.trim() || null,
-        address: address.trim(),
-        signatura_id: signaturaid,
-        created_at: new Date().toISOString(),
-      })
+      .insert(userPayload)
       .select()
       .single();
 
     if (userError) {
-      console.error('❌ User creation failed:', userError.message);
-      throw new Error(`Failed to create user account: ${userError.message}`);
+      console.error('  ❌ User creation failed!');
+      console.error('  Error:', userError);
+      throw new Error(`User creation failed: ${userError.message}`);
     }
 
-    console.log('✅ User created successfully:', issuerId);
+    console.log('  ✅ User created:', issuerId);
 
     // ===== STEP 2: Create Issuer Details =====
-    console.log('✅ Step 2/5: Creating issuer details...');
+    console.log('\nStep 2/5: Creating issuer details...');
     const issuerDetailsId = uuidv4();
-    
-    const issuerDetailsPayload = {
+    console.log('  - ID:', issuerDetailsId);
+
+    const issuerPayload = {
       id: issuerDetailsId,
       user_id: issuerId,
       business_type: businessType,
@@ -249,112 +273,124 @@ async function createIssuerAccount(req, res) {
       created_at: new Date().toISOString(),
     };
 
+    console.log('  - Issuer Payload:', JSON.stringify(issuerPayload, null, 2));
+    console.log('  - Inserting into issuer_details table...');
+
     const { data: issuerData, error: issuerError } = await supabase
       .from('issuer_details')
-      .insert(issuerDetailsPayload)
+      .insert(issuerPayload)
       .select()
       .single();
 
     if (issuerError) {
-      console.error('❌ Issuer details creation failed:', issuerError.message);
-      // Rollback: delete the user
-      await supabase.from('users').delete().eq('id', issuerId).catch(() => {});
-      throw new Error(`Failed to create issuer details: ${issuerError.message}`);
+      console.error('  ❌ Issuer details creation failed!');
+      console.error('  Error:', issuerError);
+      // Rollback
+      console.log('  - Rolling back: deleting user...');
+      await supabase.from('users').delete().eq('id', issuerId).catch(err => {
+        console.error('  - Rollback error:', err.message);
+      });
+      throw new Error(`Issuer details creation failed: ${issuerError.message}`);
     }
 
-    console.log('✅ Issuer details created:', issuerDetailsId);
+    console.log('  ✅ Issuer details created:', issuerDetailsId);
 
-    // ===== STEP 3: Upload Logo =====
+    // ===== STEP 3: Logo Upload =====
+    console.log('\nStep 3/5: Processing logo...');
     if (logoBase64) {
-      console.log('✅ Step 3/5: Uploading logo...');
+      console.log('  - Logo provided');
       try {
-        const fileBuffer = Buffer.from(logoBase64.split(',')[1] || logoBase64, 'base64');
+        const logoBuffer = Buffer.from(logoBase64.split(',')[1] || logoBase64, 'base64');
         const filePath = `issuer-logos/${issuerId}/logo.png`;
+        console.log('  - File path:', filePath);
+        console.log('  - Buffer size:', logoBuffer.length, 'bytes');
+        console.log('  - Uploading to storage...');
 
         const { error: uploadError } = await supabase.storage
           .from('issuer-assets')
-          .upload(filePath, fileBuffer, {
+          .upload(filePath, logoBuffer, {
             contentType: 'image/png',
             upsert: true,
           });
 
-        if (!uploadError) {
+        if (uploadError) {
+          console.warn('  ⚠️ Upload error:', uploadError.message);
+        } else {
           const { data: { publicUrl } } = supabase.storage
             .from('issuer-assets')
             .getPublicUrl(filePath);
+
+          console.log('  - Public URL:', publicUrl);
+          console.log('  - Updating issuer_details with logo_url...');
 
           await supabase
             .from('issuer_details')
             .update({ logo_url: publicUrl })
             .eq('user_id', issuerId);
 
-          console.log('✅ Logo uploaded:', publicUrl);
-        } else {
-          console.warn('⚠️ Logo upload failed:', uploadError.message);
+          console.log('  ✅ Logo uploaded and linked');
         }
       } catch (logoErr) {
-        console.warn('⚠️ Logo upload error (non-critical):', logoErr.message);
+        console.warn('  ⚠️ Logo processing error:', logoErr.message);
       }
     } else {
-      console.log('⏭️ Step 3/5: Skipping logo upload (not provided)');
+      console.log('  - No logo provided, skipping');
     }
 
     // ===== STEP 4: Send Email =====
-    console.log('✅ Step 4/5: Sending email credentials...');
+    console.log('\nStep 4/5: Sending email...');
     if (emailTransporter) {
       try {
-        const emailHtml = generateEmailTemplate({
-          personFirstName,
-          personLastName,
-          organizationName,
-          signaturaid,
-          personEmail,
-          tempPassword,
-          year: new Date().getFullYear(),
-          frontendUrl: process.env.FRONTEND_URL || 'https://signatura.app',
-        });
+        console.log('  - Email transporter available');
+        console.log('  - Building email HTML...');
 
+        const emailHtml = `<html><body>Test email</body></html>`;
+        console.log('  - Email HTML ready');
+
+        console.log('  - Sending to:', personEmail);
         await emailTransporter.sendMail({
           from: process.env.GMAIL_USER,
           to: personEmail,
-          subject: `🔐 Signatura Account Created - ${organizationName}`,
+          subject: `Signatura Account Created - ${organizationName}`,
           html: emailHtml,
         });
 
-        console.log('✅ Email sent to:', personEmail);
+        console.log('  ✅ Email sent');
       } catch (emailErr) {
-        console.warn('⚠️ Email sending failed (non-critical):', emailErr.message);
+        console.warn('  ⚠️ Email error:', emailErr.message);
       }
     } else {
-      console.warn('⏭️ Step 4/5: Email transporter not configured');
+      console.log('  - Email transporter not configured, skipping');
     }
 
-    // ===== STEP 5: Create Audit Log =====
-    console.log('✅ Step 5/5: Creating audit log...');
+    // ===== STEP 5: Audit Log =====
+    console.log('\nStep 5/5: Creating audit log...');
     try {
-      await supabase
-        .from('audit_logs')
-        .insert({
-          id: uuidv4(),
-          action: 'ISSUER_ACCOUNT_CREATED',
-          actor_id: 'admin',
-          actor_email: 'admin@system',
-          resource_type: 'issuer_account',
-          resource_id: issuerId,
-          resource_name: organizationName,
-          details: {
-            business_type: businessType,
-            tin_number: tinNumber,
-            signatura_id: signaturaid,
-          },
-          created_at: new Date().toISOString(),
-        });
-      console.log('✅ Audit log created');
+      const auditPayload = {
+        id: uuidv4(),
+        action: 'ISSUER_ACCOUNT_CREATED',
+        actor_id: 'admin',
+        actor_email: 'admin@system',
+        resource_type: 'issuer_account',
+        resource_id: issuerId,
+        resource_name: organizationName,
+        details: {
+          business_type: businessType,
+          tin_number: tinNumber,
+        },
+        created_at: new Date().toISOString(),
+      };
+
+      console.log('  - Audit Payload:', JSON.stringify(auditPayload, null, 2));
+
+      await supabase.from('audit_logs').insert(auditPayload);
+      console.log('  ✅ Audit log created');
     } catch (auditErr) {
-      console.warn('⚠️ Audit log creation failed:', auditErr.message);
+      console.warn('  ⚠️ Audit log error:', auditErr.message);
     }
 
-    console.log('✅ ✅ ✅ ISSUER ACCOUNT CREATED SUCCESSFULLY!', issuerId);
+    console.log('\n✅ ✅ ✅ SUCCESS! Account created:', issuerId);
+    console.log('█'.repeat(60) + '\n');
 
     return res.status(201).json({
       success: true,
@@ -364,259 +400,18 @@ async function createIssuerAccount(req, res) {
         organizationName,
         authorizedEmail: personEmail,
         message: 'Issuer account created successfully',
-        emailSent: !!emailTransporter,
       },
     });
   } catch (error) {
-    console.error('❌ Create issuer error:', error.message);
-    console.error('Full error:', error);
-    
+    console.error('\n' + '❌'.repeat(30));
+    console.error('CREATE ISSUER FAILED');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('❌'.repeat(30) + '\n');
+
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create issuer account',
-      errorType: error.constructor.name,
-      timestamp: new Date().toISOString(),
+      error: error.message,
     });
   }
-}
-
-// ===== HELPER FUNCTIONS =====
-
-function validateIssuerInput({
-  organizationName,
-  tinNumber,
-  address,
-  businessType,
-  proprietorFirstName,
-  proprietorLastName,
-  personFirstName,
-  personLastName,
-  personEmail,
-}) {
-  if (!organizationName?.trim()) {
-    return 'Organization name is required';
-  }
-
-  if (!tinNumber?.trim()) {
-    return 'TIN number is required';
-  }
-
-  if (!address?.trim()) {
-    return 'Address is required';
-  }
-
-  if (businessType === 'sole_proprietor') {
-    if (!proprietorFirstName?.trim()) {
-      return 'Proprietor first name is required for sole proprietors';
-    }
-    if (!proprietorLastName?.trim()) {
-      return 'Proprietor last name is required for sole proprietors';
-    }
-  }
-
-  if (!personFirstName?.trim()) {
-    return 'Authorized personnel first name is required';
-  }
-
-  if (!personLastName?.trim()) {
-    return 'Authorized personnel last name is required';
-  }
-
-  if (!personEmail?.trim()) {
-    return 'Authorized personnel email is required';
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(personEmail)) {
-    return 'Invalid email address format';
-  }
-
-  return null;
-}
-
-function generateEmailTemplate({
-  personFirstName,
-  personLastName,
-  organizationName,
-  signaturaid,
-  personEmail,
-  tempPassword,
-  year,
-  frontendUrl,
-}) {
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #f5f5f5;
-          color: #333;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: white;
-          padding: 40px;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .header {
-          border-bottom: 4px solid #7c3aed;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-          text-align: center;
-        }
-        .header h1 {
-          color: #7c3aed;
-          margin: 0;
-          font-size: 28px;
-        }
-        .content {
-          margin-bottom: 30px;
-          line-height: 1.6;
-        }
-        .content p {
-          margin: 15px 0;
-        }
-        .credentials-box {
-          background-color: #f9fafb;
-          border-left: 4px solid #7c3aed;
-          padding: 20px;
-          margin: 20px 0;
-          font-family: 'Courier New', monospace;
-          border-radius: 4px;
-        }
-        .credentials-box div {
-          margin: 12px 0;
-        }
-        .label {
-          font-weight: bold;
-          color: #666;
-          font-size: 12px;
-          text-transform: uppercase;
-        }
-        .value {
-          color: #000;
-          background-color: #e5e7eb;
-          padding: 10px 12px;
-          border-radius: 4px;
-          display: inline-block;
-          margin-top: 5px;
-          word-break: break-all;
-          font-weight: 500;
-        }
-        .warning {
-          background-color: #fef3c7;
-          border-left: 4px solid #f59e0b;
-          padding: 15px;
-          margin: 20px 0;
-          color: #92400e;
-          border-radius: 4px;
-        }
-        .warning strong {
-          color: #b45309;
-        }
-        .button {
-          display: inline-block;
-          background-color: #7c3aed;
-          color: white;
-          padding: 14px 28px;
-          text-decoration: none;
-          border-radius: 4px;
-          margin-top: 20px;
-          font-weight: bold;
-          text-align: center;
-        }
-        .button:hover {
-          background-color: #6d28d9;
-        }
-        .footer {
-          border-top: 1px solid #e5e7eb;
-          padding-top: 20px;
-          margin-top: 30px;
-          text-align: center;
-          color: #666;
-          font-size: 12px;
-        }
-        .steps {
-          background-color: #f0fdf4;
-          border-left: 4px solid #22c55e;
-          padding: 20px;
-          margin: 20px 0;
-          border-radius: 4px;
-        }
-        .steps h4 {
-          color: #16a34a;
-          margin-top: 0;
-        }
-        .steps li {
-          margin: 8px 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🔐 Welcome to Signatura</h1>
-        </div>
-        
-        <div class="content">
-          <p>Hello <strong>${personFirstName} ${personLastName}</strong>,</p>
-          
-          <p>Your issuer account has been successfully created! Your organization is now ready to start issuing digital documents.</p>
-          
-          <div class="credentials-box">
-            <div>
-              <div class="label">📦 Organization:</div>
-              <div class="value">${organizationName}</div>
-            </div>
-            
-            <div>
-              <div class="label">🆔 SIGNATURA ID:</div>
-              <div class="value">${signaturaid}</div>
-            </div>
-            
-            <div>
-              <div class="label">📧 Email:</div>
-              <div class="value">${personEmail}</div>
-            </div>
-            
-            <div>
-              <div class="label">🔑 Temporary Password:</div>
-              <div class="value">${tempPassword}</div>
-            </div>
-          </div>
-          
-          <div class="warning">
-            <strong>⚠️ Important Security Notice:</strong> Please change your password immediately after your first login. Your temporary password is valid for 24 hours.
-          </div>
-          
-          <a href="${frontendUrl}/login" class="button">Login to Your Account →</a>
-          
-          <div class="steps">
-            <h4>✅ Getting Started:</h4>
-            <ol>
-              <li>Log in using the credentials above</li>
-              <li>Update your profile and company information</li>
-              <li>Change your temporary password</li>
-              <li>Configure your document templates</li>
-              <li>Start issuing digital documents</li>
-            </ol>
-          </div>
-          
-          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-        </div>
-        
-        <div class="footer">
-          <p>© ${year} Signatura. All rights reserved.</p>
-          <p>This email was sent to ${personEmail}. If you did not expect this email, please contact support.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
 }
