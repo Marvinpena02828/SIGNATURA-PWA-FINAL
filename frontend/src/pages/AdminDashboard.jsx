@@ -2,181 +2,253 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-import { FiUsers, FiFileText, FiTrendingUp, FiLogOut, FiMenu, FiX, FiTrash2, FiAlertCircle, FiLock } from 'react-icons/fi';
+import { FiX, FiLogOut, FiPlus, FiEye, FiEyeOff, FiUpload } from 'react-icons/fi';
 
-export default function AdminDashboard() {
+export default function AdminPortal() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('statistics');
+  // State
+  const [issuers, setIssuers] = useState([]);
   const [stats, setStats] = useState({
-    totalUsers: 0,
+    totalIssuers: 0,
+    totalSubscribers: 0,
     totalDocuments: 0,
-    totalRequests: 0,
-    activeVerifications: 0,
-    activeShares: 0,
-    encryptedDocuments: 0,
+    totalIssued: 0,
   });
-  const [users, setUsers] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [shares, setShares] = useState([]);
-  const [securityEvents, setSecurityEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showAddIssuerModal, setShowAddIssuerModal] = useState(false);
+  const [businessType, setBusinessType] = useState('corporation');
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [generatedSignaturaId, setGeneratedSignaturaId] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    businessType: 'corporation',
+    registeredName: '',
+    tinNumber: '',
+    registeredAddress: '',
+    businessLastName: '',
+    proprietorFirstName: '',
+    proprietorMiddleName: '',
+    proprietorLastName: '',
+    proprietorAddress: '',
+    proprietorTin: '',
+    personFirstName: '',
+    personMiddleName: '',
+    personLastName: '',
+    personEmail: '',
+    personViber: '',
+    personPhone: '',
+    logoFile: null,
+  });
 
   useEffect(() => {
-    if (role !== 'admin') navigate('/');
-    loadData();
-  }, [activeTab, role, navigate]);
+    if (role !== 'admin') {
+      navigate('/');
+      return;
+    }
+    fetchData();
+  }, [role, navigate]);
 
-  const loadData = async () => {
+  const fetchData = async () => {
     try {
-      setIsLoading(true);
-
-      if (activeTab === 'statistics') {
-        try {
-          const statsRes = await fetch('/api/admin?action=stats');
-          const statsData = await statsRes.json();
-          if (statsData.success) {
-            setStats(statsData.data || {});
-          }
-        } catch (err) {
-          console.error('Error fetching stats:', err);
-        }
-
-        try {
-          const logsRes = await fetch('/api/admin?action=audit-logs');
-          const logsData = await logsRes.json();
-          if (logsData.success) {
-            setAuditLogs(logsData.data?.slice(0, 10) || []);
-          }
-        } catch (err) {
-          console.error('Error fetching logs:', err);
-        }
-      } 
-      else if (activeTab === 'users') {
-        try {
-          const usersRes = await fetch('/api/users');
-          const usersData = await usersRes.json();
-          if (usersData.success) {
-            setUsers(usersData.data || []);
-          }
-        } catch (err) {
-          console.error('Error fetching users:', err);
-        }
-      } 
-      else if (activeTab === 'documents') {
-        try {
-          const docsRes = await fetch('/api/documents');
-          const docsData = await docsRes.json();
-          if (docsData.success) {
-            setDocuments(docsData.data || []);
-          }
-        } catch (err) {
-          console.error('Error fetching documents:', err);
-        }
+      setLoading(true);
+      
+      // Fetch issuers
+      const issuersRes = await fetch('/api/users?role=issuer');
+      const issuersData = await issuersRes.json();
+      
+      if (issuersData.success) {
+        const issuersList = issuersData.data || [];
+        setIssuers(issuersList);
+        setStats({
+          totalIssuers: issuersList.length,
+          totalSubscribers: issuersList.reduce((sum, i) => sum + (i.subscriber_count || 0), 0),
+          totalDocuments: issuersList.reduce((sum, i) => sum + (i.document_count || 0), 0),
+          totalIssued: issuersList.reduce((sum, i) => sum + (i.issued_count || 0), 0),
+        });
       }
-      else if (activeTab === 'sharing') {
-        try {
-          const sharesRes = await fetch('/api/sharing?admin=true');
-          const sharesData = await sharesRes.json();
-          if (sharesData.success) {
-            setShares(sharesData.data || []);
-          }
-        } catch (err) {
-          console.error('Error fetching shares:', err);
-        }
-      }
-      else if (activeTab === 'security') {
-        try {
-          const secRes = await fetch('/api/admin?action=security-events');
-          const secData = await secRes.json();
-          if (secData.success) {
-            setSecurityEvents(secData.data || []);
-          }
-        } catch (err) {
-          console.error('Error fetching security events:', err);
-        }
-      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      toast.error('Failed to load data');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure? This will delete the user.')) return;
+  const generateSignaturaId = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substr(2, 5).toUpperCase();
+    return `SIG-${timestamp}-${random}`;
+  };
+
+  const handleOpenAddIssuerModal = () => {
+    const newId = generateSignaturaId();
+    setGeneratedSignaturaId(newId);
+    setFormData({
+      businessType: 'corporation',
+      registeredName: '',
+      tinNumber: '',
+      registeredAddress: '',
+      businessLastName: '',
+      proprietorFirstName: '',
+      proprietorMiddleName: '',
+      proprietorLastName: '',
+      proprietorAddress: '',
+      proprietorTin: '',
+      personFirstName: '',
+      personMiddleName: '',
+      personLastName: '',
+      personEmail: '',
+      personViber: '',
+      personPhone: '',
+      logoFile: null,
+    });
+    setBusinessType('corporation');
+    setLogoPreview(null);
+    setShowPassword(false);
+    setShowAddIssuerModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddIssuerModal(false);
+    setLogoPreview(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'businessType') {
+      setBusinessType(value);
+      setFormData({ ...formData, businessType: value });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Logo must be less than 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+        setFormData({ ...formData, logoFile: file });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateIssuerAccount = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    if (!formData.registeredName.trim()) {
+      toast.error('Registered name is required');
+      return;
+    }
+
+    if (!formData.tinNumber.trim()) {
+      toast.error('TIN number is required');
+      return;
+    }
+
+    if (!formData.registeredAddress.trim()) {
+      toast.error('Registered address is required');
+      return;
+    }
+
+    if (businessType === 'sole_proprietor') {
+      if (!formData.proprietorFirstName.trim() || !formData.proprietorLastName.trim()) {
+        toast.error('Proprietor first and last name are required');
+        return;
+      }
+    }
+
+    if (!formData.personFirstName.trim() || !formData.personLastName.trim()) {
+      toast.error('Authorized personnel first and last name are required');
+      return;
+    }
+
+    if (!formData.personEmail.trim()) {
+      toast.error('Authorized personnel email is required');
+      return;
+    }
 
     try {
-      setIsLoading(true);
+      setSubmitting(true);
+
+      // Prepare logo base64 if exists
+      let logoBase64 = null;
+      if (formData.logoFile) {
+        logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(formData.logoFile);
+        });
+      }
+
+      // Generate password
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
+
+      // Create issuer account
+      const payload = {
+        endpoint: 'create-issuer',
+        businessType: formData.businessType,
+        organizationName: formData.registeredName,
+        tinNumber: formData.tinNumber,
+        address: formData.registeredAddress,
+        businessLastName: formData.businessLastName,
+        proprietorFirstName: formData.proprietorFirstName,
+        proprietorMiddleName: formData.proprietorMiddleName,
+        proprietorLastName: formData.proprietorLastName,
+        proprietorAddress: formData.proprietorAddress,
+        proprietorTin: formData.proprietorTin,
+        personFirstName: formData.personFirstName,
+        personMiddleName: formData.personMiddleName,
+        personLastName: formData.personLastName,
+        personEmail: formData.personEmail,
+        personViber: formData.personViber,
+        personPhone: formData.personPhone,
+        signaturaid: generatedSignaturaId,
+        tempPassword: tempPassword,
+        logoBase64: logoBase64,
+      };
 
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete-user', userId }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
+
       if (data.success) {
-        toast.success('User deleted');
-        setUsers(users.filter(u => u.id !== userId));
+        toast.success('✅ Issuer account created successfully!');
+        toast.success(`📧 Login credentials sent to ${formData.personEmail}`);
+        
+        // Refresh issuers list
+        fetchData();
+        
+        // Close modal
+        handleCloseModal();
       } else {
-        toast.error(data.error || 'Failed to delete user');
+        toast.error(data.error || 'Failed to create account');
       }
-    } catch (error) {
-      toast.error('Error deleting user');
-      console.error(error);
+    } catch (err) {
+      console.error('Error creating issuer:', err);
+      toast.error('Error creating account');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRevokeDocument = async (docId) => {
-    if (!window.confirm('Revoke this document?')) return;
-
-    try {
-      setIsLoading(true);
-
-      const res = await fetch('/api/documents', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: docId, status: 'revoked' }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Document revoked');
-        setDocuments(documents.map(d => d.id === docId ? {...d, status: 'revoked'} : d));
-      } else {
-        toast.error(data.error || 'Failed to revoke document');
-      }
-    } catch (error) {
-      toast.error('Error revoking document');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRevokeShare = async (shareId) => {
-    if (!window.confirm('Revoke this share?')) return;
-
-    try {
-      const res = await fetch('/api/sharing', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: shareId }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Share revoked');
-        setShares(shares.filter(s => s.id !== shareId));
-      }
-    } catch (error) {
-      toast.error('Error revoking share');
+      setSubmitting(false);
     }
   };
 
@@ -188,357 +260,456 @@ export default function AdminDashboard() {
     toast.success('Logged out!');
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-signatura-red text-white transition-all duration-300 fixed h-screen left-0 top-0 z-40`}>
-        <div className="flex items-center justify-between p-4 border-b border-signatura-accent">
-          {sidebarOpen && <h1 className="text-xl font-bold">Admin</h1>}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-signatura-accent rounded">
-            {sidebarOpen ? <FiX /> : <FiMenu />}
-          </button>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          {[
-            { id: 'statistics', icon: FiTrendingUp, label: 'Statistics' },
-            { id: 'users', icon: FiUsers, label: 'Users' },
-            { id: 'documents', icon: FiFileText, label: 'Documents' },
-            { id: 'sharing', icon: FiFileText, label: 'Shares' },
-            { id: 'security', icon: FiAlertCircle, label: 'Security' },
-          ].map(({ id, icon: Icon, label }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center space-x-3 px-4 py-2 rounded transition ${
-                activeTab === id ? 'bg-signatura-accent' : 'hover:bg-signatura-accent hover:bg-opacity-50'
-              }`}
-            >
-              <Icon />
-              {sidebarOpen && <span>{label}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="absolute bottom-4 left-4 right-4">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded hover:bg-signatura-accent transition"
-          >
-            <FiLogOut />
-            {sidebarOpen && <span>Logout</span>}
-          </button>
+  if (loading && issuers.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+          <p className="mt-4 text-gray-600 font-semibold">Loading admin panel...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-8 py-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">🔐 ADMIN PORTAL</h1>
+            <p className="text-gray-600 text-sm mt-1">{user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-5 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition font-semibold"
+          >
+            <FiLogOut />
+            Logout
+          </button>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <div className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="px-8 py-4">
-            <h2 className="text-2xl font-bold text-signatura-dark">Admin Dashboard</h2>
-            <p className="text-gray-600">{user?.email}</p>
+      <main className="max-w-7xl mx-auto px-8 py-12">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Document Issuers - Orange */}
+          <div className="bg-white rounded-xl border-4 border-orange-400 p-8 shadow-md hover:shadow-lg transition">
+            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Document Issuers</h3>
+            <p className="text-5xl font-bold text-orange-600 mt-3">{stats.totalIssuers}</p>
+            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+              VIEW
+            </button>
+          </div>
+
+          {/* Subscribers - Green */}
+          <div className="bg-white rounded-xl border-4 border-green-400 p-8 shadow-md hover:shadow-lg transition">
+            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Subscribers</h3>
+            <p className="text-5xl font-bold text-green-600 mt-3">{stats.totalSubscribers}</p>
+            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+              VIEW
+            </button>
+          </div>
+
+          {/* Documents - Purple */}
+          <div className="bg-white rounded-xl border-4 border-purple-400 p-8 shadow-md hover:shadow-lg transition">
+            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Documents</h3>
+            <p className="text-5xl font-bold text-purple-600 mt-3">{stats.totalDocuments}</p>
+            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+              VIEW
+            </button>
+          </div>
+
+          {/* Issued Documents - Blue */}
+          <div className="bg-white rounded-xl border-4 border-blue-400 p-8 shadow-md hover:shadow-lg transition">
+            <h3 className="text-gray-700 font-bold text-sm uppercase tracking-wide">Issued Documents</h3>
+            <p className="text-5xl font-bold text-blue-600 mt-3">{stats.totalIssued.toLocaleString()}</p>
+            <button className="mt-6 px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition">
+              VIEW
+            </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8">
-          {activeTab === 'statistics' && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Total Users</p>
-                  <p className="text-3xl font-bold text-signatura-red">{stats.totalUsers || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Total Documents</p>
-                  <p className="text-3xl font-bold text-blue-600">{stats.totalDocuments || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Encrypted Docs</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.encryptedDocuments || 0}</p>
-                </div>
-              </div>
+        {/* Add Button */}
+        <button
+          onClick={handleOpenAddIssuerModal}
+          className="mb-8 px-8 py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2 text-lg shadow-md hover:shadow-lg"
+        >
+          <FiPlus /> ADD DOCUMENT ISSUER
+        </button>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Active Shares</p>
-                  <p className="text-3xl font-bold text-purple-600">{stats.activeShares || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Verification Requests</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.totalRequests || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg p-6 shadow">
-                  <p className="text-gray-600 text-sm">Pending Verifications</p>
-                  <p className="text-3xl font-bold text-orange-600">{stats.activeVerifications || 0}</p>
-                </div>
-              </div>
+        {/* Issuers Table - Desktop View */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden hidden md:block">
+          <div className="px-8 py-6 border-b-4 border-blue-900 bg-blue-900 text-white">
+            <h2 className="text-2xl font-bold">LIST OF DOCUMENT ISSUERS</h2>
+          </div>
 
-              {/* Recent Audit Logs */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-bold text-signatura-dark">Recent Activity</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Action</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">User</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Resource</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {auditLogs.length === 0 ? (
-                        <tr>
-                          <td colSpan="4" className="px-6 py-8 text-center text-gray-500">No activity yet</td>
-                        </tr>
-                      ) : (
-                        auditLogs.map((log) => (
-                          <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">{log.action}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{log.actor_email || 'System'}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{log.resource_type}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">
-                              {new Date(log.created_at).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          {issuers.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <p className="text-lg">No issuers added yet. Click "ADD DOCUMENT ISSUER" to create one.</p>
             </div>
-          )}
-
-          {activeTab === 'users' && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-signatura-dark">All Users ({users.length})</h3>
-              </div>
-              {isLoading ? (
-                <div className="p-8 text-center text-gray-500">Loading...</div>
-              ) : users.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No users found</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Organization</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Documents</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Joined</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {users.map((u) => (
-                        <tr key={u.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-900">{u.email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                              {u.role}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{u.organization_name || '-'}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{u.document_count || 0}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {new Date(u.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <button
-                              onClick={() => handleDeleteUser(u.id)}
-                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                              disabled={isLoading}
-                            >
-                              <FiTrash2 />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'documents' && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-signatura-dark">All Documents ({documents.length})</h3>
-              </div>
-              {isLoading ? (
-                <div className="p-8 text-center text-gray-500">Loading...</div>
-              ) : documents.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No documents found</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Type</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Encrypted</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Issued</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {documents.map((doc) => (
-                        <tr key={doc.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{doc.title}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600 capitalize">{doc.document_type}</td>
-                          <td className="px-6 py-4 text-sm">
-                            {doc.is_encrypted ? (
-                              <span className="flex items-center text-green-600 font-medium">
-                                <FiLock size={14} className="mr-1" />
-                                Yes
-                              </span>
-                            ) : (
-                              <span className="text-gray-600">No</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              doc.status === 'active' ? 'bg-green-100 text-green-800' :
-                              doc.status === 'revoked' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {doc.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {new Date(doc.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            {doc.status === 'active' && (
-                              <button
-                                onClick={() => handleRevokeDocument(doc.id)}
-                                className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                                disabled={isLoading}
-                              >
-                                <FiTrash2 />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'sharing' && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-signatura-dark">Document Shares ({shares.length})</h3>
-              </div>
-              {isLoading ? (
-                <div className="p-8 text-center text-gray-500">Loading...</div>
-              ) : shares.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No shares found</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Document</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Recipient</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Permissions</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">OTP Required</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Expires</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {shares.map((share) => (
-                        <tr key={share.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{share.document?.title || 'N/A'}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{share.recipient_email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{share.permissions?.join(', ')}</td>
-                          <td className="px-6 py-4 text-sm">
-                            {share.require_otp ? (
-                              <span className="text-green-600 font-medium">✓ Yes</span>
-                            ) : (
-                              <span className="text-gray-600">No</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {new Date(share.expires_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <button
-                              onClick={() => handleRevokeShare(share.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <FiTrash2 />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-signatura-dark">Security Events ({securityEvents.length})</h3>
-              </div>
-              {isLoading ? (
-                <div className="p-8 text-center text-gray-500">Loading...</div>
-              ) : securityEvents.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No security events</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Event</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">User</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Severity</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {securityEvents.map((event) => (
-                        <tr key={event.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{event.event_type}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{event.user_email}</td>
-                          <td className="px-6 py-4 text-sm">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              event.severity === 'high' ? 'bg-red-100 text-red-800' :
-                              event.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {event.severity}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {new Date(event.created_at).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-blue-900 text-white">
+                  <tr>
+                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">SIGNATURA ID</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">REGISTERED NAME</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">ADDRESS</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">DIGITAL DOCUMENTS</th>
+                    <th className="px-8 py-4 text-left text-sm font-bold uppercase">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {issuers.map((issuer) => (
+                    <tr key={issuer.id} className="hover:bg-gray-50 transition">
+                      <td className="px-8 py-5 text-sm font-mono font-bold text-gray-900">{issuer.signatura_id || 'N/A'}</td>
+                      <td className="px-8 py-5 text-sm text-gray-900 font-semibold">{issuer.organization_name}</td>
+                      <td className="px-8 py-5 text-sm text-gray-600">{issuer.address || 'N/A'}</td>
+                      <td className="px-8 py-5 text-sm text-gray-600 font-semibold">{issuer.document_count || 0}</td>
+                      <td className="px-8 py-5 text-sm flex gap-2">
+                        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition">
+                          UPDATE
+                        </button>
+                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition">
+                          ADD DOCUMENT
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
-      </div>
+
+        {/* Issuers Cards - Mobile View */}
+        <div className="md:hidden space-y-4">
+          {issuers.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p>No issuers added yet. Click "ADD DOCUMENT ISSUER" to create one.</p>
+            </div>
+          ) : (
+            issuers.map((issuer) => (
+              <div key={issuer.id} className="bg-white rounded-lg border-2 border-gray-300 p-4 shadow">
+                <div className="font-bold text-gray-900">{issuer.signatura_id}</div>
+                <div className="text-sm text-gray-600 mt-1">{issuer.organization_name}</div>
+                <div className="text-sm text-gray-600 mt-1">{issuer.address || 'N/A'}</div>
+                <div className="text-sm font-semibold text-gray-900 mt-2">Docs: {issuer.document_count || 0}</div>
+                <div className="flex gap-2 mt-4">
+                  <button className="flex-1 px-3 py-2 bg-orange-500 text-white rounded text-xs font-bold hover:bg-orange-600">
+                    UPDATE
+                  </button>
+                  <button className="flex-1 px-3 py-2 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-600">
+                    ADD DOC
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </main>
+
+      {/* Add Issuer Modal */}
+      {showAddIssuerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-purple-600 text-white px-8 py-6 flex justify-between items-center border-b-4 border-purple-800">
+              <h2 className="text-2xl font-bold uppercase tracking-wide">ADD DOCUMENT ISSUER</h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 hover:bg-purple-700 rounded transition"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleCreateIssuerAccount} className="p-8 space-y-8">
+              <div className="grid grid-cols-2 gap-12">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Business Information Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Business Information</h3>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Business Type *</label>
+                      <select
+                        name="businessType"
+                        value={businessType}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none bg-white font-semibold"
+                      >
+                        <option value="corporation">Corporation</option>
+                        <option value="partnership">Partnership</option>
+                        <option value="sole_proprietor">Sole Proprietor</option>
+                      </select>
+                      <p className="text-xs text-red-600 mt-1 font-semibold">Dropdown: Corporation, Partnership, Sole Proprietor</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Registered Name *</label>
+                      <input
+                        type="text"
+                        name="registeredName"
+                        value={formData.registeredName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">TIN Number *</label>
+                      <input
+                        type="text"
+                        name="tinNumber"
+                        value={formData.tinNumber}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Registered Address *</label>
+                      <input
+                        type="text"
+                        name="registeredAddress"
+                        value={formData.registeredAddress}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        required
+                      />
+                    </div>
+
+                    {businessType !== 'sole_proprietor' && (
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
+                        <input
+                          type="text"
+                          name="businessLastName"
+                          value={formData.businessLastName}
+                          onChange={handleFormChange}
+                          className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sole Proprietor Data (Conditional) */}
+                  {businessType === 'sole_proprietor' && (
+                    <div className="space-y-4 border-l-4 border-red-600 pl-4 py-4">
+                      <h3 className="text-lg font-bold text-gray-900 uppercase">Sole Proprietor Data</h3>
+                      <p className="text-xs text-red-600 font-semibold">*These fields will only appear if dropdown is sole proprietor</p>
+
+                      <input
+                        type="text"
+                        name="proprietorFirstName"
+                        placeholder="First Name *"
+                        value={formData.proprietorFirstName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        required
+                      />
+
+                      <input
+                        type="text"
+                        name="proprietorMiddleName"
+                        placeholder="Middle Name"
+                        value={formData.proprietorMiddleName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                      />
+
+                      <input
+                        type="text"
+                        name="proprietorLastName"
+                        placeholder="Last Name *"
+                        value={formData.proprietorLastName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                        required
+                      />
+
+                      <input
+                        type="text"
+                        name="proprietorAddress"
+                        placeholder="Address"
+                        value={formData.proprietorAddress}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                      />
+
+                      <input
+                        type="text"
+                        name="proprietorTin"
+                        placeholder="TIN Number"
+                        value={formData.proprietorTin}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Logo Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Business Logo</h3>
+
+                    <div className="flex gap-4 items-start">
+                      {logoPreview && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={logoPreview}
+                            alt="Logo Preview"
+                            className="h-24 w-24 object-contain border-2 border-gray-400 rounded p-2 bg-gray-50"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex-1">
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                            className="hidden"
+                          />
+                          <span className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 cursor-pointer transition flex items-center gap-2 w-fit">
+                            <FiUpload /> Add Logo
+                          </span>
+                        </label>
+                        <p className="text-xs text-gray-600 mt-2">Max: 5MB (JPG, PNG)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Authorized Personnel */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900 uppercase border-b-2 border-gray-300 pb-2">Authorized Personnel</h3>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">First Name *</label>
+                      <input
+                        type="text"
+                        name="personFirstName"
+                        value={formData.personFirstName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Middle Name</label>
+                      <input
+                        type="text"
+                        name="personMiddleName"
+                        value={formData.personMiddleName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Last Name *</label>
+                      <input
+                        type="text"
+                        name="personLastName"
+                        value={formData.personLastName}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        name="personEmail"
+                        value={formData.personEmail}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Viber #</label>
+                      <input
+                        type="text"
+                        name="personViber"
+                        value={formData.personViber}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Handphone #</label>
+                      <input
+                        type="text"
+                        name="personPhone"
+                        value={formData.personPhone}
+                        onChange={handleFormChange}
+                        className="w-full px-4 py-2 border-2 border-gray-400 rounded focus:border-purple-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* LOG-IN CREDENTIALS */}
+                  <div className="bg-gray-100 rounded-lg p-6 space-y-4 border-2 border-gray-400">
+                    <h3 className="text-lg font-bold text-gray-900 uppercase">LOG-IN CREDENTIALS</h3>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">SIGNATURA ID</label>
+                      <input
+                        type="text"
+                        value={generatedSignaturaId}
+                        disabled
+                        className="w-full px-4 py-3 border-2 border-gray-400 rounded bg-gray-200 cursor-not-allowed font-mono font-bold"
+                      />
+                      <p className="text-xs text-red-600 mt-2 font-semibold">SIGNATURA ID is system generated</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Note */}
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                <p className="text-xs text-yellow-800 font-semibold">
+                  ⚠️ After create issuer button - save to database and send login credential to authorized personnel email address
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-4 pt-8 border-t-2 border-gray-300">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition disabled:opacity-50"
+                >
+                  {submitting ? 'Creating Account...' : 'Create Issuer Account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-bold text-lg hover:bg-gray-500 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
