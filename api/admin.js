@@ -1,4 +1,4 @@
-// pages/api/admin.js - FIXED: Uses Supabase Auth like your login system
+// pages/api/admin.js - CORRECT: Save to users table
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -191,7 +191,6 @@ async function createIssuerAccount(req, res) {
     });
   }
 
-  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(personEmail)) {
     return res.status(400).json({
@@ -201,21 +200,19 @@ async function createIssuerAccount(req, res) {
   }
 
   try {
-    // Generate temporary password
     const tempPassword = `Temp${Date.now().toString().slice(-6)}@${Math.random().toString(36).substr(2, 4)}`;
 
     console.log('\n✅ Validation passed');
-    console.log('Temp Password:', tempPassword);
 
     // ===== STEP 1: Create User in Supabase Auth =====
-    console.log('\nStep 1: Creating user in Supabase Auth...');
+    console.log('\n📍 Step 1: Creating user in Supabase Auth...');
 
     const fullName = `${personFirstName} ${personLastName}`.trim();
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: personEmail.toLowerCase().trim(),
       password: tempPassword,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         full_name: fullName,
         organization_name: organizationName.trim(),
@@ -236,42 +233,60 @@ async function createIssuerAccount(req, res) {
     const issuerId = authData.user.id;
     console.log('✅ User created in Supabase Auth:', issuerId);
 
-    // ===== STEP 2: Create Issuer Details Record =====
-    console.log('\nStep 2: Creating issuer details...');
+    // ===== STEP 2: Save User Details to users TABLE =====
+    console.log('\n📍 Step 2: Saving details to users table...');
 
-    try {
-      await supabase.from('issuer_details').insert({
-        id: uuidv4(),
-        user_id: issuerId,
-        business_type: businessType,
-        organization_name: organizationName.trim(),
-        tin_number: tinNumber.trim(),
-        address: address?.trim(),
-        business_last_name: businessLastName?.trim(),
-        proprietor_first_name: proprietorFirstName?.trim(),
-        proprietor_middle_name: proprietorMiddleName?.trim(),
-        proprietor_last_name: proprietorLastName?.trim(),
-        proprietor_address: proprietorAddress?.trim(),
-        proprietor_tin: proprietorTin?.trim(),
-        authorized_first_name: personFirstName?.trim(),
-        authorized_middle_name: personMiddleName?.trim(),
-        authorized_last_name: personLastName?.trim(),
-        authorized_email: personEmail.toLowerCase().trim(),
-        authorized_viber: personViber?.trim(),
-        authorized_phone: personPhone?.trim(),
-        signatura_id: signaturaid,
-        status: 'active',
-        created_at: new Date().toISOString(),
+    const userPayload = {
+      id: issuerId,
+      email: personEmail.toLowerCase().trim(),
+      first_name: personFirstName?.trim(),
+      middle_name: personMiddleName?.trim(),
+      last_name: personLastName?.trim(),
+      phone_number: personPhone?.trim(),
+      viber_number: personViber?.trim(),
+      address: address?.trim(),
+      organization_name: organizationName.trim(),
+      role: 'issuer',
+      signatura_id: signaturaid,
+      business_type: businessType,
+      tin_number: tinNumber.trim(),
+      business_last_name: businessLastName?.trim(),
+      proprietor_first_name: proprietorFirstName?.trim(),
+      proprietor_middle_name: proprietorMiddleName?.trim(),
+      proprietor_last_name: proprietorLastName?.trim(),
+      proprietor_address: proprietorAddress?.trim(),
+      proprietor_tin: proprietorTin?.trim(),
+      status: 'active',
+      created_at: new Date().toISOString(),
+    };
+
+    console.log('📤 Inserting to users table:', {
+      id: issuerId,
+      email: personEmail,
+      first_name: personFirstName,
+      last_name: personLastName,
+      organization_name: organizationName,
+      role: 'issuer',
+    });
+
+    const { error: userError } = await supabase
+      .from('users')
+      .insert(userPayload);
+
+    if (userError) {
+      console.error('❌ ERROR saving to users table:', userError);
+      console.error('Error code:', userError.code);
+      console.error('Error message:', userError.message);
+      return res.status(400).json({
+        success: false,
+        error: `Failed to save user details: ${userError.message}`,
       });
-
-      console.log('✅ Issuer details created');
-    } catch (err) {
-      console.warn('⚠️ Issuer details warning:', err.message);
-      // Don't fail if this fails - auth user is still created
     }
 
+    console.log('✅ User details saved to users table!');
+
     // ===== STEP 3: Create Audit Log =====
-    console.log('\nStep 3: Creating audit log...');
+    console.log('\n📍 Step 3: Creating audit log...');
 
     try {
       await supabase.from('audit_logs').insert({
@@ -291,12 +306,12 @@ async function createIssuerAccount(req, res) {
       });
 
       console.log('✅ Audit log created');
-    } catch (err) {
-      console.warn('⚠️ Audit log warning:', err.message);
+    } catch (auditErr) {
+      console.warn('⚠️ Audit log warning:', auditErr.message);
     }
 
     // ===== STEP 4: Generate JWT Token =====
-    console.log('\nStep 4: Generating JWT token...');
+    console.log('\n📍 Step 4: Generating JWT token...');
 
     const token = jwt.sign(
       {
@@ -310,6 +325,7 @@ async function createIssuerAccount(req, res) {
 
     console.log('✅ JWT token generated');
     console.log('\n✅✅✅ SUCCESS! Issuer account created!');
+    console.log('All details saved to users table!');
 
     return res.status(201).json({
       success: true,
@@ -321,7 +337,7 @@ async function createIssuerAccount(req, res) {
         fullName,
         tempPassword,
         token,
-        message: 'Issuer account created successfully. Credentials sent to email.',
+        message: 'Issuer account created successfully. All details saved!',
       },
     });
   } catch (error) {
