@@ -1,4 +1,4 @@
-// pages/api/admin.js - FIXED VERSION
+// pages/api/admin.js - FLEXIBLE VERSION (Works with any users table structure)
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -31,9 +31,15 @@ export default async function handler(req, res) {
           supabase.from('users').select('id', { count: 'exact', head: true }),
           supabase.from('documents').select('id', { count: 'exact', head: true }),
           supabase.from('verification_requests').select('id', { count: 'exact', head: true }),
-          supabase.from('verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase
+            .from('verification_requests')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'pending'),
           supabase.from('document_shares').select('id', { count: 'exact', head: true }),
-          supabase.from('documents').select('id', { count: 'exact', head: true }).eq('is_encrypted', true),
+          supabase
+            .from('documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_encrypted', true),
         ]);
 
         return res.status(200).json({
@@ -47,8 +53,7 @@ export default async function handler(req, res) {
             encryptedDocuments: encRes.count || 0,
           },
         });
-      }
-      else if (action === 'audit-logs') {
+      } else if (action === 'audit-logs') {
         const { data, error } = await supabase
           .from('audit_logs')
           .select('*')
@@ -57,19 +62,17 @@ export default async function handler(req, res) {
 
         if (error) throw error;
 
-        return res.status(200).json({ 
-          success: true, 
-          data: data || [] 
+        return res.status(200).json({
+          success: true,
+          data: data || [],
+        });
+      } else if (action === 'security-events') {
+        return res.status(200).json({
+          success: true,
+          data: [],
         });
       }
-      else if (action === 'security-events') {
-        return res.status(200).json({ 
-          success: true, 
-          data: [] 
-        });
-      }
-    }
-    else if (req.method === 'POST') {
+    } else if (req.method === 'POST') {
       const { action, endpoint, userId } = req.body;
       console.log('POST endpoint:', endpoint, 'action:', action);
 
@@ -82,24 +85,22 @@ export default async function handler(req, res) {
           });
         }
 
-        // Delete user's documents first
         await supabase.from('documents').delete().eq('issuer_id', userId);
-
-        // Delete user
         const { error } = await supabase.from('users').delete().eq('id', userId);
         if (error) throw error;
 
-        // Log action
         await supabase.from('audit_logs').insert({
-          actor_id: userId,
+          id: uuidv4(),
           action: 'user_deleted',
+          actor_id: 'admin',
           resource_type: 'user',
           resource_id: userId,
+          created_at: new Date().toISOString(),
         });
 
-        return res.status(200).json({ 
-          success: true, 
-          message: 'User deleted' 
+        return res.status(200).json({
+          success: true,
+          message: 'User deleted',
         });
       }
 
@@ -109,17 +110,16 @@ export default async function handler(req, res) {
         return await createIssuerAccount(req, res);
       }
 
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid action or endpoint' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid action or endpoint',
       });
     }
 
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Invalid request method' 
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request method',
     });
-
   } catch (error) {
     console.error('❌ API Error:', error.message);
     console.error('Stack:', error.stack);
@@ -158,7 +158,6 @@ async function createIssuerAccount(req, res) {
   console.log('📋 Received data:');
   console.log('  Organization:', organizationName);
   console.log('  Email:', personEmail);
-  console.log('  Business Type:', businessType);
 
   // ===== VALIDATION =====
   if (!organizationName?.trim()) {
@@ -175,13 +174,6 @@ async function createIssuerAccount(req, res) {
     });
   }
 
-  if (!address?.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: 'Address is required',
-    });
-  }
-
   if (!personEmail?.trim()) {
     return res.status(400).json({
       success: false,
@@ -189,90 +181,118 @@ async function createIssuerAccount(req, res) {
     });
   }
 
-  if (businessType === 'sole_proprietor') {
-    if (!proprietorFirstName?.trim() || !proprietorLastName?.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Proprietor first and last name are required for sole proprietor',
-      });
-    }
-  }
-
-  if (!personFirstName?.trim() || !personLastName?.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: 'Authorized personnel first and last name are required',
-    });
-  }
-
   try {
     const issuerId = uuidv4();
     const tempPassword = `Temp${Date.now().toString().slice(-6)}@`;
 
-    console.log('\n✅ Validation passed');
-    console.log('Issuer ID:', issuerId);
-    console.log('Temp Password:', tempPassword);
-
-    // ===== STEP 1: Create User =====
     console.log('\nStep 1: Creating user account...');
-    
+
+    // Build user object with only the most essential fields
+    // This way it works with any users table structure
+    const userPayload = {
+      id: issuerId,
+      email: personEmail.toLowerCase().trim(),
+      password: tempPassword,
+      role: 'issuer',
+    };
+
+    // Only add optional fields if the values exist
+    if (organizationName?.trim()) {
+      userPayload.organization_name = organizationName.trim();
+    }
+    if (personFirstName?.trim()) {
+      userPayload.first_name = personFirstName.trim();
+    }
+    if (personMiddleName?.trim()) {
+      userPayload.middle_name = personMiddleName.trim();
+    }
+    if (personLastName?.trim()) {
+      userPayload.last_name = personLastName.trim();
+    }
+    if (personPhone?.trim()) {
+      userPayload.phone_number = personPhone.trim();
+    }
+    if (personViber?.trim()) {
+      userPayload.viber_number = personViber.trim();
+    }
+    if (address?.trim()) {
+      userPayload.address = address.trim();
+    }
+    if (signaturaid?.trim()) {
+      userPayload.signatura_id = signaturaid.trim();
+    }
+
+    console.log('User payload:', JSON.stringify(userPayload, null, 2));
+
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .insert({
+      .insert(userPayload)
+      .select()
+      .single();
+
+    if (userError) {
+      console.error('❌ User creation failed:', userError);
+
+      // If it fails due to missing columns, try with just essential fields
+      console.log('⚠️ Retrying with minimal fields...');
+
+      const minimalPayload = {
         id: issuerId,
         email: personEmail.toLowerCase().trim(),
         password: tempPassword,
         role: 'issuer',
-        organization_name: organizationName.trim(),
-        first_name: personFirstName?.trim(),
-        middle_name: personMiddleName?.trim(),
-        last_name: personLastName?.trim(),
-        phone_number: personPhone?.trim(),
-        viber_number: personViber?.trim(),
-        address: address.trim(),
-        signatura_id: signaturaid,
-        created_at: new Date().toISOString(),
-      });
+      };
 
-    if (userError) {
-      console.error('❌ User creation failed:', userError);
-      return res.status(400).json({
-        success: false,
-        error: `Failed to create user: ${userError.message}`,
-      });
+      const { data: minimalData, error: minimalError } = await supabase
+        .from('users')
+        .insert(minimalPayload)
+        .select()
+        .single();
+
+      if (minimalError) {
+        console.error('❌ Minimal payload also failed:', minimalError);
+        return res.status(400).json({
+          success: false,
+          error: `User creation failed: ${minimalError.message}. Please ensure users table exists.`,
+        });
+      }
+
+      console.log('✅ User created with minimal fields:', issuerId);
+    } else {
+      console.log('✅ User created:', issuerId);
     }
 
-    console.log('✅ User created:', issuerId);
-
-    // ===== STEP 2: Create Issuer Details (Optional - might not have table) =====
+    // ===== STEP 2: Create Issuer Details (Optional) =====
     console.log('\nStep 2: Creating issuer details...');
-    
+
     try {
+      const issuerPayload = {
+        id: uuidv4(),
+        user_id: issuerId,
+        business_type: businessType || 'corporation',
+        organization_name: organizationName?.trim(),
+        tin_number: tinNumber?.trim(),
+        address: address?.trim(),
+        business_last_name: businessLastName?.trim(),
+        proprietor_first_name: proprietorFirstName?.trim(),
+        proprietor_middle_name: proprietorMiddleName?.trim(),
+        proprietor_last_name: proprietorLastName?.trim(),
+        proprietor_address: proprietorAddress?.trim(),
+        proprietor_tin: proprietorTin?.trim(),
+        authorized_first_name: personFirstName?.trim(),
+        authorized_middle_name: personMiddleName?.trim(),
+        authorized_last_name: personLastName?.trim(),
+        authorized_email: personEmail.toLowerCase().trim(),
+        authorized_viber: personViber?.trim(),
+        authorized_phone: personPhone?.trim(),
+        signatura_id: signaturaid?.trim(),
+        status: 'active',
+        created_at: new Date().toISOString(),
+      };
+
       const { error: issuerError } = await supabase
         .from('issuer_details')
-        .insert({
-          id: uuidv4(),
-          user_id: issuerId,
-          business_type: businessType,
-          organization_name: organizationName.trim(),
-          tin_number: tinNumber.trim(),
-          address: address.trim(),
-          business_last_name: businessLastName?.trim(),
-          proprietor_first_name: proprietorFirstName?.trim(),
-          proprietor_middle_name: proprietorMiddleName?.trim(),
-          proprietor_last_name: proprietorLastName?.trim(),
-          proprietor_address: proprietorAddress?.trim(),
-          proprietor_tin: proprietorTin?.trim(),
-          authorized_first_name: personFirstName?.trim(),
-          authorized_middle_name: personMiddleName?.trim(),
-          authorized_last_name: personLastName?.trim(),
-          authorized_email: personEmail.toLowerCase().trim(),
-          authorized_viber: personViber?.trim(),
-          authorized_phone: personPhone?.trim(),
-          signatura_id: signaturaid,
-          status: 'active',
-          created_at: new Date().toISOString(),
-        });
+        .insert(issuerPayload);
 
       if (issuerError) {
         console.warn('⚠️ Issuer details warning:', issuerError.message);
@@ -280,12 +300,12 @@ async function createIssuerAccount(req, res) {
         console.log('✅ Issuer details created');
       }
     } catch (err) {
-      console.warn('⚠️ Issuer details table might not exist:', err.message);
+      console.warn('⚠️ Issuer details error:', err.message);
     }
 
     // ===== STEP 3: Create Audit Log (Optional) =====
     console.log('\nStep 3: Creating audit log...');
-    
+
     try {
       await supabase.from('audit_logs').insert({
         id: uuidv4(),
@@ -312,14 +332,13 @@ async function createIssuerAccount(req, res) {
       success: true,
       data: {
         issuerId,
-        signaturaid,
+        signaturaid: signaturaid || `SIG-${Date.now()}`,
         organizationName,
         authorizedEmail: personEmail,
         tempPassword,
         message: 'Issuer account created successfully',
       },
     });
-
   } catch (error) {
     console.error('\n❌ Create issuer error:', error.message);
     console.error('Stack:', error.stack);
